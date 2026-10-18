@@ -1,3 +1,4 @@
+import KnowledgeMaterialSelector from "../components/KnowledgeMaterialSelector";
 import {
   useCallback,
   useEffect,
@@ -1512,6 +1513,8 @@ function PlanEditorModal({
                 </p>
               </div>
             </div>
+
+            <KnowledgeMaterialSelector resources={form.resources || []} onChange={resources => update('resources', resources)} disabled={saving} />
 
             {form.resources?.length > 0 && (
               <div className="mt-4">

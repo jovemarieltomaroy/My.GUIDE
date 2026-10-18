@@ -1,9 +1,11 @@
+const { validateKnowledgeAttachments } = require('./knowledgeAttachments');
 const path = require('node:path');
 const fs = require('node:fs/promises');
-const KnowledgeResource = require('../models/knowledgeResource');
+
 
 // Resolve protected resource URLs to files; never fetch arbitrary remote URLs.
-const resolveInterventionAttachments = async (resources) => {
+const resolveInterventionAttachments = async (resources, { user, allowedUploadUrls = [] } = {}) => {
+    const verified = await validateKnowledgeAttachments(resources, user);
     const attachments = [];
     for (const resource of resources) {
         const url = resource.url || '';
@@ -11,16 +13,16 @@ const resolveInterventionAttachments = async (resources) => {
         let filePath;
         let filename;
         if (match) {
-            const stored = await KnowledgeResource.findById(match[1]);
-            if (stored?.isActive && stored.filePath) {
+            const stored = verified.get(match[1]);
+            if (stored?.filePath) {
                 filePath = path.resolve(stored.filePath);
                 filename = path.basename(stored.originalFileName || stored.storedFileName || 'resource.pdf');
                 if (!filename.toLowerCase().endsWith('.pdf')) filename += '.pdf';
             }
         } else if (url.startsWith('/uploads/')) {
-            const root = path.resolve('uploads');
+            const root = path.resolve('uploads/intervention-resources');
             const resolved = path.resolve(process.cwd(), url.slice(1));
-            if (resolved.startsWith(root + path.sep)) {
+            if (allowedUploadUrls.includes(url) && resolved.startsWith(root + path.sep)) {
                 filePath = resolved;
                 const extension = path.extname(resolved);
                 filename = path.basename(resource.title || resolved);

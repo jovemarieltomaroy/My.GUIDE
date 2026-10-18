@@ -739,7 +739,9 @@ export default function CaseDetailsPage() {
                 )}
 
                 {!isAdminOverviewOnly && activeTab === "formulation" && (
-                  <FormulationTab caseRecord={caseRecord} />
+                  <FormulationTab key={caseRecord._id} caseRecord={caseRecord}
+                    canEdit={!caseRecord.isArchived && !["Closed", "Terminated"].includes(caseRecord.caseStatus) && (isAdmin ? isCaseCreator : isAssignedCounselor)}
+                    onSaved={record => { setCaseRecord(record); setSuccessMessage("Case formulation saved."); fetchTimeline(); }} />
                 )}
 
                 {!isAdminOverviewOnly && activeTab === "interventions" && (
@@ -1589,51 +1591,58 @@ function HistoryTab({ caseRecord }) {
   );
 }
 
-function FormulationTab({ caseRecord }) {
+function FormulationTab({ caseRecord, canEdit, onSaved }) {
   const formulation = caseRecord.caseFormulation || {};
-
-  return (
-    <div className="space-y-5">
-      <SectionCard title="Case formulation">
-        <LongText
-          label="Presenting problem"
-          value={formulation.presentingProblem}
-        />
-
-        <LongText
-          label="Formulation narrative"
-          value={formulation.formulationNarrative}
-        />
-
-        <LongText
-          label="Counselor assessment"
-          value={formulation.counselorAssessment}
-        />
-      </SectionCard>
-
-      <SectionCard title="LLM-generated summary">
-        {formulation.aiSummary ? (
-          <LongText label="AI summary" value={formulation.aiSummary} />
-        ) : (
-          <div className="rounded-xl border border-dashed border-[#D8CAC6] bg-[#FBF7F6] px-4 py-6 text-center">
-            <div className="mx-auto grid h-9 w-9 place-items-center rounded-lg bg-[#F4EAEA] text-[#8C1518]">
-              <Icon name="sparkle" className="h-4 w-4" />
-            </div>
-
-            <p className="mt-3 text-[15px] font-semibold">
-              No LLM-generated formulation yet
-            </p>
-
-            <p className="mx-auto mt-1 max-w-xl text-[13px] leading-4 text-[#8D8580]">
-              The case can already be reviewed manually. Once the LLM
-              module is available, its draft should appear here for
-              counselor review before approval.
-            </p>
-          </div>
-        )}
-      </SectionCard>
-    </div>
-  );
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [aiDraft, setAiDraft] = useState(null);
+  const fields = [["presentingProblem", "Problem summary"], ["formulationNarrative", "Formulation narrative"], ["counselorAssessment", "Counselor assessment"]];
+  const latestRecommendation = [...(caseRecord.llmRecommendations || [])].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))[0];
+  const beginEdit = () => {
+    setDraft({ presentingProblem: formulation.presentingProblem || "",
+      formulationNarrative: formulation.formulationNarrative || "", counselorAssessment: formulation.counselorAssessment || "" });
+    setError(""); setAiDraft(null); setEditing(true);
+  };
+  const generateSummary = async () => {
+    setGenerating(true); setError('');
+    try {
+      const data = await apiRequest(`/cases/${caseRecord._id}/formulation/summary`, { method: 'POST' });
+      setAiDraft(data.draft);
+    } catch (failure) { setError(failure.message || 'Unable to generate summary.'); }
+    finally { setGenerating(false); }
+  };
+  const save = async event => {
+    event.preventDefault(); setSaving(true); setError("");
+    try {
+      const data = await apiRequest(`/cases/${caseRecord._id}`, { method: 'PATCH', body: JSON.stringify({ caseFormulation: Object.fromEntries(fields.map(([field]) => [field, (draft[field] || '').trim()])) }) });
+      if (!data.case) throw new Error('The updated case could not be loaded. Refresh to check the saved formulation.');
+      onSaved(data.case); setEditing(false);
+    } catch (failure) { setError(failure.message || 'Unable to save formulation.'); }
+    finally { setSaving(false); }
+  };
+  return <div className="space-y-5">
+    <SectionCard title="Case formulation" action={canEdit && !editing ? <button type="button" onClick={beginEdit} className="rounded-lg bg-[#8C1518] px-4 py-2 text-sm font-semibold text-white">{fields.some(([field]) => formulation[field]) ? 'Edit formulation' : 'Add formulation'}</button> : null}>
+      <p className="mb-4 text-sm leading-6 text-[#8D8580]">Record the counselor’s understanding of the presenting concerns, relevant context, and assessment.</p>
+      {error && <div role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      {editing ? <form onSubmit={save} className="space-y-4">
+        <div className="rounded-lg border border-[#E7E2DF] bg-[#FCFBFA] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-semibold">Generate formulation drafts</p><p className="mt-1 text-xs leading-5 text-[#827A76]">Problem summary uses Problem Assessment. Formulation narrative summarizes Mental Status. The proposed counselor assessment brings together those sections and Current Presentation.</p></div><button type="button" disabled={generating || saving} onClick={generateSummary} className="shrink-0 rounded-lg border border-[#DDD8D4] bg-white px-3 py-2 text-sm font-semibold text-[#8C1518] disabled:opacity-50">{generating ? 'Generating…' : 'Generate AI drafts'}</button></div>
+          {aiDraft && <div className="mt-4 border-t border-[#E7E2DF] pt-3"><p className="mb-2 text-xs font-semibold text-[#8C1518]">AI draft — review for accuracy</p><div className="space-y-3">{fields.map(([field, label]) => <div key={field}><p className="text-xs font-semibold text-[#827A76]">{label}{field === 'counselorAssessment' ? ' (AI-proposed)' : ''}</p><p className="mt-1 whitespace-pre-wrap text-sm leading-7">{aiDraft[field] || 'Insufficient recorded information for this field.'}</p></div>)}</div><div className="mt-3 flex gap-2"><button type="button" disabled={saving || generating} onClick={() => { setDraft(current => ({ ...current, ...Object.fromEntries(fields.filter(([field]) => aiDraft[field]?.trim()).map(([field]) => [field, aiDraft[field]])) })); setAiDraft(null); }} className="rounded-lg bg-[#8C1518] px-3 py-2 text-sm font-semibold text-white">Use drafts</button><button type="button" onClick={() => setAiDraft(null)} className="rounded-lg border px-3 py-2 text-sm">Discard</button></div></div>}
+        </div>
+        {fields.map(([field, label]) => <label key={field} className="block"><span className="text-sm font-semibold">{label}</span><textarea rows={field === 'formulationNarrative' ? 6 : 4} disabled={saving} value={draft[field] || ''} onChange={event => setDraft(current => ({ ...current, [field]: event.target.value }))} className="mt-2 w-full rounded-lg border border-[#DDD8D4] bg-white px-3 py-2 text-sm leading-6 outline-none focus:border-[#8C1518] disabled:opacity-60" /></label>)}
+        <div className="flex justify-end gap-2"><button type="button" disabled={saving || generating} onClick={() => { setEditing(false); setError(''); }} className="rounded-lg border border-[#DDD8D4] px-4 py-2 text-sm">Cancel</button><button type="submit" disabled={saving || generating} className="rounded-lg bg-[#8C1518] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Saving…' : 'Save formulation'}</button></div>
+      </form> : <div className="space-y-5">{fields.map(([field, label]) => <LongText key={field} label={label} value={formulation[field] || 'Not recorded yet'} />)}</div>}
+      {!canEdit && <p className="mt-4 text-xs text-[#8D8580]">Formulation editing is available to the authorized counselor while the case is active.</p>}
+    </SectionCard>
+    {formulation.aiSummary && <SectionCard title="Previously recorded AI summary"><LongText label="AI summary" value={formulation.aiSummary} /></SectionCard>}
+    <SectionCard title="AI intervention recommendation context">
+      <p className="mb-4 text-sm leading-6 text-[#8D8580]">AI generates intervention recommendations separately. The formulation above may use AI drafts and remains subject to counselor review.</p>
+      {latestRecommendation ? <div className="space-y-4"><LongText label="Latest recommendation concern summary" value={latestRecommendation.concernSummary} /><LongText label="Recommendation rationale" value={latestRecommendation.rationale} /></div> : <p className="text-sm text-[#8D8580]">No intervention recommendation has been generated for this case yet.</p>}
+    </SectionCard>
+  </div>;
 }
 
 function InterventionsTab({ caseRecord, onOpenWorkspace }) {
@@ -1670,7 +1679,7 @@ function InterventionsTab({ caseRecord, onOpenWorkspace }) {
                 )}
               </div>
 
-              <h4 className="mt-3 text-[15px] font-semibold">
+              <h4 className="mt-3 whitespace-pre-wrap break-words text-justify text-[15px] font-semibold leading-6">
                 {plan.problem}
               </h4>
 

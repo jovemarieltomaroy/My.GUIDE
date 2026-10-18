@@ -68,3 +68,11 @@ img {
 ::-webkit-scrollbar-thumb:hover {
   background: #8c1518;
 }
+/* Keep sidebar navigation scrollable without a visible scrollbar. */
+.app-sidebar-navigation {
+  scrollbar-width: none;
+}
+
+.app-sidebar-navigation::-webkit-scrollbar {
+  display: none;
+}

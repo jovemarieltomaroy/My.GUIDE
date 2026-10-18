@@ -389,9 +389,6 @@ A material with:
 
 Resource Type: worksheet
 Resource Type: handout
-Resource Type: activity
-Resource Type: exercise
-Resource Type: template
 
 may serve as a Supporting Resource that the counselor can use with the student.
 
@@ -399,8 +396,10 @@ may serve as a Supporting Resource that the counselor can use with the student.
 When both are available and relevant:
 
 - use the reference-type source to support counselor actions when appropriate;
-- use the worksheet or activity as the Supporting Resource.
+- suggest a relevant worksheet or handout as the Supporting Resource. The counselor must explicitly select and approve any attachment.
 
+
+A worksheet contains tasks for students to complete. A handout provides information for students to read, without requiring answers or exercises. Both can support counselor actions. Suggesting a resource does not attach or email its PDF.
 
 A worksheet may ALSO support a counselor action if the worksheet itself clearly describes the structured activity.
 
@@ -563,9 +562,6 @@ ONLY the following Resource Types are eligible:
 
 - worksheet
 - handout
-- activity
-- exercise
-- template
 
 A material with:
 
@@ -589,7 +585,7 @@ A supporting resource may be selected only when:
    REFERENCE MATERIALS;
 
 2. its Resource Type is one of:
-   worksheet, handout, activity, exercise, or template;
+   worksheet or handout;
 
 3. its actual content is directly relevant to the
    recommendation; and

@@ -1,3 +1,4 @@
+import { importPreCounselingInformation } from "../utils/preCounselingImport";
 import LLMRecommendationsPage from "./LLMRecommendationsPage";
 import {
   useEffect,
@@ -516,36 +517,11 @@ export default function NewCasePage() {
       return;
     }
 
-    const background =
-      preCounselingForm.backgroundAndPsychosocialHistory;
-
-    setFormData((current) => ({
-      ...current,
-      consent: {
-        ...current.consent,
-        ...(preCounselingForm.consent || {}),
-      },
-      backgroundAndPsychosocialHistory: {
-        ...current.backgroundAndPsychosocialHistory,
-        ...(background || {}),
-        familyConstellation: background?.familyConstellation?.length
-          ? background.familyConstellation.map((member) => ({
-              name: member.name || "",
-              age:
-                member.age === undefined || member.age === null
-                  ? ""
-                  : String(member.age),
-              relationship: member.relationship || "",
-              parentType: member.parentType || "Not Applicable",
-              isSignificantPerson: Boolean(member.isSignificantPerson),
-              remarks: member.remarks || "",
-            }))
-          : current.backgroundAndPsychosocialHistory.familyConstellation,
-      },
-    }));
+    setFormData(current => importPreCounselingInformation(current, preCounselingForm));
+    setActiveSection("history");
 
     setPreCounselingMessage(
-      "Pre-counseling information loaded. You can review and edit it before creating the case.",
+      "Consent, family context and comments, academic/social context, and relevant history loaded. Review the Background and psychosocial history section before creating the case.",
     );
   };
 

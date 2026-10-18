@@ -102,6 +102,8 @@ router.patch(
     assignCounselor
 );
 
+router.post('/:id/formulation/summary', protect, require('../controllers/formulationController').generateFormulationSummary);
+
 router.post(
     "/:id/temporary-access",
     protect,

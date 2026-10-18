@@ -1,3 +1,4 @@
+const { RESOURCE_TYPES } = require('../resourceEligibility');
 const fs = require(
     "fs"
 );
@@ -46,6 +47,9 @@ const {
 const validateMetadata = (
     metadata
 ) => {
+    if (metadata && typeof metadata.resourceType === 'string' && !RESOURCE_TYPES.includes(metadata.resourceType.trim().toLowerCase())) {
+        throw new Error('Select Reference (RAG), Worksheet, or Handout. Legacy resource types require content review.');
+    }
     if (
         !metadata ||
         typeof metadata !==

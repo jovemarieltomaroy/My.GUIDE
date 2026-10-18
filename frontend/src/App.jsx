@@ -112,7 +112,7 @@ function NotFoundPage() {
 
 export default function App() {
   return (
-    <> <ScrollToTop /> 
+    <> <ScrollToTop />
    <Routes>
       <Route
         path="/"
@@ -123,7 +123,7 @@ export default function App() {
         path="/login"
         element={<LoginPage />}
       />
-     
+
       <Route
         path="/pre-counseling/:token"
         element={<PreCounselingFormPage />}
@@ -245,7 +245,7 @@ export default function App() {
         path="/knowledge-base"
         element={
           <ProtectedRoute
-            allowedRoles={["Counselor-Admin"]}
+            allowedRoles={["Counselor-Admin", "Counselor-User"]}
           >
             <KnowledgeBasePage />
           </ProtectedRoute>

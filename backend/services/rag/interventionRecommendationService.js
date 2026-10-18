@@ -1,5 +1,6 @@
 const {
     retrieveInterventionMaterials,
+    filterEligibleChunks,
 } = require(
     "./retrievalService"
 );
@@ -197,9 +198,6 @@ const resolveSupportingResource = (
     const allowedResourceTypes = [
         "worksheet",
         "handout",
-        "activity",
-        "exercise",
-        "template",
     ];
 
 
@@ -282,9 +280,6 @@ const findSupportingResourceFromActions = (
     const allowedResourceTypes = [
         "worksheet",
         "handout",
-        "activity",
-        "exercise",
-        "template",
     ];
 
     if (
@@ -790,7 +785,7 @@ const generateInterventionRecommendations =
          * ---------------------------------------------
          */
 
-        const retrievedChunks =
+        let retrievedChunks =
             await retrieveInterventionMaterials(
                 finalRetrievalQuery,
                 {
@@ -829,6 +824,9 @@ const generateInterventionRecommendations =
          * ---------------------------------------------
          */
 
+        retrievedChunks = await filterEligibleChunks(retrievedChunks);
+        if (!retrievedChunks.length) return { status: "insufficient_reference_material", reason: "The supporting resources are no longer active.", recommendations: [], retrievedReferences: [] };
+
         const prompt =
             buildInterventionPrompt(
                 caseData,
@@ -866,7 +864,11 @@ const generateInterventionRecommendations =
          * ---------------------------------------------
          */
 
-       const cleanedResponse =
+        const stillEligible = await filterEligibleChunks(retrievedChunks);
+        if (stillEligible.length !== retrievedChunks.length) {
+            return { status: 'insufficient_reference_material', reason: 'Supporting resources changed during generation. Please try again.', recommendations: [], retrievedReferences: [] };
+        }
+        const cleanedResponse =
             cleanJsonResponse(
                 rawResponse
             );

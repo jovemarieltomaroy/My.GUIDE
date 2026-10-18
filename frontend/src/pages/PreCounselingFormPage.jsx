@@ -163,10 +163,11 @@ export default function PreCounselingFormPage() {
           return;
         }
 
-        setStudent(data?.student || null);
+        setStudent(data?.form?.student || data?.student || null);
 
         setExpiresAt(
-          data?.tokenExpiresAt ||
+          data?.form?.tokenExpiresAt ||
+            data?.tokenExpiresAt ||
             data?.expiresAt ||
             null,
         );

@@ -1,0 +1,67 @@
+.individual-case-report { max-width: 210mm; margin: 0 auto; padding: 32px; background: white; color: #222; border: 1px solid #e4dfdc; border-radius: 14px; font-size: 14px; line-height: 1.65; }
+.case-report-letterhead { text-align: center; padding-bottom: 24px; border-bottom: 1px solid #ccc; }
+.case-report-letterhead p { margin: 0; }
+.case-report-letterhead p:first-child { font-size: 11px; letter-spacing: .04em; }
+.case-report-letterhead h2 { font-size: 20px; font-weight: 700; margin: 10px 0 6px; }
+.case-report-letterhead span { display: inline-block; padding: 2px 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 12px; letter-spacing: .06em; }
+.case-report-metadata { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 28px; padding: 22px 0; border-bottom: 1px solid #ccc; }
+.case-report-metadata dt { color: #666; font-size: 12px; }
+.case-report-metadata dd { margin: 2px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.case-report-section { margin-top: 20px; }
+.case-report-section h3 { margin: 0 0 6px; font-size: 15px; font-weight: 600; break-after: avoid; }
+.case-report-section p { margin: 0; white-space: pre-wrap; text-align: justify; overflow-wrap: anywhere; orphans: 3; widows: 3; }
+.case-report-signature { margin-top: 28px; padding-top: 20px; border-top: 1px solid #ccc; break-inside: avoid; }
+.case-report-signature p { margin: 3px 0; }
+.case-report-signature strong { display: block; margin-top: 20px; }
+@media (max-width: 640px) { .individual-case-report { padding: 20px; } .case-report-metadata { gap: 12px; } }
+@media print {
+  @page { size: A4; margin: 15mm; }
+  html, body, #root, .reports-page { background: white !important; color: black !important; }
+  .reports-page aside, .reports-page > button { display: none !important; }
+  .reports-page .reports-layout { padding-left: 0 !important; min-height: 0 !important; }
+  .individual-case-report { max-width: none; padding: 0; border: 0; border-radius: 0; font-size: 11pt; }
+  .case-report-letterhead h2 { font-size: 15pt; }
+  .case-report-metadata { break-inside: avoid; }
+  .reports-page table { width: 100%; min-width: 0 !important; font-size: 9pt; }
+  .reports-page th, .reports-page td { overflow-wrap: anywhere; padding: 6px !important; }
+  .reports-page thead { display: table-header-group; }
+  .reports-page tr { break-inside: avoid; }
+  .reports-page .overflow-x-auto, .reports-page .overflow-hidden { overflow: visible !important; }
+}
+
+@media print {
+/* Formal aggregate-report styling applies only to printing. */
+.aggregate-report { max-width: 210mm; margin-inline: auto; padding: 36px; border: 1px solid #e4dfdc; border-radius: 12px; background: #fff; color: #222; }
+.aggregate-header .case-report-letterhead h2 { text-transform: uppercase; font-size: 21px; letter-spacing: .025em; }
+.aggregate-metadata { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; margin: 20px 0 0; }
+.aggregate-metadata > div:last-child { grid-column: 1 / -1; }
+.aggregate-metadata dt { font-size: 11px; color: #777; text-transform: uppercase; letter-spacing: .04em; }
+.aggregate-metadata dd { margin: 3px 0 0; font-size: 13px; font-weight: 500; }
+.aggregate-description { font-size: 12px; line-height: 1.6; color: #666; margin: 14px 0 20px; }
+.aggregate-totals { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); border-block: 1px solid #aaa; padding: 14px 0; gap: 16px; }
+.aggregate-totals > article { border: 0; border-radius: 0; padding: 0; }
+.aggregate-totals > article > p:first-child { font-size: 11px; color: #555; }
+.aggregate-totals > article > p:nth-child(2) { font-size: 22px; margin-top: 2px; color: #222; }
+.aggregate-totals > article > p:nth-child(3) { display: none; }
+.aggregate-table { margin-top: 24px; }
+.aggregate-table-heading { margin-bottom: 10px; }
+.aggregate-table-heading h3 { font-size: 13px; font-weight: 600; }
+.aggregate-table-heading p { display: none; }
+.aggregate-table table { min-width: 0; width: 100%; }
+.aggregate-table th { font-size: 10px; color: #333; background: #f5f5f5; border-block: 1px solid #999; padding: 9px 8px; letter-spacing: .03em; }
+.aggregate-table td { font-size: 12px; line-height: 1.5; padding: 10px 8px; max-width: none; }
+.aggregate-table th:last-child, .aggregate-table td:last-child { text-align: right; }
+.aggregate-report .case-report-signature { font-size: 12px; }
+
+  .aggregate-report { max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; font-family: Arial, sans-serif; }
+  .aggregate-header .case-report-letterhead h2 { font-size: 15pt; }
+  .aggregate-header .case-report-letterhead p { color: #222; }
+  .aggregate-metadata, .aggregate-totals { break-inside: avoid; }
+  .aggregate-totals { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .aggregate-totals > article { border: 0 !important; }
+  .aggregate-table th { background: white; }
+  .aggregate-table-heading { break-after: avoid; }
+
+  .aggregate-table { border: 0 !important; border-radius: 0; }
+  .aggregate-table-heading { border: 0; padding: 0; }
+}

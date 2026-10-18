@@ -1,3 +1,6 @@
+import IndividualCaseReport from "../components/IndividualCaseReport";
+import { aggregateCaseReport } from "../utils/reportAggregates";
+import "./ReportsPage.css";
 import {
   useCallback,
   useEffect,
@@ -16,42 +19,11 @@ const ADMIN_ROLE = "Counselor-Admin";
 const COUNSELOR_ROLE = "Counselor-User";
 
 const REPORT_TYPES = [
-  {
-    value: "case-summary",
-    label: "Case summary report",
-    description:
-      "A filtered list of counseling cases with student, status, priority, domain, and assigned counselor.",
-    icon: "folder",
-  },
-  {
-    value: "follow-up",
-    label: "Follow-up report",
-    description:
-      "Pending, overdue, completed, and cancelled follow-up actions for accessible cases.",
-    icon: "calendar",
-  },
-  {
-    value: "intervention-plan",
-    label: "Intervention plan report",
-    description:
-      "Intervention-plan review, approval, sending, and implementation status.",
-    icon: "heart",
-  },
-  {
-    value: "progress-note",
-    label: "Progress note report",
-    description:
-      "A session-documentation report showing progress-note dates, session numbers, and attending counselors.",
-    icon: "notes",
-  },
-  {
-    value: "counselor-workload",
-    label: "Counselor workload report",
-    description:
-      "Office-wide workload comparison for active counselors. Available to Counselor-Admin only.",
-    icon: "student",
-    adminOnly: true,
-  },
+  { value: 'case-summary', label: 'Case Summary Report', description: 'Total cases recorded during the selected period, grouped by case category, concern, and status.', icon: 'folder' },
+  { value: 'case-trends', label: 'Case Trends Report', description: 'Monthly changes in case counts and concern categories during the selected period.', icon: 'chart' },
+  { value: 'case-status', label: 'Case Status Report', description: 'Open, In Progress, For Follow-up, Closed, and Terminated case counts.', icon: 'notes' },
+  { value: 'counselor-workload', label: 'Counselor Workload Report', description: 'Cases assigned to each counselor and their current statuses.', icon: 'users', adminOnly: true },
+  { value: 'individual-case', label: 'Individual Counseling Case Report', description: 'Confidential case narrative with assessment, intervention, progress, and follow-up.', icon: 'file' },
 ];
 
 const PERIOD_OPTIONS = [
@@ -95,6 +67,10 @@ export default function ReportsPage() {
   const [sidebarOpen, setSidebarOpen] =
     useState(false);
 
+  const [individualId, setIndividualId] = useState('');
+  const [individualCase, setIndividualCase] = useState(null);
+  const [individualLoading, setIndividualLoading] = useState(false);
+  const [individualError, setIndividualError] = useState('');
   const [cases, setCases] =
     useState([]);
 
@@ -461,6 +437,23 @@ export default function ReportsPage() {
     ) ||
     accessibleReportTypes[0];
 
+  const individualOptions = filteredCases.filter(record => {
+    const permittedId = isAdmin ? getRecordId(record.createdBy) : getRecordId(record.assignedCounselor);
+    return permittedId === String(user?._id || user?.id) && !record.isArchived;
+  });
+  const selectedIndividualId = individualOptions.some(record => getRecordId(record) === individualId) ? individualId : '';
+  useEffect(() => {
+    let cancelled = false;
+    setIndividualCase(null); setIndividualError('');
+    if (reportType !== 'individual-case' || !selectedIndividualId) { setIndividualLoading(false); return; }
+    setIndividualLoading(true);
+    apiRequest(`/cases/${selectedIndividualId}`).then(data => {
+      if (!cancelled) setIndividualCase(data.case || data);
+    }).catch(error => { if (!cancelled) setIndividualError(error.message || 'Unable to load case report.'); })
+      .finally(() => { if (!cancelled) setIndividualLoading(false); });
+    return () => { cancelled = true; };
+  }, [reportType, selectedIndividualId]);
+
   const resetFilters = () => {
     setPeriod("12-months");
     setCaseStatus("");
@@ -510,6 +503,9 @@ export default function ReportsPage() {
   };
 
   const printReport = () => {
+    if (reportType === 'individual-case' && (!individualCase || individualLoading || getRecordId(individualCase) !== selectedIndividualId)) {
+      setPageError('Select a case and wait for its report to load before printing.'); return;
+    }
     window.print();
   };
 
@@ -549,14 +545,14 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#292522]">
+    <div className="reports-page min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#292522]">
       <AppSidebar
         user={user}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
       />
 
-      <div className="min-h-screen lg:pl-[220px]">
+      <div className="reports-layout min-h-screen lg:pl-[220px]">
         <header className="sticky top-0 z-30 flex min-h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-7 print:hidden">
           <div className="flex w-full items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
@@ -684,7 +680,7 @@ export default function ReportsPage() {
           </section>
 
           <section className="mt-5 rounded-2xl border border-[#E4DFDC] bg-white p-4 print:hidden">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+            <div className={`grid gap-3 sm:grid-cols-2 ${isAdmin ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
               <FilterField label="Period">
                 <select
                   value={period}
@@ -857,19 +853,6 @@ export default function ReportsPage() {
                   </select>
                 </FilterField>
               )}
-
-              <FilterField label="Search">
-                <input
-                  value={searchQuery}
-                  onChange={(event) =>
-                    setSearchQuery(
-                      event.target.value,
-                    )
-                  }
-                  placeholder="Case or student"
-                  className={filterClass}
-                />
-              </FilterField>
             </div>
 
             <div className="mt-3 flex flex-col gap-3 border-t border-[#ECE8E5] pt-3 sm:flex-row sm:items-center sm:justify-between">
@@ -919,8 +902,7 @@ export default function ReportsPage() {
                   type="button"
                   onClick={printReport}
                   disabled={
-                    isLoading ||
-                    reportRows.length === 0
+                    isLoading || (reportType === 'individual-case' ? individualLoading || !individualCase || getRecordId(individualCase) !== selectedIndividualId : reportRows.length === 0)
                   }
                   className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#8C1518] px-3 text-[13px] font-semibold text-white disabled:opacity-40"
                 >
@@ -934,7 +916,16 @@ export default function ReportsPage() {
             </div>
           </section>
 
-          <section className="mt-5 print:mt-0">
+          {reportType === 'individual-case' ? <section className="mt-5 print:mt-0">
+            <div className="mb-5 rounded-xl border border-[#E4DFDC] bg-white p-4 print:hidden"><label className="text-sm font-semibold" htmlFor="individual-report-case">Select a case</label><select id="individual-report-case" value={selectedIndividualId} onChange={event => setIndividualId(event.target.value)} className={`${filterClass} mt-2`}><option value="">Select an authorized case</option>{individualOptions.map(record => <option key={getRecordId(record)} value={getRecordId(record)}>{record.caseNumber} · {formatName(record.student)}</option>)}</select><p className="mt-2 text-xs text-[#827A76]">Individual narratives are available for your assigned cases or cases you created as an administrator.</p></div>
+            {individualLoading ? <LoadingPanel /> : individualError ? <p role="alert" className="p-4 text-red-700">{individualError}</p> : individualCase && getRecordId(individualCase) === selectedIndividualId ? <IndividualCaseReport record={individualCase} generatedAt={lastGeneratedAt || new Date()} /> : <p className="p-5 text-sm text-[#827A76]">Select a case to preview its printable report.</p>}
+          </section> : <section className="aggregate-report mt-5 print:mt-0">
+            <header className="rounded-2xl border border-[#E4DFDC] bg-white px-5 py-4 print:hidden">
+              <div className="flex flex-col justify-between gap-4 sm:flex-row">
+                <div><p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#8C1518]">My.GUIDE Reports</p><h2 className="mt-1 text-[20px] font-semibold">{selectedReport?.label}</h2><p className="mt-1 max-w-3xl text-[13px] leading-6 text-[#817A76]">{selectedReport?.description}</p></div>
+                <div className="shrink-0 text-[13px] leading-6 text-[#756E69] sm:text-right"><p><strong>Period:</strong> {getPeriodLabel(period)}</p><p><strong>Generated by:</strong> {formatName(user) || user.email}</p><p><strong>Generated:</strong> {formatDateTime(lastGeneratedAt || new Date())}</p></div>
+              </div>
+            </header>
             <ReportHeader
               title={
                 selectedReport?.label ||
@@ -957,7 +948,7 @@ export default function ReportsPage() {
               isAdmin={isAdmin}
             />
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 print:grid-cols-4">
+            <div className="aggregate-totals mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {reportSummary.map(
                 (item) => (
                   <SummaryCard
@@ -970,11 +961,11 @@ export default function ReportsPage() {
               )}
             </div>
 
-            <div className="mt-4 overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white print:rounded-none print:border-black">
-              <header className="flex items-center justify-between border-b border-[#ECE8E5] px-4 py-3">
+            <div className="aggregate-table mt-4 overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white">
+              <header className="aggregate-table-heading flex items-center justify-between border-b border-[#ECE8E5] px-4 py-3">
                 <div>
                   <h3 className="text-[17px] font-semibold">
-                    Report preview
+                    <span className="print:hidden">Report preview</span><span className="hidden print:inline">Report details</span>
                   </h3>
 
                   <p className="mt-1 text-[12px] text-[#99918C]">
@@ -995,7 +986,8 @@ export default function ReportsPage() {
                 />
               )}
             </div>
-          </section>
+            <footer className="case-report-signature hidden print:block"><p>Prepared by</p><strong>{formatName(user) || 'Authorized Guidance Counselor'}</strong><p>Office of Guidance and Counseling</p><p className="mt-4 text-xs">Confidential · For authorized institutional use only</p></footer>
+          </section>}
 
           <div className="mt-5 rounded-2xl border border-[#E6D9B7] bg-[#FCF8EB] px-4 py-3 print:hidden">
             <div className="flex items-start gap-3">
@@ -1029,59 +1021,12 @@ export default function ReportsPage() {
   );
 }
 
-function ReportHeader({
-  title,
-  description,
-  period,
-  generatedBy,
-  generatedAt,
-  isAdmin,
-}) {
-  return (
-    <header className="rounded-2xl border border-[#E4DFDC] bg-white px-5 py-4 print:rounded-none print:border-black">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#8C1518]">
-            My.GUIDE Reports
-          </p>
-
-          <h2 className="mt-1 text-[20px] font-semibold">
-            {title}
-          </h2>
-
-          <p className="mt-1 max-w-[850px] text-[13px] leading-4 text-[#817A76]">
-            {description}
-          </p>
-        </div>
-
-        <div className="text-left text-[13px] leading-4 text-[#756E69] sm:text-right">
-          <p>
-            <strong>Scope:</strong>{" "}
-            {isAdmin
-              ? "Office-wide authorized records"
-              : "Assigned counseling cases"}
-          </p>
-
-          <p>
-            <strong>Period:</strong>{" "}
-            {period}
-          </p>
-
-          <p>
-            <strong>Generated by:</strong>{" "}
-            {generatedBy}
-          </p>
-
-          <p>
-            <strong>Generated:</strong>{" "}
-            {formatDateTime(
-              generatedAt,
-            )}
-          </p>
-        </div>
-      </div>
-    </header>
-  );
+function ReportHeader({ title, description, period, generatedAt, isAdmin }) {
+  return <header className="aggregate-header hidden print:block">
+    <div className="case-report-letterhead"><p>MINDANAO STATE UNIVERSITY – ILIGAN INSTITUTE OF TECHNOLOGY</p><p>Office of Guidance and Counseling</p><h2>{title}</h2><span>CONFIDENTIAL</span></div>
+    <dl className="aggregate-metadata"><div><dt>Reporting period</dt><dd>{period}</dd></div><div><dt>Date generated</dt><dd>{formatDateTime(generatedAt)}</dd></div><div><dt>Coverage</dt><dd>{isAdmin ? 'Office-wide authorized cases' : 'Assigned counseling cases'}</dd></div></dl>
+    <p className="aggregate-description">{description}</p>
+  </header>;
 }
 
 function SummaryCard({
@@ -1230,6 +1175,7 @@ function buildReportRows({
   cases,
   users,
 }) {
+  if (['case-summary', 'case-trends', 'case-status'].includes(reportType)) return aggregateCaseReport(reportType, cases);
   if (
     reportType === "case-summary"
   ) {
@@ -1429,6 +1375,12 @@ function buildReportSummary({
   rows,
   cases,
 }) {
+  if (['case-summary', 'case-trends', 'case-status'].includes(reportType)) return [
+    { label: 'Total cases', value: cases.length, note: 'Selected period and filters' },
+    { label: 'Active cases', value: cases.filter(record => ['Open', 'In Progress', 'For Follow-up'].includes(record.caseStatus)).length, note: 'Open or ongoing' },
+    { label: 'Closed', value: cases.filter(record => record.caseStatus === 'Closed').length, note: 'Completed cases' },
+    { label: 'Terminated', value: cases.filter(record => record.caseStatus === 'Terminated').length, note: 'Terminated cases' },
+  ];
   if (
     reportType === "case-summary"
   ) {
@@ -1746,6 +1698,10 @@ function buildCounselorWorkloadRows(
             []
           ).join(", ") ||
           "Not assigned",
+        Open: assignedCases.filter(record => record.caseStatus === 'Open').length,
+        'In Progress': assignedCases.filter(record => record.caseStatus === 'In Progress').length,
+        'For Follow-up': assignedCases.filter(record => record.caseStatus === 'For Follow-up').length,
+        Terminated: assignedCases.filter(record => record.caseStatus === 'Terminated').length,
         "Active Cases":
           activeCases.length,
         "High/Urgent":

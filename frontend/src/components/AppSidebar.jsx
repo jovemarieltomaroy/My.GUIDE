@@ -71,6 +71,7 @@ const COUNSELOR_MENU = [
     label: "Intelligence",
     items: [
       { name: "LLM Recommendations", icon: "sparkle", path: "/llm-recommendations" },
+      { name: "Knowledge Base", icon: "file", path: "/knowledge-base" },
       { name: "Analytics", icon: "chart", path: "/analytics" },
     ],
   },
@@ -117,7 +118,7 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-[48px] shrink-0 items-center justify-between border-b border-white/[0.08] px-3.5">
+        <div className="flex min-h-[64px] shrink-0 items-center justify-between border-b border-white/[0.08] px-3.5">
           <div className="flex min-w-0 items-center gap-2">
             <img
               src={sidebarLogo}
@@ -126,10 +127,10 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
             />
 
             <div className="min-w-0">
-              <p className="truncate text-[15px] font-semibold leading-none text-white">
+              <p className="truncate text-[18px] font-semibold leading-none text-white">
                 My.GUIDE
               </p>
-              <p className="mt-1 truncate text-[12px] leading-none text-white/35">
+              <p className="mt-1 text-[14px] leading-5 text-white/35">
                 Guidance Case Management
               </p>
             </div>
@@ -154,13 +155,13 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
             <UserAvatar user={user} />
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[14px] font-semibold leading-5 text-white">
+              <p className="truncate text-[16px] font-semibold leading-5 text-white">
                 {formatUserName(user)}
               </p>
-              <p className="truncate text-[12px] leading-4 text-white/55">
+              <p className="truncate text-[14px] leading-5 text-white/55">
                 {user?.designation || (isAdmin ? "Counselor Administrator" : "Guidance Counselor")}
               </p>
-              <p className="truncate text-[12px] font-medium leading-4 text-[#E2C15D]">
+              <p className="truncate text-[14px] font-medium leading-5 text-[#E2C15D]">
                 {user?.role}
               </p>
             </div>
@@ -169,10 +170,10 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
           </div>
         </button>
 
-        <nav className="min-h-0 flex-1 overflow-hidden px-2 py-2">
+        <nav className="app-sidebar-navigation min-h-0 flex-1 overflow-y-auto px-2 py-3">
           {menuGroups.map((group) => (
-            <div key={group.label} className="mb-1.5 last:mb-0">
-              <p className="mb-0.5 px-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-white/30">
+            <div key={group.label} className="mb-3 last:mb-0">
+              <p className="mb-1 px-2 text-[14px] font-semibold uppercase tracking-[0.08em] text-white/30">
                 {group.label}
               </p>
 
@@ -189,7 +190,7 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
                       key={item.name}
                       type="button"
                       onClick={() => goTo(item.path)}
-                      className={`group flex h-[25px] w-full items-center gap-2 rounded-md px-2 text-left text-[14px] transition ${
+                      className={`group flex min-h-[38px] py-2 w-full items-center gap-2 rounded-md px-2 text-left text-[16px] transition ${
                         isActive
                           ? "bg-white/[0.12] font-semibold text-white"
                           : "font-medium text-white/55 hover:bg-white/[0.07] hover:text-white"
@@ -197,13 +198,13 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
                     >
                       <Icon
                         name={item.icon}
-                        className={`h-[11px] w-[11px] shrink-0 ${
+                        className={`h-4 w-4 shrink-0 ${
                           isActive
                             ? "text-[#E4C45D]"
                             : "text-white/40 group-hover:text-white/80"
                         }`}
                       />
-                      <span className="truncate">{item.name}</span>
+                      <span className="min-w-0 leading-5">{item.name}</span>
                     </button>
                   );
                 })}
@@ -216,9 +217,9 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
           <button
             type="button"
             onClick={handleLogout}
-            className="group flex h-[27px] w-full items-center gap-2 rounded-md px-2 text-left text-[14px] font-medium text-white/45 transition hover:bg-white/[0.07] hover:text-white"
+            className="group flex min-h-[40px] py-2 w-full items-center gap-2 rounded-md px-2 text-left text-[16px] font-medium text-white/45 transition hover:bg-white/[0.07] hover:text-white"
           >
-            <Icon name="logout" className="h-[11px] w-[11px] shrink-0 text-white/35 group-hover:text-white" />
+            <Icon name="logout" className="h-4 w-4 shrink-0 text-white/35 group-hover:text-white" />
             <span>Sign out</span>
           </button>
         </div>
@@ -241,7 +242,7 @@ function UserAvatar({ user }) {
   const initials = `${user?.firstName?.[0] || ""}${user?.lastName?.[0] || ""}`.toUpperCase();
 
   return (
-    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/[0.11] text-[14px] font-semibold text-white ring-1 ring-white/[0.10]">
+    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/[0.11] text-[16px] font-semibold text-white ring-1 ring-white/[0.10]">
       {initials}
     </div>
   );

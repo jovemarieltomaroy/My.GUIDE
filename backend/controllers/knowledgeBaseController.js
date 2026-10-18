@@ -1,3 +1,5 @@
+const { isStudentMaterial } = require('../services/resourceEligibility');
+const { readMetadata, review, activateReplacement, fail, mongoose } = require('../services/resourceLifecycle');
 const Case = require("../models/case");
 const fs = require("fs/promises");
 
@@ -41,6 +43,7 @@ const {
 const uploadKnowledgeResource =
     async (req, res) => {
         let knowledgeResource = null;
+        let replacedResource = null;
 
         try {
             /*
@@ -107,6 +110,17 @@ const uploadKnowledgeResource =
             }
 
 
+            const metadata = readMetadata(req.body);
+            if (req.params.id) {
+                if (!mongoose.isValidObjectId(req.params.id)) throw fail('Resource not found.', 404);
+                replacedResource = await KnowledgeResource.findById(req.params.id);
+                if (!replacedResource) throw fail('Resource not found.', 404);
+                if (replacedResource.isActive === false) throw fail('Disabled resources cannot be replaced. Review the existing access restriction first.', 409);
+                if (replacedResource.processingStatus === 'Processing' || replacedResource.replacementPending || replacedResource.replacedBy) throw fail('This resource is already being processed or replaced.', 409);
+                if (metadata.resourceType !== replacedResource.resourceType) throw fail('A replacement must keep the original resource type.');
+                if (metadata.status !== 'Active') throw fail('Select Active to approve the replacement after processing.');
+            }
+
             /*
              * -----------------------------------------
              * 3. CREATE RESOURCE RECORD
@@ -115,6 +129,13 @@ const uploadKnowledgeResource =
 
             knowledgeResource =
                 await KnowledgeResource.create({
+                    ...metadata,
+                    status: replacedResource ? 'Under Review' : (metadata.status || 'Active'),
+                    replaces: replacedResource?._id || null,
+                    statusHistory: [review(null, replacedResource ? 'Under Review' : (metadata.status || 'Active'), req.user._id, 'Uploaded')],
+                    lastReviewedBy: req.user._id,
+                    lastReviewedAt: new Date(),
+                    statusChangedAt: new Date(),
                     title:
                         title.trim(),
 
@@ -169,6 +190,11 @@ const uploadKnowledgeResource =
              * -----------------------------------------
              */
 
+            if (replacedResource) {
+                const lock = await KnowledgeResource.updateOne({ _id: replacedResource._id, replacementPending: null, replacedBy: null, processingStatus: { $ne: 'Processing' } }, { $set: { replacementPending: knowledgeResource._id } });
+                if (lock.modifiedCount !== 1) throw fail('This resource is already being replaced.', 409);
+            }
+
             const ingestionSummary =
                 await ingestKnowledgeResource({
                     filePath:
@@ -218,6 +244,8 @@ const uploadKnowledgeResource =
              * -----------------------------------------
              */
 
+            if (!ingestionSummary.chunksEmbedded) throw fail('No usable content was found in this PDF.');
+
             knowledgeResource.totalPages =
                 ingestionSummary.pagesRead;
 
@@ -233,7 +261,7 @@ const uploadKnowledgeResource =
 
 
             await knowledgeResource.save();
-
+            if (replacedResource) await activateReplacement(knowledgeResource, req.user._id);
 
             /*
              * -----------------------------------------
@@ -247,7 +275,7 @@ const uploadKnowledgeResource =
                     success: true,
 
                     message:
-                        "Knowledge resource uploaded and processed successfully.",
+                        replacedResource ? 'Resource replaced successfully. The previous PDF remains available under Obsolete.' : 'Knowledge resource uploaded and processed successfully.',
 
                     resource:
                         knowledgeResource,
@@ -323,13 +351,17 @@ const uploadKnowledgeResource =
             }
 
 
+            if (replacedResource && knowledgeResource) {
+                await KnowledgeResource.updateOne({ _id: replacedResource._id, replacementPending: knowledgeResource._id }, { $set: { replacementPending: null } });
+            }
+            if (!knowledgeResource && req.file) await fs.unlink(req.file.path).catch(() => {});
             return res
-                .status(500)
+                .status(error.status || 500)
                 .json({
                     success: false,
 
                     message:
-                        "Knowledge resource could not be processed.",
+                        error.status ? error.message : "Knowledge resource could not be processed. The original resource has not been changed.",
 
                     error:
                         error.message,
@@ -344,11 +376,23 @@ const uploadKnowledgeResource =
  * ---------------------------------------------
  */
 
+const permittedResourceIds = async user => {
+    if (user.role === 'Counselor-Admin') return null;
+    if (user.role !== 'Counselor-User') return [];
+    const cases = await Case.find({ isArchived: false, $or: [
+        { assignedCounselor: user._id },
+        { temporaryCounselor: { $elemMatch: { counselor: user._id, isActive: true, revokedAt: null, accessUntil: { $gt: new Date() } } } },
+    ] }).select('llmRecommendations.resources.url llmRecommendations.suggestedMaterials.url interventionPlans.resources.url').lean();
+    return [...new Set(cases.flatMap(record => [...(record.llmRecommendations || []), ...(record.interventionPlans || [])]
+        .flatMap(item => [...(item.resources || []), ...(item.suggestedMaterials || [])]).map(item => item.url?.match(/^\/api\/knowledge-base\/([a-f0-9]{24})\/pdf$/i)?.[1]).filter(Boolean)))];
+};
+
 const getKnowledgeResources =
     async (req, res) => {
         try {
+            const permitted = await permittedResourceIds(req.user);
             const resources =
-                await KnowledgeResource.find({})
+                await KnowledgeResource.find(permitted === null ? {} : { _id: { $in: permitted } })
                     .populate(
                         "uploadedBy",
                         "firstName lastName email"
@@ -399,6 +443,9 @@ const getKnowledgeResources =
 const getKnowledgeResourceById =
     async (req, res) => {
         try {
+            const permitted = await permittedResourceIds(req.user);
+            if (permitted !== null && !permitted.includes(req.params.id)) return res.status(403).json({ message: 'Not authorized to view this resource.' });
+
             const resource =
                 await KnowledgeResource.findById(
                     req.params.id
@@ -499,11 +546,12 @@ const viewKnowledgeResourcePdf =
                         ] },
                         { $or: [
                             { "llmRecommendations.resources.url": resourceUrl },
+                            { "llmRecommendations.suggestedMaterials.url": resourceUrl },
                             { "interventionPlans.resources.url": resourceUrl },
                         ] },
                     ],
                 });
-                if (!accessibleCase) {
+                if (!accessibleCase && !(req.user.role === 'Counselor-User' && isStudentMaterial(resource))) {
                     return res.status(403).json({ message: "Not authorized to view this resource." });
                 }
             }
@@ -604,6 +652,10 @@ const deleteKnowledgeResource =
             }
 
 
+            if (resource.processingStatus === 'Processing' || resource.replacementPending || resource.replaces || resource.replacedBy) {
+                return res.status(409).json({ message: 'This resource is processing or part of a replacement history. Mark it obsolete to preserve its records.' });
+            }
+
             /*
              * -----------------------------------------
              * DELETE ASSOCIATED CHUNKS
@@ -691,7 +743,47 @@ const deleteKnowledgeResource =
     };
 
 
+const updateKnowledgeResource = async (req, res) => {
+    try {
+        if (!mongoose.isValidObjectId(req.params.id)) throw fail('Resource not found.', 404);
+        const resource = await KnowledgeResource.findById(req.params.id);
+        if (!resource) throw fail('Resource not found.', 404);
+        if (resource.processingStatus === 'Processing' || resource.replacementPending) throw fail('This resource is currently being processed or replaced.', 409);
+        const metadata = readMetadata(req.body, resource);
+        const previousStatus = resource.status || 'Active';
+        if (metadata.status === 'Active' && previousStatus !== 'Active' &&
+            (resource.isActive === false || resource.processingStatus !== 'Ready' || resource.replacedBy)) throw fail('This resource cannot be activated. It may be disabled, replaced, or not ready.', 409);
+        const now = new Date();
+        const change = { $set: { ...metadata, lastReviewedAt: now, lastReviewedBy: req.user._id } };
+        if (metadata.status && metadata.status !== previousStatus) {
+            change.$set.statusChangedAt = now;
+            change.$push = { statusHistory: review(previousStatus, metadata.status, req.user._id, req.body.reason || '') };
+        }
+        if (metadata.resourceType && metadata.resourceType !== resource.resourceType) {
+            change.$push = { ...(change.$push || {}), typeHistory: { previousType: resource.resourceType, newType: metadata.resourceType,
+                reviewedBy: req.user._id, reviewedAt: now, reason: req.body.reason || 'Resource classification reviewed.' } };
+        }
+        // Optimistic concurrency prevents a stale editor overwriting a concurrent review.
+        const updated = await KnowledgeResource.findOneAndUpdate({ _id: resource._id, updatedAt: resource.updatedAt, replacementPending: null }, change, { new: true, runValidators: true });
+        if (!updated) throw fail('This resource changed while you were editing. Refresh and try again.', 409);
+        return res.json({ success: true, message: 'Resource information and status updated successfully.', resource: updated });
+    } catch (error) {
+        return res.status(error.status || (error.name === 'ValidationError' ? 400 : 500)).json({ success: false, message: error.status ? error.message : 'Resource could not be updated.' });
+    }
+};
+
+const getStudentMaterials = async (req, res) => {
+    if (!['Counselor-Admin', 'Counselor-User'].includes(req.user.role)) return res.status(403).json({ message: 'Not authorized to select student materials.' });
+    try {
+        const resources = await KnowledgeResource.find({ resourceType: { $in: ['worksheet', 'handout'] }, isActive: { $ne: false }, processingStatus: 'Ready', replacedBy: null,
+            $or: [{ status: 'Active' }, { status: { $exists: false } }] }).select('title resourceType status processingStatus isActive replacedBy description topic originalFileName').sort({ title: 1 }).lean();
+        return res.json({ resources: resources.filter(isStudentMaterial) });
+    } catch { return res.status(500).json({ message: 'Unable to load student materials.' }); }
+};
+
 module.exports = {
+    getStudentMaterials,
+    updateKnowledgeResource,
     uploadKnowledgeResource,
     getKnowledgeResources,
     getKnowledgeResourceById,

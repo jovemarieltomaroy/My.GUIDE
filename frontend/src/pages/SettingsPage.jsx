@@ -238,11 +238,11 @@ export default function SettingsPage() {
               </button>
 
               <div>
-                <h1 className="text-[20px] font-semibold">
+                <h1 className="text-[22px] font-semibold">
                   Settings
                 </h1>
 
-                <p className="hidden text-[14px] text-[#99918C] sm:block">
+                <p className="hidden text-[16px] text-[#99918C] sm:block">
                   Manage your account and password
                 </p>
               </div>
@@ -251,7 +251,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={signOut}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 text-[14px] font-semibold text-red-700 hover:bg-red-50"
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 text-[16px] font-semibold text-red-700 hover:bg-red-50"
             >
               <Icon
                 name="arrowLeft"
@@ -263,7 +263,7 @@ export default function SettingsPage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1300px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-7">
           {successMessage && (
             <Alert
               tone="success"
@@ -272,16 +272,16 @@ export default function SettingsPage() {
           )}
 
           <section>
-            <h2 className="text-[27px] font-semibold tracking-[-0.03em]">
+            <h2 className="text-[30px] font-semibold tracking-[-0.03em]">
               Account settings
             </h2>
 
-            <p className="mt-1 max-w-[850px] text-[15px] leading-5 text-[#89817D]">
+            <p className="mt-1 max-w-[850px] text-[17px] leading-6 text-[#89817D]">
               Review your counselor account and update your password.
             </p>
           </section>
 
-          <div className="mt-5 grid gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
+          <div className="mt-5 grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
             <aside className="h-fit overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white">
               <div className="border-b border-[#ECE8E5] p-4">
                 <div className="flex items-center gap-3">
@@ -289,15 +289,15 @@ export default function SettingsPage() {
                     user={user}
                     initials={initials}
                     sizeClass="h-11 w-11"
-                    textClass="text-[15px]"
+                    textClass="text-[17px]"
                   />
 
                   <div className="min-w-0">
-                    <p className="truncate text-[15px] font-semibold">
+                    <p className="truncate text-[17px] font-semibold">
                       {displayName}
                     </p>
 
-                    <p className="mt-0.5 truncate text-[14px] text-[#958D88]">
+                    <p className="mt-0.5 truncate text-[16px] text-[#958D88]">
                       {user.email}
                     </p>
                   </div>
@@ -445,15 +445,15 @@ function AccountSection({
           user={user}
           initials={initials}
           sizeClass="h-16 w-16"
-          textClass="text-[18px]"
+          textClass="text-[20px]"
         />
 
         <div>
-          <h3 className="text-[17px] font-semibold">
+          <h3 className="text-[19px] font-semibold">
             {displayName}
           </h3>
 
-          <p className="mt-1 text-[15px] text-[#8E8681]">
+          <p className="mt-1 text-[17px] text-[#8E8681]">
             {user.designation ||
               "Guidance counselor"}
           </p>
@@ -517,7 +517,7 @@ function AccountSection({
       </div>
 
       <div className="border-t border-[#ECE8E5] bg-[#FCFBFA] px-5 py-4">
-        <p className="text-[14px] leading-4 text-[#817A76]">
+        <p className="text-[16px] leading-6 text-[#817A76]">
           Profile information is managed
           through the user-management
           workflow. Contact a
@@ -561,7 +561,7 @@ function SecuritySection({
           />
         )}
 
-        <div className="max-w-[620px] space-y-4">
+        <div className="w-full space-y-4">
           <PasswordField
             label="Current password"
             value={currentPassword}
@@ -613,11 +613,11 @@ function SecuritySection({
           />
 
           <div className="rounded-xl border border-[#E6D9B7] bg-[#FCF8EB] px-4 py-3">
-            <p className="text-[14px] font-semibold text-[#705A1B]">
+            <p className="text-[16px] font-semibold text-[#705A1B]">
               Password guidance
             </p>
 
-            <p className="mt-1 text-[14px] leading-4 text-[#806E3A]">
+            <p className="mt-1 text-[16px] leading-6 text-[#806E3A]">
               Use at least eight characters
               and avoid reusing your
               institutional email password.
@@ -630,7 +630,7 @@ function SecuritySection({
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#8C1518] px-4 !text-[15px] font-semibold text-white hover:bg-[#701013] disabled:opacity-50"
+              className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#8C1518] px-4 !text-[17px] font-semibold text-white hover:bg-[#701013] disabled:opacity-50"
             >
               {saving && (
                 <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white " />
@@ -678,11 +678,11 @@ function AccessSection({
       <div className="p-5">
         <div className="flex flex-col gap-3 rounded-xl border border-[#E7E2DF] bg-[#FCFBFA] p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[14px] text-[#958D88]">
+            <p className="text-[16px] text-[#958D88]">
               Current role
             </p>
 
-            <p className="mt-1 text-[15px] font-semibold">
+            <p className="mt-1 text-[17px] font-semibold">
               {user.role}
             </p>
           </div>
@@ -693,7 +693,7 @@ function AccessSection({
         </div>
 
         <section className="mt-5">
-          <h3 className="text-[17px] font-semibold">
+          <h3 className="text-[19px] font-semibold">
             Available permissions
           </h3>
 
@@ -708,7 +708,7 @@ function AccessSection({
                     ✓
                   </span>
 
-                  <p className="text-[14px] leading-4 text-[#5E5753]">
+                  <p className="text-[16px] leading-6 text-[#5E5753]">
                     {permission}
                   </p>
                 </div>
@@ -724,11 +724,11 @@ function AccessSection({
               onClick={onOpenUsers}
               className="rounded-xl border border-[#E4DFDC] bg-white p-4 text-left hover:border-[#8C1518]"
             >
-              <p className="text-[15px] font-semibold">
+              <p className="text-[17px] font-semibold">
                 Manage users
               </p>
 
-              <p className="mt-1 text-[14px] leading-4 text-[#8D8580]">
+              <p className="mt-1 text-[16px] leading-6 text-[#8D8580]">
                 Create, reactivate,
                 deactivate, or update
                 counselor accounts.
@@ -740,11 +740,11 @@ function AccessSection({
               onClick={onOpenActivity}
               className="rounded-xl border border-[#E4DFDC] bg-white p-4 text-left hover:border-[#8C1518]"
             >
-              <p className="text-[15px] font-semibold">
+              <p className="text-[17px] font-semibold">
                 Open activity log
               </p>
 
-              <p className="mt-1 text-[14px] leading-4 text-[#8D8580]">
+              <p className="mt-1 text-[16px] leading-6 text-[#8D8580]">
                 Review actions performed
                 across counseling cases.
               </p>
@@ -764,12 +764,12 @@ function SettingsPanel({
   return (
     <section className="overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white">
       <header className="border-b border-[#ECE8E5] px-5 py-4">
-        <h2 className="text-[20px] font-semibold">
+        <h2 className="text-[22px] font-semibold">
           {title}
         </h2>
 
         {subtitle && (
-          <p className="mt-1 text-[14px] text-[#938B86]">
+          <p className="mt-1 text-[16px] text-[#938B86]">
             {subtitle}
           </p>
         )}
@@ -811,11 +811,11 @@ function SettingsNavButton({
       </span>
 
       <span className="min-w-0">
-        <span className="block truncate text-[17px] font-semibold">
+        <span className="block text-[19px] leading-6 font-semibold">
           {label}
         </span>
 
-        <span className="mt-0.5 block truncate text-[13px] opacity-70">
+        <span className="mt-0.5 block text-[14px] leading-5 opacity-70">
           {description}
         </span>
       </span>
@@ -873,11 +873,11 @@ function InformationCard({
 }) {
   return (
     <article className="rounded-xl border border-[#E7E2DF] bg-[#FCFBFA] p-4">
-      <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[#958D88]">
+      <p className="text-[14px] font-semibold uppercase tracking-[0.08em] text-[#958D88]">
         {label}
       </p>
 
-      <p className="mt-2 break-words text-[15px] font-medium text-[#4E4844]">
+      <p className="mt-2 break-words text-[17px] font-medium text-[#4E4844]">
         {value}
       </p>
     </article>
@@ -894,7 +894,7 @@ function PasswordField({
 }) {
   return (
     <label className="block">
-      <span className="text-[15px] font-semibold text-[#4B4541]">
+      <span className="text-[17px] font-semibold text-[#4B4541]">
         {label}
       </span>
 
@@ -915,13 +915,13 @@ function PasswordField({
             autoComplete
           }
           required
-          className="h-10 w-full rounded-lg border border-[#DDD8D4] bg-white px-3 pr-16 text-[15px] outline-none focus:border-[#8C1518] focus:ring-2 focus:ring-[#8C1518]/[0.06]"
+          className="h-12 w-full rounded-lg border border-[#DDD8D4] bg-white px-3 pr-16 text-[17px] outline-none focus:border-[#8C1518] focus:ring-2 focus:ring-[#8C1518]/[0.06]"
         />
 
         <button
           type="button"
           onClick={onToggle}
-          className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-1 !text-[15px] font-semibold text-[#8C1518]"
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-1 !text-[17px] font-semibold text-[#8C1518]"
         >
           {visible
             ? "Hide"
@@ -938,7 +938,7 @@ function RoleBadge({ role }) {
 
   return (
     <span
-      className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[14px] font-semibold ${
+      className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[16px] font-semibold ${
         isAdmin
           ? "bg-[#F5E5B8] text-[#7A5700]"
           : "bg-[#EAF1F8] text-[#316FAE]"
@@ -959,7 +959,7 @@ function Alert({
 
   return (
     <div
-      className={`mb-4 rounded-xl border px-4 py-3 text-[15px] ${
+      className={`mb-4 rounded-xl border px-4 py-3 text-[17px] ${
         success
           ? "border-emerald-200 bg-emerald-50 text-emerald-700"
           : "border-red-200 bg-red-50 text-red-700"

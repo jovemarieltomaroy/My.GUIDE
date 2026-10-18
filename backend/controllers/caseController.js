@@ -1,3 +1,5 @@
+const { collectSuggestedMaterials, selectSuggestedMaterials } = require('../services/suggestedMaterials');
+const { validateKnowledgeAttachments } = require('../services/knowledgeAttachments');
 const { resolveInterventionAttachments } = require('../services/interventionAttachments');
 const AsyncHandler = require('express-async-handler');
 const Case = require('../models/case');
@@ -126,7 +128,7 @@ const getAllCases = AsyncHandler(async (req, res) => {
             { studentIdNumber: { $regex: search, $options: 'i' } },
             { program: { $regex: search, $options: 'i' } },
             { college: { $regex: search, $options: 'i' } },
-            { yearLevel: { $regex: search, $options: 'i' } },  
+            { yearLevel: { $regex: search, $options: 'i' } },
         ]
     }).select('_id');
 
@@ -137,7 +139,7 @@ const getAllCases = AsyncHandler(async (req, res) => {
             { caseNumber: searchRegex },
             { 'problemAssessment.mainDomain': searchRegex },
             { student: { $in: studentIds } },
-            { clientEntryType: { $regex: search, $options: 'i' } }, 
+            { clientEntryType: { $regex: search, $options: 'i' } },
         ];
     }
     const cases = await Case.find(query)
@@ -152,7 +154,7 @@ const getAllCases = AsyncHandler(async (req, res) => {
                 program
                 yearLevel`)
         .populate(
-            'assignedCounselor', 
+            'assignedCounselor',
             'firstName middleName lastName email role')
         .populate(
             'actionHistory.actionBy',
@@ -189,7 +191,7 @@ const getMyCases = AsyncHandler(async (req, res) => {
             { studentIdNumber: { $regex: search, $options: 'i' } },
             { program: { $regex: search, $options: 'i' } },
             { college: { $regex: search, $options: 'i' } },
-            { yearLevel: { $regex: search, $options: 'i' } },  
+            { yearLevel: { $regex: search, $options: 'i' } },
         ]
     }).select('_id');
 
@@ -200,7 +202,7 @@ const getMyCases = AsyncHandler(async (req, res) => {
             { caseNumber: searchRegex },
             { 'problemAssessment.mainDomain': searchRegex },
             { student: { $in: studentIds } },
-            { clientEntryType: { $regex: search, $options: 'i' } }, 
+            { clientEntryType: { $regex: search, $options: 'i' } },
         ];
     }
     const cases = await Case.find(query)
@@ -218,7 +220,7 @@ const getMyCases = AsyncHandler(async (req, res) => {
         .sort({ createdAt: -1 });
 
     res.status(200).json(cases);
-    
+
 });
 const getCaseById = AsyncHandler(async (req, res) => {
     const caseId = req.params.id;
@@ -480,6 +482,12 @@ const createCase = AsyncHandler(async (req, res) => {
                 : new Date();
     }
 
+    if (interventionPlans !== undefined) {
+        if (!Array.isArray(interventionPlans)) return res.status(400).json({ message: 'Intervention plans must be an array.' });
+        try { for (const plan of interventionPlans) await validateKnowledgeAttachments(plan.resources || [], req.user); }
+        catch (error) { return res.status(400).json({ message: error.message }); }
+    }
+
     const newCase =
         await Case.create({
             caseNumber:
@@ -606,6 +614,14 @@ const updateCase = AsyncHandler(async (req, res) => {
         });
     }
 
+    if (req.body.caseFormulation !== undefined) {
+        if (['Closed', 'Terminated'].includes(foundCase.caseStatus)) return res.status(400).json({ message: 'Formulation can only be edited while the case is active.' });
+        const formulation = req.body.caseFormulation;
+        if (!formulation || typeof formulation !== 'object' || Array.isArray(formulation) || Object.entries(formulation).some(([key, value]) => !['presentingProblem', 'formulationNarrative', 'counselorAssessment', 'aiSummary'].includes(key) || typeof value !== 'string')) {
+            return res.status(400).json({ message: 'Formulation fields must contain text.' });
+        }
+    }
+
     /*
      * Validate client entry type only when
      * the request is trying to change it.
@@ -647,6 +663,22 @@ const updateCase = AsyncHandler(async (req, res) => {
                 message:
                     'Referral source is required for referred cases.',
             });
+        }
+    }
+
+    if (req.body.interventionPlans !== undefined) {
+        if (!Array.isArray(req.body.interventionPlans)) return res.status(400).json({ message: 'Intervention plans must be an array.' });
+        try { for (const plan of req.body.interventionPlans) await validateKnowledgeAttachments(plan.resources || [], req.user); }
+        catch (error) { return res.status(400).json({ message: error.message }); }
+        for (const plan of req.body.interventionPlans) {
+            const existingPlan = plan._id ? foundCase.interventionPlans.id(plan._id) : null;
+            if (!existingPlan) {
+                plan.approvalStatus = 'Pending Review';
+                plan.isSentToStudent = false;
+            } else if (JSON.stringify((plan.resources || []).map(resource => resource.url)) !== JSON.stringify((existingPlan.resources || []).map(resource => resource.url))) {
+                if (existingPlan.isSentToStudent) return res.status(400).json({ message: 'Sent plan attachments cannot be changed. Create a new plan.' });
+                plan.approvalStatus = 'Revised';
+            }
         }
     }
 
@@ -712,7 +744,7 @@ const updateCase = AsyncHandler(async (req, res) => {
             'Updated',
 
         remarks:
-            'Case record details updated.',
+            req.body.caseFormulation !== undefined ? 'Counselor case formulation updated.' : 'Case record details updated.',
 
         actionBy:
             req.user._id,
@@ -1020,7 +1052,7 @@ const assignCounselor = AsyncHandler(async (req, res)=> {
     }
 
     const newCounselor = await User.findById(assignedCounselor);
-    
+
     if (!newCounselor){
         return res.status(404).json({ message: 'New counselor not found.'});
     }
@@ -1059,8 +1091,8 @@ const assignCounselor = AsyncHandler(async (req, res)=> {
 
         res.status(200).json({
             message:'Assigned counselor is updated',
-            case: assignNewCounselor    
-        }); 
+            case: assignNewCounselor
+        });
 
 });
 const grantTemporaryAccess =
@@ -1906,12 +1938,12 @@ const archiveCase = AsyncHandler(async (req,res) => {
     });
     await foundCase.save();
     const updatedCase = await Case.findById(foundCase._id)
-        .populate( 
-            'student', 
+        .populate(
+            'student',
             'firstName middleName lastName email studentIdNumber college program yearLevel contactNumber'
         )
         .populate(
-            'assignedCounselor', 
+            'assignedCounselor',
             'firstName middleName lastName email role'
         )
         .populate(
@@ -1919,13 +1951,13 @@ const archiveCase = AsyncHandler(async (req,res) => {
             'firstName middleName lastName email role'
         )
         .populate(
-            'updatedBy', 
+            'updatedBy',
             'firstName middleName lastName email role'
         );
         res.status(200).json({
             message:'Case archived successfully.',
             case: updatedCase
-        }); 
+        });
 });
 const restoreCase = AsyncHandler(async (req, res) => {
     const caseId = req.params.id;
@@ -1959,22 +1991,22 @@ const restoreCase = AsyncHandler(async (req, res) => {
     await foundCase.save();
 
     const updatedCase = await Case.findById(foundCase._id)
-        .populate( 
-            'student', 
+        .populate(
+            'student',
             'firstName middleName lastName email studentIdNumber college program yearLevel contactNumber'
         )
         .populate(
-            'assignedCounselor', 
+            'assignedCounselor',
             'firstName middleName lastName email role'
         )
         .populate(
-            'updatedBy', 
+            'updatedBy',
             'firstName middleName lastName email role'
         );
  res.status(200).json({
             message:'Case restored successfully.',
             case: updatedCase
-   }); 
+   });
 });
 const approveInterventionPlan = AsyncHandler(async (req, res) => {
     const caseId = req.params.id;
@@ -2036,10 +2068,12 @@ const approveInterventionPlan = AsyncHandler(async (req, res) => {
         });
     }
 
+    try { await validateKnowledgeAttachments(interventionPlan.resources || [], req.user); }
+    catch (error) { return res.status(400).json({ message: error.message }); }
     interventionPlan.approvalStatus = 'Approved';
     interventionPlan.reviewedBy = req.user._id;
     interventionPlan.reviewedAt = new Date();
-    
+
     if (!['Ongoing', 'Completed'].includes(interventionPlan.status)){
         interventionPlan.status = 'Planned';
     }
@@ -2060,12 +2094,12 @@ const approveInterventionPlan = AsyncHandler(async (req, res) => {
 
     await foundCase.save();
       const updatedCase = await Case.findById(foundCase._id)
-        .populate( 
-            'student', 
+        .populate(
+            'student',
             'firstName middleName lastName email studentIdNumber college program yearLevel contactNumber'
         )
         .populate(
-            'assignedCounselor', 
+            'assignedCounselor',
             'firstName middleName lastName email role'
         )
         .populate(
@@ -2073,13 +2107,13 @@ const approveInterventionPlan = AsyncHandler(async (req, res) => {
             'firstName middleName lastName email role'
         )
         .populate(
-            'updatedBy', 
+            'updatedBy',
             'firstName middleName lastName email role'
         );
         res.status(200).json({
             message:'Intervention plan approved successfully.',
             case: updatedCase
-        }); 
+        });
 });
 const reviseInterventionPlan = AsyncHandler(async (req, res) => {
     const caseId = req.params.id;
@@ -2198,6 +2232,8 @@ const reviseInterventionPlan = AsyncHandler(async (req, res) => {
             });
         }
 
+        try { await validateKnowledgeAttachments(resources, req.user); }
+        catch (error) { return res.status(400).json({ message: error.message }); }
         interventionPlan.resources =
             resources;
     }
@@ -2300,9 +2336,9 @@ const rejectInterventionPlan = AsyncHandler( async (req, res) => {
         return res.status(400).json({ message: 'Cannot review intervention plans for non-active cases.'});
     }
 
-    const isAssignedCounselor = foundCase.assignedCounselor && 
+    const isAssignedCounselor = foundCase.assignedCounselor &&
                 foundCase.assignedCounselor.toString() === req.user._id.toString();
-    
+
     if (!isAssignedCounselor){
         return res.status(403).json({ message: 'Not authorized to reject intervention plans.'});
     }
@@ -2348,12 +2384,12 @@ const rejectInterventionPlan = AsyncHandler( async (req, res) => {
     await foundCase.save();
 
     const updatedCase = await Case.findById(foundCase._id)
-        .populate( 
-            'student', 
+        .populate(
+            'student',
             'firstName middleName lastName email studentIdNumber college program yearLevel contactNumber'
         )
         .populate(
-            'assignedCounselor', 
+            'assignedCounselor',
             'firstName middleName lastName email role'
         )
         .populate(
@@ -2361,13 +2397,13 @@ const rejectInterventionPlan = AsyncHandler( async (req, res) => {
             'firstName middleName lastName email role'
         )
         .populate(
-            'updatedBy', 
+            'updatedBy',
             'firstName middleName lastName email role'
         );
     res.status(200).json({
         message:'Intervention plan rejected successfully.',
         case: updatedCase
-     }); 
+     });
 });
 const sendApprovedInterventionPlan = AsyncHandler(
     async (req, res) => {
@@ -2468,7 +2504,8 @@ const sendApprovedInterventionPlan = AsyncHandler(
 
         let attachments;
         try {
-            attachments = await resolveInterventionAttachments(resources);
+            attachments = await resolveInterventionAttachments(resources, { user: req.user,
+                allowedUploadUrls: [...foundCase.interventionPlans, ...(foundCase.llmRecommendations || [])].flatMap(item => (item.resources || []).map(resource => resource.url)) });
         } catch (error) {
             return res.status(400).json({
                 message: error.message,
@@ -2568,6 +2605,10 @@ const sendApprovedInterventionPlan = AsyncHandler(
         `;
 
         try {
+            const stillAuthorized = await Case.exists({ _id: foundCase._id, assignedCounselor: req.user._id, isArchived: false,
+                caseStatus: { $nin: ['Closed', 'Terminated'] }, interventionPlans: { $elemMatch: { _id: interventionPlan._id, approvalStatus: 'Approved', isSentToStudent: false } } });
+            if (!stillAuthorized) return res.status(403).json({ message: 'The case assignment or plan approval changed. Refresh before sending.' });
+            await validateKnowledgeAttachments(resources, req.user);
             await transporter.sendMail({
                 from:
                     process.env.EMAIL_USER,
@@ -2596,8 +2637,8 @@ const sendApprovedInterventionPlan = AsyncHandler(
                 error
             );
 
-            return res.status(500).json({
-                message:
+            return res.status(error.statusCode || 500).json({
+                message: error.statusCode ? error.message :
                     'Failed to send intervention plan.',
             });
         }
@@ -2853,7 +2894,7 @@ const getCaseTimeline = AsyncHandler (async (req, res) => {
             'progressNotes.attendingCounselor',
             'firstName middleName lastName email role'
         );
-    
+
     if (!foundCase){
         return res.status(404).json({ message: 'Case does not exist.'});
     }
@@ -4362,78 +4403,15 @@ const goal =
  * SUPPORTING RESOURCES
  * -------------------------------------------------
  *
- * Automatically attach Knowledge Base PDFs selected
- * by the RAG service as supporting resources.
+ * AI suggestions do not automatically select student attachments.
  *
  * The same PDF may support multiple interventions,
  * so duplicate resource IDs are removed.
  */
 const recommendationResources = [];
 
-const seenResourceIds =
-    new Set();
-
-for (
-    const generatedRecommendation
-    of generatedRecommendations
-) {
-    const supportingResource =
-        generatedRecommendation
-            ?.supportingResource;
-
-    if (
-        !supportingResource ||
-        !supportingResource.resourceId ||
-        !['worksheet', 'handout', 'activity', 'exercise', 'template'].includes(supportingResource.resourceType)
-    ) {
-        continue;
-    }
-
-    const resourceId =
-        String(
-            supportingResource.resourceId
-        ).trim();
-
-    if (
-        seenResourceIds.has(
-            resourceId
-        )
-    ) {
-        continue;
-    }
-
-    seenResourceIds.add(
-        resourceId
-    );
-
-    recommendationResources.push({
-        title:
-            supportingResource.title ||
-            supportingResource.source ||
-            supportingResource.originalFilename ||
-            "Supporting Resource",
-
-        type:
-            "PDF",
-
-        url:
-            `/api/knowledge-base/${resourceId}/pdf`,
-
-        description:
-            [
-                supportingResource.resourceType,
-                supportingResource.topic,
-            ]
-                .filter(Boolean)
-                .join(" • "),
-
-        isProvidedToStudent:
-            false,
-
-        providedAt:
-            null,
-    });
-}
+// Counselors explicitly select PDFs in the intervention plan editor.
+// Retrieved or suggested resources are evidence, never automatic attachments.
 
 /*
  * -------------------------------------------------
@@ -4474,6 +4452,7 @@ const recommendation = {
     rationale,
 
     retrievedSources,
+    suggestedMaterials: collectSuggestedMaterials(generatedRecommendations),
 
     /*
      * These are the actual practical resources
@@ -4602,6 +4581,10 @@ const reviseLLMRecommendation = AsyncHandler(async (req, res) => {
         });
     }
 
+    if (req.body.resources !== undefined) {
+        try { await validateKnowledgeAttachments(req.body.resources, req.user); }
+        catch (error) { return res.status(400).json({ message: error.message }); }
+    }
     const allowedFields = [
         'concernSummary',
         'goal',
@@ -4764,6 +4747,15 @@ const acceptLLMRecommendation = AsyncHandler(async (req, res) => {
         });
     }
 
+    let selectedMaterials;
+    try { selectedMaterials = selectSuggestedMaterials(recommendation, req.body.selectedSuggestedMaterialIds || []); }
+    catch (error) { return res.status(400).json({ message: error.message }); }
+    const planResources = [...(recommendation.resources || [])];
+    for (const material of selectedMaterials) {
+        if (!planResources.some(resource => resource.url === material.url)) planResources.push(material);
+    }
+    try { await validateKnowledgeAttachments(planResources, req.user); }
+    catch (error) { return res.status(400).json({ message: error.message }); }
     foundCase.interventionPlans.push({
         problem:
             recommendation.concernSummary,
@@ -4786,7 +4778,7 @@ const acceptLLMRecommendation = AsyncHandler(async (req, res) => {
             'Created from a counselor-reviewed LLM recommendation.',
 
          resources:
-            (recommendation.resources || []).map(
+            planResources.map(
                 (resource) => ({
                     title:
                         resource.title,
@@ -5444,5 +5436,5 @@ module.exports = {
     acceptLLMRecommendation,
     rejectLLMRecommendation,
     uploadLLMRecommendationResources,
-    
+
 };

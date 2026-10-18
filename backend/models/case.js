@@ -474,6 +474,14 @@ const llmRecommendationSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        suggestedMaterials: [{
+            resourceId: { type: String, required: true },
+            title: { type: String, required: true },
+            resourceType: { type: String, enum: ['worksheet', 'handout'], required: true },
+            url: String,
+            pageNumber: Number,
+            interventions: [String],
+        }],
         retrievedSources: [
             {
                 title: {

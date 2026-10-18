@@ -12,6 +12,11 @@ import Icon from "../components/Icon";
 import { API_BASE_URL, apiRequest } from "../config/api";
 import { useAuth } from "../context/AuthContext";
 
+const RESOURCE_TYPES = ['reference', 'worksheet', 'handout'];
+const typeLabel = type => ({ reference: 'Reference (RAG)', worksheet: 'Worksheet', handout: 'Handout' }[type] || 'Legacy type — review needed');
+const RESOURCE_STATUSES = ['Active', 'Under Review', 'Obsolete'];
+const resourceStatus = resource => resource.status || 'Active';
+
 export default function KnowledgeBasePage() {
   const navigate = useNavigate();
   const { user, clearUser } = useAuth();
@@ -28,8 +33,11 @@ export default function KnowledgeBasePage() {
   const [isUploading, setIsUploading] =
     useState(false);
 
-  const [deletingId, setDeletingId] =
-    useState("");
+  const isAdmin = user?.role === 'Counselor-Admin';
+  const [typeFilter, setTypeFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [editingResource, setEditingResource] = useState(null);
+  const [replacementResource, setReplacementResource] = useState(null);
 
   const [pageError, setPageError] =
     useState("");
@@ -57,6 +65,7 @@ export default function KnowledgeBasePage() {
     resourceType: "reference",
     topic: "",
     file: null,
+    status: "Active", publicationYear: "", author: "", description: "",
   });
 
   const handleUnauthorized =
@@ -77,7 +86,7 @@ export default function KnowledgeBasePage() {
     }
 
     if (
-      user.role !== "Counselor-Admin"
+      !["Counselor-Admin", "Counselor-User"].includes(user.role)
     ) {
       navigate("/dashboard", {
         replace: true,
@@ -180,12 +189,11 @@ export default function KnowledgeBasePage() {
 
           const matchesStatus =
             !statusFilter ||
-            resource.processingStatus ===
-              statusFilter;
+            resourceStatus(resource) === statusFilter;
 
           return (
             matchesSearch &&
-            matchesStatus
+            matchesStatus && (!typeFilter || resource.resourceType === typeFilter)
           );
         },
       );
@@ -193,32 +201,21 @@ export default function KnowledgeBasePage() {
       resources,
       searchInput,
       statusFilter,
+      typeFilter,
     ]);
+
+  useEffect(() => setPage(1), [searchInput, statusFilter, typeFilter, resources.length]);
+  const totalPages = Math.max(1, Math.ceil(filteredResources.length / 10));
+  const currentPage = Math.min(page, totalPages);
+  const displayedResources = filteredResources.slice((currentPage - 1) * 10, currentPage * 10);
 
   const stats = useMemo(() => {
     return {
       total: resources.length,
 
-      ready: resources.filter(
-        (resource) =>
-          resource.processingStatus ===
-          "Ready",
-      ).length,
-
-      chunks: resources.reduce(
-        (total, resource) =>
-          total +
-          Number(
-            resource.totalChunks || 0,
-          ),
-        0,
-      ),
-
-      failed: resources.filter(
-        (resource) =>
-          resource.processingStatus ===
-          "Failed",
-      ).length,
+      active: resources.filter(resource => resourceStatus(resource) === 'Active').length,
+      review: resources.filter(resource => resourceStatus(resource) === 'Under Review').length,
+      obsolete: resources.filter(resource => resourceStatus(resource) === 'Obsolete').length,
     };
   }, [resources]);
 
@@ -228,7 +225,9 @@ export default function KnowledgeBasePage() {
       resourceType: "reference",
       topic: "",
       file: null,
+      status: 'Active', publicationYear: '', author: '', description: '',
     });
+    setReplacementResource(null);
   };
 
   const closeUploadModal = () => {
@@ -260,9 +259,10 @@ export default function KnowledgeBasePage() {
       form.resourceType.trim(),
     );
     formData.append("topic", form.topic.trim());
+    for (const field of ['status', 'publicationYear', 'author', 'description']) formData.append(field, form[field] ?? '');
 
     const data = await apiRequest(
-      "/knowledge-base",
+      replacementResource ? `/knowledge-base/${replacementResource._id}/replace` : "/knowledge-base",
       {
         method: "POST",
         body: formData,
@@ -363,54 +363,19 @@ export default function KnowledgeBasePage() {
       }
     };
 
-  const deleteResource =
-    async (resource) => {
-      const confirmed =
-        window.confirm(
-          `Delete "${resource.title}"?\n\nThis will also delete all associated knowledge chunks and the uploaded PDF.`,
-        );
-
-      if (!confirmed) return;
-
-      setDeletingId(resource._id);
-      setPageError("");
-
-      try {
-        const data =
-          await apiRequest(
-            `/knowledge-base/${resource._id}`,
-            {
-              method: "DELETE",
-            },
-          );
-
-        setResources(
-          (current) =>
-            current.filter(
-              (item) =>
-                item._id !==
-                resource._id,
-            ),
-        );
-
-        setSuccessMessage(
-          data?.message ||
-            "Knowledge resource deleted successfully.",
-        );
-      } catch (error) {
-        if (error.status === 401) {
-          handleUnauthorized();
-          return;
-        }
-
-        setPageError(
-          error.message ||
-            "Unable to delete the knowledge resource.",
-        );
-      } finally {
-        setDeletingId("");
-      }
-    };
+  const replaceResource = resource => {
+    setReplacementResource(resource);
+    setForm({ title: resource.title, resourceType: resource.resourceType, topic: resource.topic,
+      status: 'Active', publicationYear: resource.publicationYear || '', author: resource.author || '',
+      description: resource.description || '', file: null });
+    setUploadModalOpen(true);
+  };
+  const saveResource = async values => {
+    const data = await apiRequest(`/knowledge-base/${editingResource._id}`, { method: 'PATCH', body: JSON.stringify(values) });
+    setResources(current => current.map(resource => resource._id === data.resource._id ? data.resource : resource));
+    setSuccessMessage(data.message);
+    setEditingResource(null);
+  };
 
   if (!user) {
     return null;
@@ -449,12 +414,12 @@ export default function KnowledgeBasePage() {
                 </h1>
 
                 <p className="hidden text-[14px] text-[#99918C] sm:block">
-                  Manage curated resources used by the LLM recommendation system
+                  Counseling resources and reference materials
                 </p>
               </div>
             </div>
 
-            <button
+            {isAdmin && <button
               type="button"
               onClick={() =>
                 setUploadModalOpen(
@@ -468,8 +433,8 @@ export default function KnowledgeBasePage() {
                 className="h-3 w-3"
               />
 
-              Upload PDF
-            </button>
+              Add Resource
+            </button>}
           </div>
         </header>
 
@@ -492,37 +457,37 @@ export default function KnowledgeBasePage() {
 
           <section>
             <h2 className="text-[27px] font-semibold tracking-[-0.03em]">
-              RAG knowledge resources
+              Knowledge resources
             </h2>
 
             <p className="mt-1 max-w-[850px] text-[14px] leading-4 text-[#89817D]">
-              Upload approved counseling references, worksheets, handouts, and other PDF resources. Uploaded documents are processed into searchable knowledge chunks for retrieval during LLM recommendation generation.
+              View counseling materials and manage their approval for new AI-assisted recommendations. Reference PDFs support recommendations; only permitted practical materials can be sent to students.
             </p>
           </section>
 
           <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
-              label="Resources"
+              label="Total Resources"
               value={stats.total}
               description="Uploaded documents"
             />
 
             <StatCard
-              label="Ready"
-              value={stats.ready}
-              description="Available for retrieval"
+              label="Active Resources"
+              value={stats.active}
+              description="Approved resources; processing must be complete"
             />
 
             <StatCard
-              label="Knowledge chunks"
-              value={stats.chunks}
-              description="Embedded text chunks"
+              label="Under Review Resources"
+              value={stats.review}
+              description="Excluded from new recommendations"
             />
 
             <StatCard
-              label="Failed"
-              value={stats.failed}
-              description="Resources needing attention"
+              label="Obsolete Resources"
+              value={stats.obsolete}
+              description="Retained for review and documentation"
             />
           </section>
 
@@ -571,7 +536,10 @@ export default function KnowledgeBasePage() {
                   />
                 </div>
 
-                <select
+                <select aria-label="Resource type" value={typeFilter} onChange={event => setTypeFilter(event.target.value)} className={inputClass}>
+                  <option value="">All types</option>{RESOURCE_TYPES.map(type => <option key={type} value={type}>{typeLabel(type)}</option>)}
+                </select>
+                <select aria-label="Resource status"
                   value={
                     statusFilter
                   }
@@ -589,21 +557,7 @@ export default function KnowledgeBasePage() {
                     All statuses
                   </option>
 
-                  <option value="Ready">
-                    Ready
-                  </option>
-
-                  <option value="Processing">
-                    Processing
-                  </option>
-
-                  <option value="Pending">
-                    Pending
-                  </option>
-
-                  <option value="Failed">
-                    Failed
-                  </option>
+                  {RESOURCE_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
                 </select>
               </div>
             </div>
@@ -613,11 +567,7 @@ export default function KnowledgeBasePage() {
             ) : filteredResources.length ===
               0 ? (
               <EmptyState
-                onUpload={() =>
-                  setUploadModalOpen(
-                    true,
-                  )
-                }
+                onUpload={isAdmin ? () => setUploadModalOpen(true) : null}
               />
             ) : (
               <div className="overflow-x-auto">
@@ -659,7 +609,7 @@ export default function KnowledgeBasePage() {
                   </thead>
 
                   <tbody>
-                    {filteredResources.map(
+                    {displayedResources.map(
                       (resource) => (
                         <tr
                           key={
@@ -693,8 +643,7 @@ export default function KnowledgeBasePage() {
                           </td>
 
                           <td className="px-4 py-3 text-[14px] capitalize text-[#625B57]">
-                            {resource.resourceType ||
-                              "—"}
+                            {typeLabel(resource.resourceType)}
                           </td>
 
                           <td className="px-4 py-3 text-[14px] text-[#625B57]">
@@ -715,9 +664,14 @@ export default function KnowledgeBasePage() {
                           <td className="px-4 py-3">
                             <StatusBadge
                               status={
-                                resource.processingStatus
+                                resourceStatus(resource)
                               }
                             />
+                            {(resource.isActive === false || resource.replacedBy || resource.replacementPending || resource.processingStatus !== 'Ready') && (
+                              <p className="mt-1.5 max-w-[150px] text-[12px] leading-4 text-[#827A76]">
+                                {resource.isActive === false ? 'Access disabled' : resource.replacedBy ? 'Replaced by a newer version' : resource.replacementPending ? 'Replacement in progress' : resource.processingStatus === 'Failed' ? 'PDF needs attention' : resource.processingStatus === 'Processing' ? 'Preparing PDF…' : 'Awaiting processing'}
+                              </p>
+                            )}
                           </td>
 
                           <td className="px-4 py-3 text-[13px] text-[#827A76]">
@@ -727,7 +681,7 @@ export default function KnowledgeBasePage() {
                           </td>
 
                           <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
+                            <div className="flex w-max items-center gap-2 whitespace-nowrap">
                               <button
                                 type="button"
                                 onClick={() =>
@@ -735,29 +689,15 @@ export default function KnowledgeBasePage() {
                                     resource._id,
                                   )
                                 }
-                                className="h-7 rounded-lg border border-[#DCD6D2] bg-white px-2.5 text-[13px] font-semibold text-[#5A534F] hover:border-[#8C1518] hover:text-[#8C1518]"
+                                className="h-8 shrink-0 rounded-lg border border-[#DCD6D2] bg-white px-2.5 text-[13px] font-semibold text-[#5A534F] hover:border-[#8C1518] hover:text-[#8C1518]"
                               >
                                 View
                               </button>
 
-                              <button
-                                type="button"
-                                disabled={
-                                  deletingId ===
-                                  resource._id
-                                }
-                                onClick={() =>
-                                  deleteResource(
-                                    resource,
-                                  )
-                                }
-                                className="h-7 rounded-lg border border-red-200 bg-red-50 px-2.5 text-[13px] font-semibold text-red-600 disabled:opacity-50"
-                              >
-                                {deletingId ===
-                                resource._id
-                                  ? "Deleting..."
-                                  : "Delete"}
-                              </button>
+                              {isAdmin && <>
+                                <button type="button" onClick={() => setEditingResource(resource)} disabled={Boolean(resource.replacementPending) || resource.processingStatus === 'Processing'} className="h-8 shrink-0 rounded-lg border border-[#DCD6D2] bg-white px-2.5 text-[13px] font-semibold text-[#8C1518] disabled:opacity-50">Manage</button>
+                                <button type="button" onClick={() => replaceResource(resource)} disabled={Boolean(resource.replacementPending || resource.replacedBy) || resource.processingStatus === 'Processing'} className="h-8 shrink-0 rounded-lg border border-[#DCD6D2] bg-white px-2.5 text-[13px] font-semibold text-[#8C1518] disabled:opacity-50">Replace</button>
+                              </>}
                             </div>
                           </td>
                         </tr>
@@ -767,12 +707,19 @@ export default function KnowledgeBasePage() {
                 </table>
               </div>
             )}
+            {filteredResources.length > 10 && <div className="flex items-center justify-end gap-4 border-t border-[#ECE8E5] p-4 text-sm">
+              <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} className="disabled:opacity-40">Previous</button>
+              <span>Page {currentPage} of {totalPages}</span>
+              <button type="button" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)} className="disabled:opacity-40">Next</button>
+            </div>}
           </section>
         </main>
       </div>
 
+      {editingResource && <EditResourceModal resource={editingResource} onSave={saveResource} onClose={() => setEditingResource(null)} />}
       {uploadModalOpen && (
         <UploadModal
+          replacement={replacementResource}
           form={form}
           setForm={setForm}
           uploading={
@@ -809,6 +756,7 @@ export default function KnowledgeBasePage() {
 }
 
 function UploadModal({
+  replacement,
   form,
   setForm,
   uploading,
@@ -817,8 +765,8 @@ function UploadModal({
 }) {
   return (
     <ModalShell
-      title="Upload knowledge resource"
-      description="Add an approved PDF to the curated RAG knowledge base."
+      title={replacement ? 'Replace resource' : 'Add resource'}
+      description={replacement ? 'The previous PDF stays available. It becomes obsolete only after this approved replacement is processed successfully.' : 'Upload a counseling PDF and select its approval status.'}
       onClose={onClose}
       disableClose={uploading}
     >
@@ -855,6 +803,7 @@ function UploadModal({
           >
             <select
               required
+              disabled={Boolean(replacement)}
               value={
                 form.resourceType
               }
@@ -873,7 +822,7 @@ function UploadModal({
               }
             >
               <option value="reference">
-                Reference
+                Reference (RAG)
               </option>
 
               <option value="worksheet">
@@ -884,17 +833,6 @@ function UploadModal({
                 Handout
               </option>
 
-              <option value="activity">
-                Activity
-              </option>
-
-              <option value="exercise">
-                Exercise
-              </option>
-
-              <option value="template">
-                Template
-              </option>
             </select>
           </Field>
 
@@ -925,6 +863,8 @@ function UploadModal({
           </Field>
         </div>
 
+        <p className="text-[13px] leading-5 text-[#827A76]">Reference (RAG): supporting literature, never sent to students. Worksheet: tasks for students to complete. Handout: information for students to read. All three can support recommendations when Active.</p>
+        <ResourceMetadataFields form={form} setForm={setForm} lockStatus={Boolean(replacement)} />
         <Field
           label="PDF file"
           required
@@ -963,7 +903,7 @@ function UploadModal({
         )}
 
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] leading-4 text-amber-800">
-          Uploading will extract the PDF text, create chunks, filter low-quality content, generate embeddings, and store the resulting knowledge chunks in MongoDB.
+          The PDF will be prepared for searching. Only Active resources that finish processing can support new recommendations.
         </div>
 
         <div className="flex justify-end gap-2 border-t border-[#ECE8E5] pt-4">
@@ -1104,7 +1044,7 @@ function ResourceDetailsModal({
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.75fr)]">
 
         {/* PDF PREVIEW */}
-        <div>
+        <div className="flex min-w-0 flex-col">
           <div className="mb-2">
             <p className="text-[15px] font-semibold text-[#3B3330]">
               PDF Preview
@@ -1116,9 +1056,9 @@ function ResourceDetailsModal({
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-[#E7E1DD] bg-[#F8F6F4]">
+          <div className="relative min-h-[520px] overflow-hidden rounded-xl border border-[#E7E1DD] bg-[#F8F6F4] lg:flex-1">
             {pdfLoading && (
-              <div className="flex h-[520px] items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
                   <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-[#D8CECA] border-t-[#8C1518]" />
 
@@ -1131,7 +1071,7 @@ function ResourceDetailsModal({
 
             {!pdfLoading &&
               pdfError && (
-                <div className="flex h-[520px] items-center justify-center p-6">
+                <div className="absolute inset-0 flex items-center justify-center p-6">
                   <div className="max-w-xs text-center">
                     <div className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-red-50 text-red-700">
                       !
@@ -1154,7 +1094,7 @@ function ResourceDetailsModal({
                 <iframe
                   src={pdfUrl}
                   title={`PDF preview - ${resource.title}`}
-                  className="h-[520px] w-full bg-white"
+                  className="absolute inset-0 h-full w-full border-0 bg-white"
                 />
               )}
           </div>
@@ -1182,37 +1122,47 @@ function ResourceDetailsModal({
               <DetailCard
                 label="Status"
                 value={
-                  resource.processingStatus
+                  resourceStatus(resource)
                 }
               />
 
               <DetailCard
                 label="Resource type"
                 value={
-                  resource.resourceType
+                  typeLabel(resource.resourceType)
                 }
               />
             </div>
 
-            <DetailCard
-              label="Topic"
-              value={resource.topic}
-            />
+            <DetailCard label="Student attachment" value={['worksheet', 'handout'].includes(resource.resourceType) && resourceStatus(resource) === 'Active' && resource.isActive !== false && resource.processingStatus === 'Ready' && !resource.replacedBy ? 'Eligible — counselor selection and plan approval required' : resource.resourceType === 'reference' ? 'Not permitted - Reference PDFs are supporting knowledge only' : 'Not eligible - review resource type, status, and processing'} />
+            <DetailCard label="Publication year" value={resource.publicationYear} />
+            <DetailCard label="Author or organization" value={resource.author} />
+            <DetailCard label="Description" value={resource.description} />
+           <div className="grid grid-cols-2 gap-3">
+              <DetailCard 
+                label="Last reviewed" 
+                value={formatDateTime(resource.lastReviewedAt)} 
+              />
+              <DetailCard 
+                label="Processing" 
+                value={resource.processingStatus} 
+              />
+            </div>
+           
+            {resource.replaces && <DetailCard label="Replaces resource" value={resource.replaces} />}
+            {resource.replacedBy && <DetailCard label="Replaced by resource" value={resource.replacedBy} />}
+            {(resource.statusHistory || []).length > 0 && <div className="rounded-xl border border-[#E8E3E0] p-3"><h3 className="text-sm font-semibold">Review history</h3>{resource.statusHistory.map((item, index) => <p key={index} className="mt-2 text-xs">{item.previousStatus || 'Uploaded'} → {item.newStatus} · {formatDateTime(item.changedAt)}{item.reason ? ` · ${item.reason}` : ''}</p>)}</div>}
 
+              
             <div className="grid grid-cols-2 gap-3">
+              <DetailCard
+                label="Topic"
+                value={resource.topic}
+              />
               <DetailCard
                 label="Pages"
                 value={
                   resource.totalPages ??
-                  0
-                }
-              />
-
-              <DetailCard
-                label="Stored chunks"
-                value={
-                  resource.actualChunkCount ??
-                  resource.totalChunks ??
                   0
                 }
               />
@@ -1224,22 +1174,6 @@ function ResourceDetailsModal({
                 resource.originalFileName
               }
             />
-
-            <div className="grid grid-cols-2 gap-3">
-              <DetailCard
-                label="Embedding provider"
-                value={
-                  resource.embeddingProvider
-                }
-              />
-
-              <DetailCard
-                label="Embedding model"
-                value={
-                  resource.embeddingModel
-                }
-              />
-            </div>
 
             <DetailCard
               label="Uploaded by"
@@ -1422,6 +1356,9 @@ function StatusBadge({
   status,
 }) {
   const styles = {
+    Active: "bg-emerald-50 text-emerald-700",
+    'Under Review': "bg-amber-50 text-amber-700",
+    Obsolete: "bg-slate-100 text-slate-600",
     Ready:
       "bg-emerald-50 text-emerald-700",
     Processing:
@@ -1434,11 +1371,12 @@ function StatusBadge({
 
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-1 text-[13px] font-medium ${
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-current/10 px-2 py-0.5 text-[12px] font-medium leading-5 ${
         styles[status] ||
         "bg-[#F1EEEC] text-[#6E6763]"
       }`}
     >
+      <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
       {status ||
         "Unknown"}
     </span>
@@ -1514,20 +1452,20 @@ function EmptyState({
         </div>
 
         <p className="mt-4 text-[16px] font-semibold">
-          No knowledge resources yet
+          No matching resources
         </p>
 
         <p className="mt-1 max-w-[380px] text-[14px] leading-4 text-[#938C87]">
-          Upload the first approved PDF to begin building the curated RAG knowledge base.
+          Try another search or filter. Authorized administrators can add resources to the library.
         </p>
 
-        <button
+        {onUpload && <button
           type="button"
           onClick={onUpload}
           className="mt-4 h-8 rounded-lg bg-[#8C1518] px-4 text-[14px] font-semibold text-white"
         >
           Upload first PDF
-        </button>
+        </button>}
       </div>
     </div>
   );
@@ -1635,3 +1573,49 @@ function formatFileSize(
 
 const inputClass =
   "h-9 w-full rounded-lg border border-[#DDD8D4] bg-white px-3 text-[14px] font-[Poppins] text-[#302B28] outline-none transition placeholder:text-[#AAA39F] focus:border-[#8C1518] focus:ring-2 focus:ring-[#8C1518]/[0.06]";
+function ResourceMetadataFields({ form, setForm, lockStatus = false }) {
+  const update = event => setForm(current => ({ ...current, [event.target.name]: event.target.value }));
+  return <div className="space-y-4">
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Field label="Resource status"><select name="status" value={form.status} onChange={update} disabled={lockStatus} className={inputClass}>{RESOURCE_STATUSES.map(status => <option key={status}>{status}</option>)}</select></Field>
+      <Field label="Publication year"><input type="number" name="publicationYear" min="1000" max="9999" step="1" value={form.publicationYear} onChange={update} className={inputClass} /></Field>
+    </div>
+    <p className="text-[13px] text-[#827A76]">Active resources may support new recommendations when processing is complete. Under Review and Obsolete resources remain available for review.</p>
+    <Field label="Author or organization (optional)"><input name="author" value={form.author} onChange={update} className={inputClass} /></Field>
+    <Field label="Description (optional)"><textarea name="description" value={form.description} onChange={update} rows={3} className={inputClass} /></Field>
+  </div>;
+}
+
+function EditResourceModal({ resource, onSave, onClose }) {
+  const [form, setForm] = useState({ title: resource.title, topic: resource.topic, resourceType: resource.resourceType,
+    status: resourceStatus(resource), publicationYear: resource.publicationYear || '', author: resource.author || '', description: resource.description || '', reason: '' });
+  const [saving, setSaving] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState('');
+  const save = async () => {
+    setSaving(true); setError('');
+    try { await onSave(form); }
+    catch (failure) { setError(failure.message || 'Unable to update resource.'); setConfirming(false); }
+    finally { setSaving(false); }
+  };
+  const submit = event => {
+    event.preventDefault();
+    if (form.status !== resourceStatus(resource) && ['Active', 'Obsolete'].includes(form.status)) setConfirming(true);
+    else save();
+  };
+  return <ModalShell title={confirming ? (form.status === 'Obsolete' ? 'Mark this resource as obsolete?' : 'Reactivate this resource?') : 'Edit resource'} description="Update resource information without reprocessing its PDF." onClose={onClose} disableClose={saving}>
+    {error && <Alert tone="error" message={error} />}
+    {confirming ? <div className="space-y-5">
+      <p className="text-sm leading-7">{form.status === 'Obsolete' ? 'This resource will no longer be used to generate new AI intervention recommendations. Its PDF and information will remain available in the Knowledge Base for reference and documentation.' : 'This resource will be eligible for new AI recommendations when it is ready and otherwise permitted. Its resource type and student attachment restrictions still apply.'}</p>
+      <div className="flex justify-end gap-3"><button type="button" disabled={saving} onClick={() => setConfirming(false)} className="rounded-lg border px-4 py-2">Cancel</button><button type="button" disabled={saving} onClick={save} className="rounded-lg bg-[#8C1518] px-4 py-2 text-white disabled:opacity-50">{saving ? 'Saving…' : form.status === 'Obsolete' ? 'Mark as Obsolete' : 'Reactivate'}</button></div>
+    </div> : <form onSubmit={submit} className="space-y-4">
+      <Field label="Resource title" required><input required value={form.title} onChange={event => setForm(current => ({ ...current, title: event.target.value }))} className={inputClass} /></Field>
+      <Field label="Resource type"><select value={form.resourceType} onChange={event => setForm(current => ({ ...current, resourceType: event.target.value }))} className={inputClass}>{!RESOURCE_TYPES.includes(resource.resourceType) && <option value={resource.resourceType} disabled>Legacy type — review needed</option>}{RESOURCE_TYPES.map(type => <option key={type} value={type}>{typeLabel(type)}</option>)}</select></Field>
+      <p className="text-[13px] leading-5 text-[#827A76]">Reference (RAG) supports recommendations and is never attachable. Worksheets contain student tasks; Handouts provide reading information. Review legacy content before choosing its new type.</p>
+      <Field label="Topic" required><input required value={form.topic} onChange={event => setForm(current => ({ ...current, topic: event.target.value }))} className={inputClass} /></Field>
+      <ResourceMetadataFields form={form} setForm={setForm} />
+      <Field label="Review reason (optional)"><textarea value={form.reason} onChange={event => setForm(current => ({ ...current, reason: event.target.value }))} className={inputClass} /></Field>
+      <div className="flex justify-end gap-3"><button type="button" disabled={saving} onClick={onClose} className="rounded-lg border px-4 py-2">Cancel</button><button type="submit" disabled={saving} className="rounded-lg bg-[#8C1518] px-4 py-2 text-white disabled:opacity-50">{saving ? 'Saving…' : 'Save changes'}</button></div>
+    </form>}
+  </ModalShell>;
+}

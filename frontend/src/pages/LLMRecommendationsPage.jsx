@@ -379,6 +379,7 @@ export default function LLMRecommendationsPage({ embedded = false, caseId = null
     resetResourceForm();
 
     setRecommendationForm({
+      selectedSuggestedMaterialIds: recommendation.preselectedMaterialId ? [recommendation.preselectedMaterialId] : [],
       concernSummary:
         recommendation.concernSummary || "",
       goal: recommendation.goal || "",
@@ -447,6 +448,7 @@ export default function LLMRecommendationsPage({ embedded = false, caseId = null
         endpoint = `/cases/${selectedCase._id}/llm-recommendations/${selectedRecommendation._id}/accept`;
 
         body = JSON.stringify({
+          selectedSuggestedMaterialIds: recommendationForm.selectedSuggestedMaterialIds || [],
           counselorRemarks:
             recommendationForm.counselorRemarks.trim(),
         });
@@ -1018,13 +1020,6 @@ function RecommendationList({
                       recommendation.status
                     }
                   />
-
-                  <span className="rounded-full bg-violet-50 px-2 py-1 text-[13px] font-medium text-violet-700">
-                    {recommendation.generationMode ===
-                    "Mock"
-                      ? "Mock generator"
-                      : "LLM + RAG"}
-                  </span>
                 </div>
 
                 <h4 className="mt-3 text-[15px] font-semibold">
@@ -1096,6 +1091,18 @@ function RecommendationList({
                 </ul>
               </section>
             )}
+
+            {recommendation.suggestedMaterials?.length > 0 && <section className="mt-4 border-t border-[#ECE8E5] pt-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h3 className="text-[13px] font-semibold text-[#5A514C]">Suggested PDFs <span className="ml-1 text-[#958D88]">({recommendation.suggestedMaterials.length})</span></h3>
+                {['Draft', 'Revised'].includes(recommendation.status) && <button type="button" onClick={() => onAction('revise', recommendation)} className="rounded-lg border border-[#DDD7D3] bg-white px-3 py-1.5 text-[13px] font-semibold text-[#8C1518]">Review PDFs</button>}
+              </div>
+              <div className="grid gap-2 md:grid-cols-2">{recommendation.suggestedMaterials.map(material => <div key={material.resourceId} className="flex min-w-0 items-center gap-3 rounded-lg border border-[#E7E2DF] bg-white px-3 py-2.5">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#F4EAEA] text-[#8C1518]"><Icon name="file" className="h-4 w-4" /></span>
+                <div className="min-w-0 flex-1"><p className="truncate text-[14px] font-semibold" title={material.title}>{material.title}</p><p className="mt-0.5 text-[12px] text-[#958D88]">{material.resourceType === 'worksheet' ? 'Worksheet' : 'Handout'}{material.pageNumber ? ` · Page ${material.pageNumber}` : ''}</p></div>
+                <a href={getResourceUrl(material.url)} target="_blank" rel="noreferrer" className="shrink-0 rounded-md px-2 py-1.5 text-[13px] font-medium text-[#8C1518] hover:bg-[#F4EAEA]">Preview</a>
+              </div>)}</div>
+            </section>}
 
             {recommendation.resources?.length > 0 && (
               <section className="mt-3">
@@ -1559,6 +1566,17 @@ function RecommendationModal({
                 />
               </Field>
 
+              {recommendation.suggestedMaterials?.length > 0 && <div className="sm:col-span-2">
+                <SuggestedPdfPicker materials={recommendation.suggestedMaterials} disabled={saving}
+                  selectedIds={recommendation.suggestedMaterials.filter(material => (form.resources || []).some(resource => resource.url === material.url)).map(material => material.resourceId)}
+                  onChange={ids => setForm(current => {
+                    const suggestedUrls = new Set(recommendation.suggestedMaterials.map(material => material.url));
+                    const resources = (current.resources || []).filter(resource => !suggestedUrls.has(resource.url));
+                    for (const material of recommendation.suggestedMaterials.filter(material => ids.includes(material.resourceId))) resources.push({ title: material.title, type: 'PDF', url: material.url, description: `Counselor-selected ${material.resourceType}`, isProvidedToStudent: false });
+                    return { ...current, resources };
+                  })} />
+              </div>}
+
               <div className="sm:col-span-2 rounded-xl border border-[#E7E2DF] bg-[#FCFBFA] p-4">
                 <div className="flex items-start gap-3">
                   <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#F4EAEA] text-[#8C1518]">
@@ -1838,6 +1856,12 @@ function RecommendationModal({
                   value={form.followUpPlan}
                 />
               </div>
+
+              {recommendation.suggestedMaterials?.length > 0 && <div className="mt-4"><SuggestedPdfPicker materials={recommendation.suggestedMaterials} disabled={saving}
+                lockedIds={recommendation.suggestedMaterials.filter(material => (form.resources || []).some(resource => resource.url === material.url)).map(material => material.resourceId)}
+                selectedIds={[...new Set([...(form.selectedSuggestedMaterialIds || []), ...recommendation.suggestedMaterials.filter(material => (form.resources || []).some(resource => resource.url === material.url)).map(material => material.resourceId)])]}
+                onChange={ids => setForm(current => ({ ...current, selectedSuggestedMaterialIds: ids,
+                  resources: current.resources }))} /></div>}
 
               {form.resources?.length > 0 && (
                 <div className="mt-4 rounded-xl border border-[#E7E2DF] bg-[#FCFBFA] p-4">
@@ -2242,3 +2266,15 @@ const textareaClass =
 
 const filterClass =
   "h-8 w-full min-w-0 rounded-lg border border-[#E1DCD8] bg-white px-2.5 outline-none focus:border-[#8C1518]";
+function SuggestedPdfPicker({ materials, selectedIds = [], lockedIds = [], onChange, disabled }) {
+  return <section className="rounded-xl border border-[#E7E2DF] bg-white">
+    <div className="border-b border-[#ECE8E5] px-4 py-3"><h3 className="text-sm font-semibold">Suggested PDFs</h3><p className="mt-1 text-xs text-[#827A76]">Select PDFs to include in the plan draft. Approval is required before sending.</p></div>
+    <div className="divide-y divide-[#ECE8E5]">{materials.map(material => <div key={material.resourceId} className="flex items-center gap-3 px-4 py-3">
+      <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3">
+        <input type="checkbox" className="mt-1 h-4 w-4 shrink-0 accent-[#8C1518]" checked={selectedIds.includes(material.resourceId)} disabled={disabled || lockedIds.includes(material.resourceId)} onChange={event => onChange(event.target.checked ? [...selectedIds, material.resourceId] : selectedIds.filter(id => id !== material.resourceId))} />
+        <span className="min-w-0"><span className="block text-sm font-medium">{material.title}</span><span className="mt-0.5 block text-xs text-[#958D88]">{material.resourceType === 'worksheet' ? 'Worksheet' : 'Handout'}{lockedIds.includes(material.resourceId) ? ' · Already selected; remove in Revise' : ''}</span></span>
+      </label>
+      <a href={getResourceUrl(material.url)} target="_blank" rel="noreferrer" className="shrink-0 rounded-md border border-[#DDD7D3] px-2.5 py-1.5 text-xs font-semibold text-[#8C1518]">Preview</a>
+    </div>)}</div>
+  </section>;
+}

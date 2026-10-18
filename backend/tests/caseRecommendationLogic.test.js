@@ -27,12 +27,12 @@ test('nested patches preserve existing observations and consent timestamp', () =
   assert.equal(foundCase.mentalStatus.grooming, 'Updated');
   assert.equal(foundCase.consent.consentDate.getTime(), originalConsentDate.getTime());
 });
-test('generation passes labeled mental status and saves deduplicated selected PDFs', async () => {
+test('generation passes labeled mental status and never automatically attaches suggested PDFs', async () => {
   const foundCase = { _id:'case', createdBy:'admin', assignedCounselor:'admin', caseStatus:'Open', mentalStatus:{orientation:'Oriented'}, currentPresentation:{narrativeDescription:'Academic stress'}, backgroundAndPsychosocialHistory:{familyContext:'Supportive'}, llmRecommendations:[], actionHistory:[], async save(){this.saved=true;} };
   let options, data;
   const supportingResource = {resourceId:'012345678901234567890123',resourceType:'worksheet',title:'Worksheet'};
   const recommendation = {intervention:'Planning',rationale:'Relevant',counselorActions:[{action:'Review tasks'}],supportingResource};
-  const ctx = context({Case:{findById:async()=>foundCase}, AsyncHandler:fn=>fn, generateInterventionRecommendations:async(d,o)=>{data=d;options=o;return {status:'ok',recommendations:[recommendation,recommendation,{...recommendation,supportingResource:{...supportingResource,resourceType:'reference',resourceId:'other'}}],retrievedReferences:[]};},populateRecommendationCase:async()=>foundCase});
+  const ctx = context({collectSuggestedMaterials: require('../services/suggestedMaterials').collectSuggestedMaterials, Case:{findById:async()=>foundCase}, AsyncHandler:fn=>fn, generateInterventionRecommendations:async(d,o)=>{data=d;options=o;return {status:'ok',recommendations:[recommendation,recommendation,{...recommendation,supportingResource:{...supportingResource,resourceType:'reference',resourceId:'other'}}],retrievedReferences:[]};},populateRecommendationCase:async()=>foundCase});
   vm.runInContext(helpers + extract('const generateLLMRecommendation =','const reviseLLMRecommendation =')+'\nthis.generate=generateLLMRecommendation;',ctx);
   const res={status(code){this.code=code;return this;},json(body){this.body=body;return this;}};
   await ctx.generate({params:{id:'case'},user:{_id:'admin',role:'Counselor-Admin'}},res);
@@ -40,15 +40,16 @@ test('generation passes labeled mental status and saves deduplicated selected PD
   assert.match(options.retrievalQuery,/orientation: Oriented/);
   assert.match(options.retrievalQuery,/family Context: Supportive/);
   assert.match(data.mentalStatus,/orientation: Oriented/);
-  assert.equal(foundCase.llmRecommendations[0].resources.length,1);
-  assert.equal(foundCase.llmRecommendations[0].resources[0].url,'/api/knowledge-base/012345678901234567890123/pdf');
+  assert.equal(foundCase.llmRecommendations[0].resources.length,0);
+  assert.equal(foundCase.llmRecommendations[0].suggestedMaterials.length,1);
+  assert.equal(foundCase.llmRecommendations[0].suggestedMaterials[0].title,'Worksheet');
   assert.equal(foundCase.saved,true);
 });
 test('PDF preview permits linked counselors and denies unrelated counselors', async () => {
   const src = fs.readFileSync(require.resolve('../controllers/knowledgeBaseController'), 'utf8');
   const code = src.slice(src.indexOf('const viewKnowledgeResourcePdf ='), src.indexOf('const deleteKnowledgeResource ='));
   let linked = true, query;
-  const ctx = context({ KnowledgeResource:{findById:async()=>({_id:'resource',filePath:'/tmp/sample.pdf',originalFileName:'sample.pdf'})}, Case:{exists:async q=>{query=q;return linked;}}, path:require('node:path'), fs:{access:async()=>{}}, console });
+  const ctx = context({ isStudentMaterial: require('../services/resourceEligibility').isStudentMaterial, KnowledgeResource:{findById:async()=>({_id:'resource',filePath:'/tmp/sample.pdf',originalFileName:'sample.pdf'})}, Case:{exists:async q=>{query=q;return linked;}}, path:require('node:path'), fs:{access:async()=>{}}, console });
   vm.runInContext(code+'\nthis.preview=viewKnowledgeResourcePdf;',ctx);
   const response=()=>({status(code){this.code=code;return this;},json(body){this.body=body;return this;},setHeader(){},sendFile(file){this.file=file;return this;}});
   let res=response();

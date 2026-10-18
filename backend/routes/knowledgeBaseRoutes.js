@@ -7,6 +7,8 @@ const router =
 
 
 const {
+    getStudentMaterials,
+    updateKnowledgeResource,
     uploadKnowledgeResource,
     getKnowledgeResources,
     getKnowledgeResourceById,
@@ -31,6 +33,14 @@ const uploadKnowledgeResourceMiddleware =
     );
 
 
+const uploadPdf = (req, res, next) => {
+    uploadKnowledgeResourceMiddleware.single('file')(req, res, error => {
+        if (!error) return next();
+        return res.status(400).json({ success: false, message: error.code === 'LIMIT_FILE_SIZE'
+            ? 'The PDF must not exceed 100 MB.' : error.message || 'Unable to upload the PDF.' });
+    });
+};
+
 /*
  * ---------------------------------------------
  * KNOWLEDGE BASE ROUTES
@@ -46,10 +56,11 @@ const uploadKnowledgeResourceMiddleware =
  *
  * Retrieve all uploaded knowledge resources.
  */
+router.get('/student-materials', protect, getStudentMaterials);
+
 router.get(
     "/",
     protect,
-    adminOnly,
     getKnowledgeResources
 );
 
@@ -71,9 +82,7 @@ router.post(
     protect,
     adminOnly,
 
-    uploadKnowledgeResourceMiddleware.single(
-        "file"
-    ),
+    uploadPdf,
 
     uploadKnowledgeResource
 );
@@ -97,7 +106,6 @@ router.get(
 router.get(
     "/:id",
     protect,
-    adminOnly,
     getKnowledgeResourceById
 );
 
@@ -118,6 +126,9 @@ router.delete(
     deleteKnowledgeResource
 );
 
+
+router.patch('/:id', protect, adminOnly, updateKnowledgeResource);
+router.post('/:id/replace', protect, adminOnly, uploadPdf, uploadKnowledgeResource);
 
 module.exports =
     router;

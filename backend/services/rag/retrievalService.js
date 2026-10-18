@@ -1,3 +1,21 @@
+const KnowledgeResource = require('../../models/knowledgeResource');
+const { isResourceEligible } = require('../resourceEligibility');
+
+// Read authoritative parent records on every retrieval; no eligibility cache.
+const filterEligibleChunks = async chunks => {
+    const ids = [...new Set(chunks.map(chunk => chunk.metadata?.resourceId)
+        .filter(id => typeof id === 'string' && /^[a-f0-9]{24}$/i.test(id)))];
+    if (!ids.length) return [];
+    const resources = await KnowledgeResource.find({ _id: { $in: ids } }).lean();
+    const eligible = new Map(resources.filter(isResourceEligible).map(resource => [String(resource._id), resource]));
+    return chunks.filter(chunk => chunk.metadata?.approvalStatus === 'approved' && eligible.has(chunk.metadata?.resourceId))
+        .map(chunk => {
+            const parent = eligible.get(chunk.metadata.resourceId);
+            return { ...chunk, metadata: { ...chunk.metadata, title: parent.title, source: parent.title,
+                topic: parent.topic, resourceType: parent.resourceType } };
+        });
+};
+
 const KnowledgeChunk = require(
     "../../models/knowledgeChunk"
 );
@@ -10,13 +28,7 @@ const VECTOR_INDEX_NAME =
     process.env.VECTOR_INDEX_NAME ||
     "knowledge_vector_index";
 
-const PRACTICAL_RESOURCE_TYPES = [
-    "worksheet",
-    "handout",
-    "activity",
-    "exercise",
-    "template",
-];
+const { PRACTICAL_RESOURCE_TYPES } = require('../resourceEligibility');
 
 /**
  * Validates common retrieval options.
@@ -70,14 +82,7 @@ const runVectorSearch = async ({
     minimumScore,
     resourceTypes = null,
 }) => {
-    const searchLimit =
-        Array.isArray(resourceTypes) &&
-        resourceTypes.length > 0
-            ? Math.max(
-                  limit * 5,
-                  limit
-              )
-            : limit;
+    const searchLimit = Math.max(limit * 10, 50);
 
     const candidateCount =
         Math.max(
@@ -129,6 +134,8 @@ const runVectorSearch = async ({
                     minimumScore &&
                 result.metadata?.approvalStatus === "approved"
         );
+
+    filteredResults = await filterEligibleChunks(filteredResults);
 
     if (
         Array.isArray(resourceTypes) &&
@@ -313,6 +320,7 @@ const retrieveInterventionMaterials =
     };
 
 module.exports = {
+    filterEligibleChunks,
     retrieveRelevantChunks,
     retrieveInterventionMaterials,
     PRACTICAL_RESOURCE_TYPES,
