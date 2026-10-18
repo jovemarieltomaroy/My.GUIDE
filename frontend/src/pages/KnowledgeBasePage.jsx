@@ -681,7 +681,7 @@ export default function KnowledgeBasePage() {
                           </td>
 
                           <td className="px-4 py-3">
-                            <div className="flex w-max items-center gap-2 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
                               <button
                                 type="button"
                                 onClick={() =>
@@ -689,14 +689,14 @@ export default function KnowledgeBasePage() {
                                     resource._id,
                                   )
                                 }
-                                className="h-8 shrink-0 rounded-lg border border-[#DCD6D2] bg-white px-2.5 text-[13px] font-semibold text-[#5A534F] hover:border-[#8C1518] hover:text-[#8C1518]"
+                                className="h-7 rounded-lg border border-[#DCD6D2] bg-white px-2.5 text-[13px] font-semibold text-[#5A534F] hover:border-[#8C1518] hover:text-[#8C1518]"
                               >
                                 View
                               </button>
 
                               {isAdmin && <>
-                                <button type="button" onClick={() => setEditingResource(resource)} disabled={Boolean(resource.replacementPending) || resource.processingStatus === 'Processing'} className="h-8 shrink-0 rounded-lg border border-[#DCD6D2] bg-white px-2.5 text-[13px] font-semibold text-[#8C1518] disabled:opacity-50">Manage</button>
-                                <button type="button" onClick={() => replaceResource(resource)} disabled={Boolean(resource.replacementPending || resource.replacedBy) || resource.processingStatus === 'Processing'} className="h-8 shrink-0 rounded-lg border border-[#DCD6D2] bg-white px-2.5 text-[13px] font-semibold text-[#8C1518] disabled:opacity-50">Replace</button>
+                                <button type="button" onClick={() => setEditingResource(resource)} disabled={Boolean(resource.replacementPending) || resource.processingStatus === 'Processing'} className="rounded-lg border border-[#DCD6D2] px-2.5 py-1 text-[13px] font-semibold text-[#8C1518] disabled:opacity-50">Edit / Change Status</button>
+                                <button type="button" onClick={() => replaceResource(resource)} disabled={Boolean(resource.replacementPending || resource.replacedBy) || resource.processingStatus === 'Processing'} className="rounded-lg border border-[#DCD6D2] px-2.5 py-1 text-[13px] font-semibold text-[#8C1518] disabled:opacity-50">Replace</button>
                               </>}
                             </div>
                           </td>
@@ -1044,7 +1044,7 @@ function ResourceDetailsModal({
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.75fr)]">
 
         {/* PDF PREVIEW */}
-        <div className="flex min-w-0 flex-col">
+        <div>
           <div className="mb-2">
             <p className="text-[15px] font-semibold text-[#3B3330]">
               PDF Preview
@@ -1056,9 +1056,9 @@ function ResourceDetailsModal({
             </p>
           </div>
 
-          <div className="relative min-h-[520px] overflow-hidden rounded-xl border border-[#E7E1DD] bg-[#F8F6F4] lg:flex-1">
+          <div className="overflow-hidden rounded-xl border border-[#E7E1DD] bg-[#F8F6F4]">
             {pdfLoading && (
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex h-[520px] items-center justify-center">
                 <div className="text-center">
                   <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-[#D8CECA] border-t-[#8C1518]" />
 
@@ -1071,7 +1071,7 @@ function ResourceDetailsModal({
 
             {!pdfLoading &&
               pdfError && (
-                <div className="absolute inset-0 flex items-center justify-center p-6">
+                <div className="flex h-[520px] items-center justify-center p-6">
                   <div className="max-w-xs text-center">
                     <div className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-red-50 text-red-700">
                       !
@@ -1094,7 +1094,7 @@ function ResourceDetailsModal({
                 <iframe
                   src={pdfUrl}
                   title={`PDF preview - ${resource.title}`}
-                  className="absolute inset-0 h-full w-full border-0 bg-white"
+                  className="h-[520px] w-full bg-white"
                 />
               )}
           </div>
