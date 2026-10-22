@@ -1,5 +1,7 @@
 import IndividualCaseReport from "../components/IndividualCaseReport";
-import { aggregateCaseReport } from "../utils/reportAggregates";
+import { aggregateCaseReport, buildCombinedCaseReport } from "../utils/reportAggregates";
+import { buildAccomplishmentReport } from "../utils/accomplishmentReport";
+import { getPeriodRange } from "../utils/reportPeriod";
 import "./ReportsPage.css";
 import {
   useCallback,
@@ -19,6 +21,8 @@ const ADMIN_ROLE = "Counselor-Admin";
 const COUNSELOR_ROLE = "Counselor-User";
 
 const REPORT_TYPES = [
+  { value: 'accomplishment', label: 'OPCR Accomplishment Report', description: 'Student intakes, follow-up rates, and case closures using the accomplishment-sheet format. Export to formatted Excel.', icon: 'file' },
+  { value: 'combined-case', label: 'Combined Case Report', description: 'Domain totals, monthly trends, current case statuses, and concern breakdowns in one CSV or printable report.', icon: 'file' },
   { value: 'case-summary', label: 'Case Summary Report', description: 'Total cases recorded during the selected period, grouped by case category, concern, and status.', icon: 'folder' },
   { value: 'case-trends', label: 'Case Trends Report', description: 'Monthly changes in case counts and concern categories during the selected period.', icon: 'chart' },
   { value: 'case-status', label: 'Case Status Report', description: 'Open, In Progress, For Follow-up, Closed, and Terminated case counts.', icon: 'notes' },
@@ -27,6 +31,7 @@ const REPORT_TYPES = [
 ];
 
 const PERIOD_OPTIONS = [
+  { value: 'custom', label: 'Custom date range' },
   {
     value: "6-months",
     label: "Last 6 months",
@@ -78,10 +83,15 @@ export default function ReportsPage() {
     useState([]);
 
   const [reportType, setReportType] =
-    useState("case-summary");
+    useState("combined-case");
 
   const [period, setPeriod] =
     useState("12-months");
+  const [customStart, setCustomStart] = useState(`${new Date().getFullYear()}-01-01`);
+  const [customEnd, setCustomEnd] = useState(formatFileDate(new Date()));
+  const [excelLoading, setExcelLoading] = useState(false);
+  const validPeriod = period !== 'custom' || Boolean(customStart && customEnd && customStart <= customEnd);
+  const periodLabel = getPeriodLabel(period, customStart, customEnd);
 
   const [caseStatus, setCaseStatus] =
     useState("");
@@ -289,13 +299,14 @@ export default function ReportsPage() {
 
   const filteredCases = useMemo(() => {
     const periodRange =
-      getPeriodRange(period);
+      getPeriodRange(period, customStart, customEnd);
 
     const normalizedSearch =
       searchQuery.trim().toLowerCase();
 
     return cases.filter(
       (caseRecord) => {
+        if (!validPeriod) return false;
         if (
           !includeArchived &&
           caseRecord.isArchived === true
@@ -310,11 +321,10 @@ export default function ReportsPage() {
           );
 
         if (
-          periodRange.start &&
-          !Number.isNaN(
-            openedDate.getTime(),
-          ) &&
-          openedDate < periodRange.start
+          reportType !== 'accomplishment' && (
+            (periodRange.start && (Number.isNaN(openedDate.getTime()) || openedDate < periodRange.start)) ||
+            (periodRange.end && (Number.isNaN(openedDate.getTime()) || openedDate >= periodRange.end))
+          )
         ) {
           return false;
         }
@@ -404,9 +414,19 @@ export default function ReportsPage() {
     program,
     counselor,
     searchQuery,
+    customStart,
+    customEnd,
+    validPeriod,
+    reportType,
   ]);
 
+  const combinedSections = useMemo(() => buildCombinedCaseReport(filteredCases), [filteredCases]);
+  const accomplishment = useMemo(() => buildAccomplishmentReport(filteredCases, getPeriodRange(period, customStart, customEnd)), [filteredCases, period, customStart, customEnd]);
+
   const reportRows = useMemo(() => {
+    if (reportType === 'accomplishment') return accomplishment.rows;
+    if (reportType === 'combined-case') return combinedSections.flatMap(section =>
+      section.rows.map(row => ({ Section: section.title, ...row })));
     return buildReportRows({
       reportType,
       cases: filteredCases,
@@ -416,9 +436,12 @@ export default function ReportsPage() {
     reportType,
     filteredCases,
     users,
+    combinedSections,
+    accomplishment,
   ]);
 
   const reportSummary = useMemo(() => {
+    if (reportType === 'accomplishment') return accomplishment.summary;
     return buildReportSummary({
       reportType,
       rows: reportRows,
@@ -428,6 +451,7 @@ export default function ReportsPage() {
     reportType,
     reportRows,
     filteredCases,
+    accomplishment,
   ]);
 
   const selectedReport =
@@ -474,8 +498,24 @@ export default function ReportsPage() {
       return;
     }
 
-    const csv =
-      convertRowsToCsv(reportRows);
+    const exportRows = reportType === 'combined-case' ? [
+      { Section: 'Report information', Metric: 'Report', Value: selectedReport.label },
+      { Section: 'Report information', Metric: 'Period', Value: periodLabel },
+      { Section: 'Report information', Metric: 'Coverage', Value: isAdmin ? 'Office-wide authorized cases' : 'Assigned counseling cases' },
+      { Section: 'Report information', Metric: 'Filters', Value: reportFilterDescription({ caseStatus, domain, college, program, counselor, users, includeArchived, searchQuery }) },
+      { Section: 'Report information', Metric: 'Generated', Value: formatDateTime(lastGeneratedAt || new Date()) },
+      ...reportSummary.map(item => ({ Section: 'Overview', Metric: item.label, Value: item.value })),
+      ...reportRows,
+    ] : reportRows;
+    const csvRows = reportType === 'combined-case' ? exportRows.map((row, index) => {
+      const { Category, ...values } = row;
+      return {
+        ...values,
+        ...(Category !== undefined ? { Domain: Category } : {}),
+        Section: index > 0 && row.Section === exportRows[index - 1].Section ? '' : row.Section,
+      };
+    }) : exportRows;
+    const csv = convertRowsToCsv(csvRows);
 
     const blob =
       new Blob([csv], {
@@ -507,6 +547,35 @@ export default function ReportsPage() {
       setPageError('Select a case and wait for its report to load before printing.'); return;
     }
     window.print();
+  };
+
+  const exportExcel = async () => {
+    if (!validPeriod || isLoading || pageError) return;
+    setExcelLoading(true);
+    try {
+      const { createAccomplishmentWorkbook } = await import('../utils/accomplishmentWorkbook');
+      const workbook = await createAccomplishmentWorkbook({
+        report: accomplishment,
+        period: periodLabel,
+        coverage: isAdmin ? 'Office-wide authorized cases' : 'Assigned counseling cases',
+        filters: reportFilterDescription({ caseStatus, domain, college, program, counselor, users, includeArchived, searchQuery }),
+        generatedBy: formatName(user) || user.email || 'Counselor',
+        generatedAt: formatDateTime(lastGeneratedAt || new Date()),
+      });
+      const buffer = await workbook.xlsx.writeBuffer();
+      const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `opcr-accomplishment-${formatFileDate(new Date())}.xlsx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      setPageError('Unable to export the Excel report. Refresh the report and try again.');
+    } finally {
+      setExcelLoading(false);
+    }
   };
 
   if (!user) {
@@ -552,7 +621,7 @@ export default function ReportsPage() {
         setSidebarOpen={setSidebarOpen}
       />
 
-      <div className="reports-layout min-h-screen lg:pl-[220px]">
+      <div className="reports-layout min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex min-h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-7 print:hidden">
           <div className="flex w-full items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
@@ -606,7 +675,7 @@ export default function ReportsPage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7 print:max-w-none print:bg-white print:px-0 print:py-0">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7 print:max-w-none print:bg-white print:px-0 print:py-0">
           {pageError && (
             <div className="print:hidden">
               <Alert
@@ -632,7 +701,7 @@ export default function ReportsPage() {
             </p>
           </section>
 
-          <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5 print:hidden">
+          <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 print:hidden">
             {accessibleReportTypes.map(
               (item) => {
                 const selected =
@@ -705,6 +774,11 @@ export default function ReportsPage() {
                   )}
                 </select>
               </FilterField>
+
+              {period === 'custom' && <>
+                <FilterField label="Start date"><input type="date" value={customStart} max={customEnd || undefined} onChange={event => setCustomStart(event.target.value)} className={filterClass} /></FilterField>
+                <FilterField label="End date"><input type="date" value={customEnd} min={customStart || undefined} onChange={event => setCustomEnd(event.target.value)} className={filterClass} /></FilterField>
+              </>}
 
               <FilterField label="Case status">
                 <select
@@ -884,9 +958,9 @@ export default function ReportsPage() {
 
                 <button
                   type="button"
-                  onClick={exportCsv}
+                  onClick={reportType === 'accomplishment' ? exportExcel : exportCsv}
                   disabled={
-                    isLoading ||
+                    isLoading || !validPeriod || excelLoading || Boolean(pageError) ||
                     reportRows.length === 0
                   }
                   className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#8C1518] bg-white px-3 text-[13px] font-semibold text-[#8C1518] disabled:opacity-40"
@@ -895,14 +969,14 @@ export default function ReportsPage() {
                     name="file"
                     className="h-3 w-3"
                   />
-                  Export CSV
+                  {reportType === 'accomplishment' ? (excelLoading ? 'Preparing Excel…' : 'Export Excel') : 'Export CSV'}
                 </button>
 
                 <button
                   type="button"
                   onClick={printReport}
                   disabled={
-                    isLoading || (reportType === 'individual-case' ? individualLoading || !individualCase || getRecordId(individualCase) !== selectedIndividualId : reportRows.length === 0)
+                    isLoading || !validPeriod || Boolean(pageError) || (reportType === 'individual-case' ? individualLoading || !individualCase || getRecordId(individualCase) !== selectedIndividualId : reportRows.length === 0)
                   }
                   className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#8C1518] px-3 text-[13px] font-semibold text-white disabled:opacity-40"
                 >
@@ -916,6 +990,8 @@ export default function ReportsPage() {
             </div>
           </section>
 
+          {!validPeriod && <p role="alert" className="mt-3 text-sm text-red-700 print:hidden">Enter both dates, with the end date on or after the start date.</p>}
+
           {reportType === 'individual-case' ? <section className="mt-5 print:mt-0">
             <div className="mb-5 rounded-xl border border-[#E4DFDC] bg-white p-4 print:hidden"><label className="text-sm font-semibold" htmlFor="individual-report-case">Select a case</label><select id="individual-report-case" value={selectedIndividualId} onChange={event => setIndividualId(event.target.value)} className={`${filterClass} mt-2`}><option value="">Select an authorized case</option>{individualOptions.map(record => <option key={getRecordId(record)} value={getRecordId(record)}>{record.caseNumber} · {formatName(record.student)}</option>)}</select><p className="mt-2 text-xs text-[#827A76]">Individual narratives are available for your assigned cases or cases you created as an administrator.</p></div>
             {individualLoading ? <LoadingPanel /> : individualError ? <p role="alert" className="p-4 text-red-700">{individualError}</p> : individualCase && getRecordId(individualCase) === selectedIndividualId ? <IndividualCaseReport record={individualCase} generatedAt={lastGeneratedAt || new Date()} /> : <p className="p-5 text-sm text-[#827A76]">Select a case to preview its printable report.</p>}
@@ -923,7 +999,7 @@ export default function ReportsPage() {
             <header className="rounded-2xl border border-[#E4DFDC] bg-white px-5 py-4 print:hidden">
               <div className="flex flex-col justify-between gap-4 sm:flex-row">
                 <div><p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#8C1518]">My.GUIDE Reports</p><h2 className="mt-1 text-[20px] font-semibold">{selectedReport?.label}</h2><p className="mt-1 max-w-3xl text-[13px] leading-6 text-[#817A76]">{selectedReport?.description}</p></div>
-                <div className="shrink-0 text-[13px] leading-6 text-[#756E69] sm:text-right"><p><strong>Period:</strong> {getPeriodLabel(period)}</p><p><strong>Generated by:</strong> {formatName(user) || user.email}</p><p><strong>Generated:</strong> {formatDateTime(lastGeneratedAt || new Date())}</p></div>
+                <div className="shrink-0 text-[13px] leading-6 text-[#756E69] sm:text-right"><p><strong>Period:</strong> {periodLabel}</p><p><strong>Generated by:</strong> {formatName(user) || user.email}</p><p><strong>Generated:</strong> {formatDateTime(lastGeneratedAt || new Date())}</p></div>
               </div>
             </header>
             <ReportHeader
@@ -935,7 +1011,7 @@ export default function ReportsPage() {
                 selectedReport?.description ||
                 ""
               }
-              period={getPeriodLabel(period)}
+              period={periodLabel}
               generatedBy={
                 formatName(user) ||
                 user.email ||
@@ -946,6 +1022,7 @@ export default function ReportsPage() {
                 new Date()
               }
               isAdmin={isAdmin}
+              filters={['combined-case', 'accomplishment'].includes(reportType) ? reportFilterDescription({ caseStatus, domain, college, program, counselor, users, includeArchived, searchQuery }) : ''}
             />
 
             <div className="aggregate-totals mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -961,7 +1038,19 @@ export default function ReportsPage() {
               )}
             </div>
 
-            <div className="aggregate-table mt-4 overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white">
+            {reportType === 'accomplishment' ? (
+              isLoading ? <LoadingPanel /> : <AccomplishmentPreview report={accomplishment} period={periodLabel} />
+            ) : reportType === 'combined-case' ? (
+              isLoading ? <LoadingPanel /> : combinedSections.map(section => (
+                <section key={section.title} className="aggregate-table mt-4 overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white">
+                  <header className="aggregate-table-heading border-b border-[#ECE8E5] px-4 py-3">
+                    <h3 className="text-[17px] font-semibold">{section.title}</h3>
+                    {section.description && <p className="report-section-description mt-1 text-[12px] text-[#827A76]">{section.description}</p>}
+                  </header>
+                  <ReportTable rows={section.rows} />
+                </section>
+              ))
+            ) : <div className="aggregate-table mt-4 overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white">
               <header className="aggregate-table-heading flex items-center justify-between border-b border-[#ECE8E5] px-4 py-3">
                 <div>
                   <h3 className="text-[17px] font-semibold">
@@ -985,7 +1074,7 @@ export default function ReportsPage() {
                   rows={reportRows}
                 />
               )}
-            </div>
+            </div>}
             <footer className="case-report-signature hidden print:block"><p>Prepared by</p><strong>{formatName(user) || 'Authorized Guidance Counselor'}</strong><p>Office of Guidance and Counseling</p><p className="mt-4 text-xs">Confidential · For authorized institutional use only</p></footer>
           </section>}
 
@@ -1021,11 +1110,36 @@ export default function ReportsPage() {
   );
 }
 
-function ReportHeader({ title, description, period, generatedAt, isAdmin }) {
+function AccomplishmentPreview({ report, period }) {
+  const columns = ['No', 'Indicator', 'Target', 'Actual count', 'Actual percentage', 'Remarks'];
+  return <section className="accomplishment-report mt-5">
+    <header className="rounded-t-xl border border-yellow-300 bg-yellow-100 px-4 py-4">
+      <h3 className="text-lg font-semibold">Office of Guidance &amp; Counseling</h3>
+      <p className="font-semibold">OPCR ACCOMPLISHMENT — {period}</p>
+      <p className="mt-1 text-sm">Whole-number counts and percentages from My.GUIDE records</p>
+    </header>
+    <div className="overflow-x-auto rounded-b-xl border border-[#E4DFDC] bg-white">
+      <table className="w-full min-w-[1000px] border-collapse text-left text-sm">
+        <thead><tr>{columns.map(column => <th key={column} className="border-b bg-[#F4F2F0] px-3 py-3">{column === 'No' ? 'No.' : column}</th>)}</tr></thead>
+        <tbody>{report.rows.flatMap((row, index) => [
+          ...(index === 0 || row.Group !== report.rows[index - 1].Group ? [<tr key={`group-${row.Group}`}><th colSpan={6} className="border-y bg-yellow-50 px-3 py-3 font-semibold">{row.Group}</th></tr>] : []),
+          <tr key={`indicator-${index}`}>{columns.map(column => <td key={column} className={`border-b border-[#ECE8E5] px-3 py-3 align-top ${column === 'No' ? 'font-semibold text-[#8C1518]' : ''} ${row[column] === 'Not tracked' ? 'italic text-[#827A76]' : ''}`}>{row[column]}</td>)}</tr>,
+        ])}</tbody>
+      </table>
+    </div>
+    <div className="mt-4 rounded-xl border border-[#E4DFDC] bg-white p-4 text-sm leading-6">
+      <h3 className="font-semibold">Calculation notes</h3>
+      <ul className="mt-2 list-disc space-y-1 pl-5">{report.notes.map(note => <li key={note}>{note}</li>)}</ul>
+    </div>
+  </section>;
+}
+
+function ReportHeader({ title, description, period, generatedAt, isAdmin, filters }) {
   return <header className="aggregate-header hidden print:block">
     <div className="case-report-letterhead"><p>MINDANAO STATE UNIVERSITY – ILIGAN INSTITUTE OF TECHNOLOGY</p><p>Office of Guidance and Counseling</p><h2>{title}</h2><span>CONFIDENTIAL</span></div>
     <dl className="aggregate-metadata"><div><dt>Reporting period</dt><dd>{period}</dd></div><div><dt>Date generated</dt><dd>{formatDateTime(generatedAt)}</dd></div><div><dt>Coverage</dt><dd>{isAdmin ? 'Office-wide authorized cases' : 'Assigned counseling cases'}</dd></div></dl>
     <p className="aggregate-description">{description}</p>
+    {filters && <p className="aggregate-description"><strong>Filters:</strong> {filters}</p>}
   </header>;
 }
 
@@ -1085,7 +1199,7 @@ function ReportTable({ rows }) {
             {columns.map((column) => (
               <th
                 key={column}
-                className="px-4 py-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-[#8E8681]"
+                className="px-4 py-3 text-left text-[12px] font-semibold uppercase tracking-[0.08em] text-[#8E8681]"
               >
                 {column}
               </th>
@@ -1102,7 +1216,7 @@ function ReportTable({ rows }) {
               {columns.map((column) => (
                 <td
                   key={column}
-                  className="max-w-[260px] px-4 py-3 align-top text-[13px] leading-4 text-[#504A46]"
+                  className="max-w-[260px] px-4 py-3 text-left align-top text-[13px] leading-4 text-[#504A46]"
                 >
                   <span className="break-words">
                     {String(
@@ -1375,7 +1489,7 @@ function buildReportSummary({
   rows,
   cases,
 }) {
-  if (['case-summary', 'case-trends', 'case-status'].includes(reportType)) return [
+  if (['combined-case', 'case-summary', 'case-trends', 'case-status'].includes(reportType)) return [
     { label: 'Total cases', value: cases.length, note: 'Selected period and filters' },
     { label: 'Active cases', value: cases.filter(record => ['Open', 'In Progress', 'For Follow-up'].includes(record.caseStatus)).length, note: 'Open or ongoing' },
     { label: 'Closed', value: cases.filter(record => record.caseStatus === 'Closed').length, note: 'Completed cases' },
@@ -1723,7 +1837,7 @@ function buildCounselorWorkloadRows(
 
 function convertRowsToCsv(rows) {
   const columns =
-    Object.keys(rows[0]);
+    [...new Set(rows.flatMap(row => Object.keys(row)))];
 
   const escapeValue = (value) => {
     const stringValue =
@@ -1754,6 +1868,18 @@ function convertRowsToCsv(rows) {
       .join("\n");
 
   return `${header}\n${body}`;
+}
+
+function reportFilterDescription({ caseStatus, domain, college, program, counselor, users, includeArchived, searchQuery }) {
+  return [
+    `Status: ${caseStatus || 'All statuses'}`,
+    `Domain: ${domain || 'All domains'}`,
+    `College: ${college || 'All colleges'}`,
+    `Program: ${program || 'All programs'}`,
+    counselor && `Counselor: ${formatName(users.find(account => getRecordId(account) === counselor)) || 'Selected counselor'}`,
+    `Archived cases: ${includeArchived ? 'Included' : 'Excluded'}`,
+    searchQuery.trim() && `Search: ${searchQuery.trim()}`,
+  ].filter(Boolean).join('; ');
 }
 
 function getFollowUpReminderLabel(
@@ -1854,43 +1980,9 @@ function formatYearLevel(value) {
   );
 }
 
-function getPeriodRange(period) {
-  const now = new Date();
 
-  if (period === "all-time") {
-    return {
-      start: null,
-    };
-  }
-
-  if (
-    period === "current-year"
-  ) {
-    return {
-      start: new Date(
-        now.getFullYear(),
-        0,
-        1,
-      ),
-    };
-  }
-
-  const months =
-    period === "6-months"
-      ? 6
-      : 12;
-
-  return {
-    start: new Date(
-      now.getFullYear(),
-      now.getMonth() -
-        (months - 1),
-      1,
-    ),
-  };
-}
-
-function getPeriodLabel(period) {
+function getPeriodLabel(period, customStart, customEnd) {
+  if (period === 'custom') return customStart && customEnd ? `${formatDate(`${customStart}T00:00:00+08:00`)} – ${formatDate(`${customEnd}T00:00:00+08:00`)}` : 'Custom date range';
   return (
     PERIOD_OPTIONS.find(
       (option) =>
@@ -1918,7 +2010,6 @@ function getRecordId(record) {
 function formatName(person) {
   return [
     person?.firstName,
-    person?.middleName,
     person?.lastName,
   ]
     .filter(Boolean)

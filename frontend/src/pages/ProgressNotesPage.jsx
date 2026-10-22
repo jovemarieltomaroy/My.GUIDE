@@ -463,7 +463,7 @@ export default function ProgressNotesPage() {
         setSidebarOpen={setSidebarOpen}
       />
 
-      <div className="min-h-screen lg:pl-[220px]">
+      <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex min-h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-7">
           <div className="flex w-full items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -510,7 +510,7 @@ export default function ProgressNotesPage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
           {successMessage && (
             <Alert tone="success" message={successMessage} />
           )}

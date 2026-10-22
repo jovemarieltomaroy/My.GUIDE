@@ -41,6 +41,14 @@ button {
   cursor: pointer;
 }
 
+/* Multiline form fields grow with their content instead of requiring manual dragging. */
+textarea {
+  field-sizing: content;
+  max-height: 32rem;
+  overflow-y: auto;
+  resize: none !important;
+}
+
 img {
   display: block;
   max-width: 100%;
@@ -76,3 +84,21 @@ img {
 .app-sidebar-navigation::-webkit-scrollbar {
   display: none;
 }
+
+/* Shared desktop content gutters; embedded panels and printed reports keep their own layouts. */
+@media screen and (min-width: 1024px) {
+  .page-content.page-content {
+    width: calc(100% - 240px);
+    max-width: none;
+    margin-inline: 120px;
+    padding-inline: 0;
+  }
+  .landing-page .landing-container {
+    width: calc(100% - 240px);
+    max-width: none;
+    margin-inline: 120px;
+  }
+}
+
+.clickable-record { cursor: pointer; }
+.clickable-record:focus-visible { outline: 2px solid #8c1518; outline-offset: -2px; background-color: #fcf5f3; }

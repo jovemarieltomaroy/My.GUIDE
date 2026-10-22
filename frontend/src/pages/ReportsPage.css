@@ -50,7 +50,7 @@
 .aggregate-table table { min-width: 0; width: 100%; }
 .aggregate-table th { font-size: 10px; color: #333; background: #f5f5f5; border-block: 1px solid #999; padding: 9px 8px; letter-spacing: .03em; }
 .aggregate-table td { font-size: 12px; line-height: 1.5; padding: 10px 8px; max-width: none; }
-.aggregate-table th:last-child, .aggregate-table td:last-child { text-align: right; }
+.aggregate-table th, .aggregate-table td { text-align: left; }
 .aggregate-report .case-report-signature { font-size: 12px; }
 
   .aggregate-report { max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; font-family: Arial, sans-serif; }
@@ -64,4 +64,10 @@
 
   .aggregate-table { border: 0 !important; border-radius: 0; }
   .aggregate-table-heading { border: 0; padding: 0; }
+  .aggregate-table-heading .report-section-description { display: block; font-size: 9pt; line-height: 1.5; color: #555; }
+  .accomplishment-report { font-size: 9pt; }
+  .accomplishment-report > header { border: 0; border-radius: 0; background: #fff6bd !important; print-color-adjust: exact; }
+  .accomplishment-report th[colspan] { background: #fff6bd !important; print-color-adjust: exact; break-after: avoid; }
+  .accomplishment-report td:nth-child(2) { width: 23%; }
+  .accomplishment-report td:last-child { width: 37%; }
 }

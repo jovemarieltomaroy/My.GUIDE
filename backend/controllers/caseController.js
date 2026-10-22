@@ -4370,11 +4370,10 @@ const retrievedSources =
  * - Do not turn ordinary evidence references into
  *   downloadable resources.
  */
-const concernSummary = (
-    ragCaseData.currentPresentation ||
+const concernSummary =
+    foundCase.currentPresentation?.narrativeDescription?.trim() ||
     ragCaseData.problemAssessment ||
-    "Intervention recommendation based on the documented case information."
-).replace(/^\s*narrative\s*description\s*:\s*/i, "");
+    "Intervention recommendation based on the documented case information.";
 
 /*
  * -------------------------------------------------

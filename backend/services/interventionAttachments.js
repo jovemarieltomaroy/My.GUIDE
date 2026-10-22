@@ -2,8 +2,7 @@ const { validateKnowledgeAttachments } = require('./knowledgeAttachments');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 
-
-// Resolve protected resource URLs to files; never fetch arbitrary remote URLs.
+//fetch pdfs not urls.
 const resolveInterventionAttachments = async (resources, { user, allowedUploadUrls = [] } = {}) => {
     const verified = await validateKnowledgeAttachments(resources, user);
     const attachments = [];

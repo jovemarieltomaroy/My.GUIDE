@@ -144,32 +144,7 @@ export default function LoginPage() {
     return validationErrors;
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    const validationErrors = validateForm();
-
-    if (
-      Object.keys(validationErrors).length > 0
-    ) {
-      setErrors(validationErrors);
-      return;
-    }
-
-    setIsSubmitting(true);
-    setErrors({});
-
-    try {
-      const data = await apiRequest("/auth", {
-        method: "POST",
-        body: JSON.stringify({
-          email: formData.email
-            .trim()
-            .toLowerCase(),
-          password: formData.password,
-        }),
-      });
-
+  const completeLogin = (data) => {
       const authenticatedUser =
         extractUserFromResponse(data);
 
@@ -242,6 +217,35 @@ export default function LoginPage() {
           replace: true,
         },
       );
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    const validationErrors = validateForm();
+
+    if (
+      Object.keys(validationErrors).length > 0
+    ) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrors({});
+
+    try {
+      const data = await apiRequest("/auth", {
+        method: "POST",
+        body: JSON.stringify({
+          email: formData.email
+            .trim()
+            .toLowerCase(),
+          password: formData.password,
+        }),
+      });
+
+      completeLogin(data);
     } catch (error) {
       console.error("Login error:", error);
 

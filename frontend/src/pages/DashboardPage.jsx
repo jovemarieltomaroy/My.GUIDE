@@ -162,7 +162,7 @@ export default function DashboardPage() {
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
       />
-      <div className="min-h-screen lg:pl-[220px]">
+      <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 backdrop-blur-xl sm:px-6 lg:px-7">
           <div className="flex w-full items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
@@ -199,7 +199,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
           {pageError && (
             <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[15px] text-red-700">
               {pageError}
@@ -964,7 +964,6 @@ function isWithinDays(value, days) {
 function formatName(person) {
   return [
     person?.firstName,
-    person?.middleName,
     person?.lastName,
   ]
     .filter(Boolean)

@@ -390,8 +390,8 @@ const createMinimumStudentProfile = AsyncHandler(async (req, res) => {
     const normalizedContactNumber =
         contactNumber?.trim() || '';
 
-    const normalizedCollege =
-        college?.trim() || '';
+    const assignedColleges = [...new Set((req.user.collegesHandled || []).filter(value => typeof value === 'string' && value.trim()).map(normalizeCollege))];
+    const normalizedCollege = college?.trim() || (assignedColleges.length === 1 ? assignedColleges[0] : '');
 
     const normalizedProgram =
         program?.trim() || '';

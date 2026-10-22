@@ -531,7 +531,7 @@ export default function CaseDetailsPage() {
         setSidebarOpen={setSidebarOpen}
       />
 
-      <div className="min-h-screen lg:pl-[220px]">
+      <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 border-b border-[#E6E1DE] bg-white/95 backdrop-blur-xl">
           <div className="flex min-h-[62px] items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-7">
             <div className="flex min-w-0 items-center gap-3">
@@ -652,7 +652,7 @@ export default function CaseDetailsPage() {
           </nav>
         </header>
 
-        <main className="mx-auto max-w-[1480px] px-4 py-5 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1480px] px-4 py-5 sm:px-6 lg:px-7">
           {successMessage && (
             <Alert tone="success" message={successMessage} />
           )}

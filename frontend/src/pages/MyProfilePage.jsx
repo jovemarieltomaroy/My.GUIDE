@@ -591,7 +591,7 @@ export default function MyProfilePage() {
         setSidebarOpen={setSidebarOpen}
       />
 
-      <div className="min-h-screen lg:pl-[220px]">
+      <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 backdrop-blur-xl sm:px-6 lg:px-7">
           <div className="flex w-full items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -641,7 +641,7 @@ export default function MyProfilePage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1200px] px-4 py-6 sm:px-6 lg:px-7">
           {successMessage && (
             <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[15px] text-emerald-700">
               {successMessage}

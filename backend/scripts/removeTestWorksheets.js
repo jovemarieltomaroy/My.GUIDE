@@ -5,7 +5,7 @@ const mongoose = require(
 );
 
 const KnowledgeChunk = require(
-    "../models/KnowledgeChunk"
+    "../models/knowledgeChunk"
 );
 
 

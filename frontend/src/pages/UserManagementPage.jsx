@@ -607,7 +607,7 @@ export default function UserManagementPage() {
         setSidebarOpen={setSidebarOpen}
       />
 
-      <div className="min-h-screen lg:pl-[220px]">
+      <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 backdrop-blur-xl sm:px-6 lg:px-7">
           <div className="flex w-full items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -641,7 +641,7 @@ export default function UserManagementPage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h2 className="text-lg font-semibold tracking-[-0.03em] sm:text-xl">

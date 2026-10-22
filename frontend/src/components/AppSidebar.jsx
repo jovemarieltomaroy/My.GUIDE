@@ -114,7 +114,7 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-[220px] flex-col overflow-hidden bg-[#7D1718] text-white transition-transform duration-300 ease-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-[250px] flex-col overflow-hidden bg-[#7D1718] text-white transition-transform duration-300 ease-out lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -129,9 +129,6 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
             <div className="min-w-0">
               <p className="truncate text-[18px] font-semibold leading-none text-white">
                 My.GUIDE
-              </p>
-              <p className="mt-1 text-[14px] leading-5 text-white/35">
-                Guidance Case Management
               </p>
             </div>
           </div>
@@ -157,9 +154,6 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
             <div className="min-w-0 flex-1">
               <p className="truncate text-[16px] font-semibold leading-5 text-white">
                 {formatUserName(user)}
-              </p>
-              <p className="truncate text-[14px] leading-5 text-white/55">
-                {user?.designation || (isAdmin ? "Counselor Administrator" : "Guidance Counselor")}
               </p>
               <p className="truncate text-[14px] font-medium leading-5 text-[#E2C15D]">
                 {user?.role}

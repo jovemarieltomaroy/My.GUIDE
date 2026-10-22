@@ -1,3 +1,4 @@
+import { clickableRecordProps } from "../utils/clickableRecord";
 import {
   useCallback,
   useEffect,
@@ -684,7 +685,7 @@ export default function ActivityLogPage() {
         setSidebarOpen={setSidebarOpen}
       />
 
-      <div className="min-h-screen lg:pl-[220px]">
+      <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex min-h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-7">
           <div className="flex w-full items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
@@ -754,7 +755,7 @@ export default function ActivityLogPage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
           {pageError && (
             <Alert
               tone="error"
@@ -1143,22 +1144,19 @@ function ActivityTable({
               Student
             </th>
 
-            <th className={`${tableHeadClass} w-[25%]`}>
+            <th className={`${tableHeadClass} w-[35%]`}>
               Remarks
             </th>
 
-            <th
-              className={`${tableHeadClass} sticky right-0 w-[10%] border-l border-[#ECE8E5] bg-[#FCFBFA] text-center`}
-            >
-              Actions
-            </th>
+
           </tr>
         </thead>
         <tbody>
           {logs.map((log) => (
             <tr
+              {...clickableRecordProps(() => onViewDetails(log), `Open activity details for ${log.caseNumber}`)}
               key={log.id}
-              className="border-b border-[#F0ECE9] last:border-b-0 hover:bg-[#FCFBFA]"
+              className="clickable-record border-b border-[#F0ECE9] last:border-b-0 hover:bg-[#FCFBFA]"
             >
               <td className={tableCellClass}>
                 <p className="text-[15px] font-medium text-[#4F4945]">
@@ -1221,23 +1219,13 @@ function ActivityTable({
                 </p>
               </td>
 
-              <td className={`${tableCellClass} w-[25%]`}>
+              <td className={`${tableCellClass} w-[35%]`}>
                 <p className="line-clamp-2 text-[15px] leading-4 text-[#68615D]">
                   {log.remarks}
                 </p>
               </td>
 
-              <td
-                className={`${tableCellClass} sticky right-0 w-[10%] border-l border-[#ECE8E5] bg-white text-center`}
-              >
-                <button
-                  type="button"
-                  onClick={() => onViewDetails(log)}
-                  className="whitespace-nowrap text-[15px] font-semibold text-[#8C1518]"
-                >
-                  View details
-                </button>
-              </td>
+
             </tr>
           ))}
         </tbody>

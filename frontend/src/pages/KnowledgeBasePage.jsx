@@ -1,3 +1,4 @@
+import { clickableRecordProps } from "../utils/clickableRecord";
 import {
   useCallback,
   useEffect,
@@ -391,7 +392,7 @@ export default function KnowledgeBasePage() {
         }
       />
 
-      <div className="min-h-screen lg:pl-[220px]">
+      <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex min-h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-7">
           <div className="flex w-full items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -438,7 +439,7 @@ export default function KnowledgeBasePage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
           {successMessage && (
             <Alert
               tone="success"
@@ -612,10 +613,11 @@ export default function KnowledgeBasePage() {
                     {displayedResources.map(
                       (resource) => (
                         <tr
+                          {...clickableRecordProps(() => viewResource(resource._id), `Open ${resource.title}`)}
                           key={
                             resource._id
                           }
-                          className="border-b border-[#F0ECE9] last:border-b-0 hover:bg-[#FCFBFA]"
+                          className="clickable-record border-b border-[#F0ECE9] last:border-b-0 hover:bg-[#FCFBFA]"
                         >
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
@@ -682,20 +684,10 @@ export default function KnowledgeBasePage() {
 
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  viewResource(
-                                    resource._id,
-                                  )
-                                }
-                                className="h-7 rounded-lg border border-[#DCD6D2] bg-white px-2.5 text-[13px] font-semibold text-[#5A534F] hover:border-[#8C1518] hover:text-[#8C1518]"
-                              >
-                                View
-                              </button>
+
 
                               {isAdmin && <>
-                                <button type="button" onClick={() => setEditingResource(resource)} disabled={Boolean(resource.replacementPending) || resource.processingStatus === 'Processing'} className="rounded-lg border border-[#DCD6D2] px-2.5 py-1 text-[13px] font-semibold text-[#8C1518] disabled:opacity-50">Edit / Change Status</button>
+                                <button type="button" onClick={() => setEditingResource(resource)} disabled={Boolean(resource.replacementPending) || resource.processingStatus === 'Processing'} className="rounded-lg border border-[#DCD6D2] px-2.5 py-1 text-[13px] font-semibold text-[#8C1518] disabled:opacity-50">Change</button>
                                 <button type="button" onClick={() => replaceResource(resource)} disabled={Boolean(resource.replacementPending || resource.replacedBy) || resource.processingStatus === 'Processing'} className="rounded-lg border border-[#DCD6D2] px-2.5 py-1 text-[13px] font-semibold text-[#8C1518] disabled:opacity-50">Replace</button>
                               </>}
                             </div>
@@ -1044,7 +1036,7 @@ function ResourceDetailsModal({
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.75fr)]">
 
         {/* PDF PREVIEW */}
-        <div>
+        <div className="flex min-w-0 flex-col self-stretch">
           <div className="mb-2">
             <p className="text-[15px] font-semibold text-[#3B3330]">
               PDF Preview
@@ -1056,9 +1048,9 @@ function ResourceDetailsModal({
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-[#E7E1DD] bg-[#F8F6F4]">
+          <div className="relative min-h-[520px] overflow-hidden rounded-xl border border-[#E7E1DD] bg-[#F8F6F4] lg:flex-1">
             {pdfLoading && (
-              <div className="flex h-[520px] items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
                   <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-[#D8CECA] border-t-[#8C1518]" />
 
@@ -1071,7 +1063,7 @@ function ResourceDetailsModal({
 
             {!pdfLoading &&
               pdfError && (
-                <div className="flex h-[520px] items-center justify-center p-6">
+                <div className="absolute inset-0 flex items-center justify-center p-6">
                   <div className="max-w-xs text-center">
                     <div className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-red-50 text-red-700">
                       !
@@ -1094,7 +1086,7 @@ function ResourceDetailsModal({
                 <iframe
                   src={pdfUrl}
                   title={`PDF preview - ${resource.title}`}
-                  className="h-[520px] w-full bg-white"
+                  className="absolute inset-0 h-full w-full border-0 bg-white"
                 />
               )}
           </div>
@@ -1146,7 +1138,7 @@ function ResourceDetailsModal({
               <DetailCard 
                 label="Processing" 
                 value={resource.processingStatus} 
-              />
+                />
             </div>
            
             {resource.replaces && <DetailCard label="Replaces resource" value={resource.replaces} />}

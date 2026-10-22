@@ -1,3 +1,4 @@
+import { clickableRecordProps } from "../utils/clickableRecord";
 import {
   useCallback,
   useEffect,
@@ -499,7 +500,7 @@ export default function StudentRecordsPage() {
         setSidebarOpen={setSidebarOpen}
       />
 
-      <div className="min-h-screen lg:pl-[220px]">
+      <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex min-h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-7">
           <div className="flex w-full flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -532,7 +533,7 @@ export default function StudentRecordsPage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
           {successMessage && (
             <Alert tone="success" message={successMessage} />
           )}
@@ -843,7 +844,8 @@ function StudentList({
             {students.map((student) => (
               <tr
                 key={student._id || student.id}
-                className="transition hover:bg-[#FCFBFA]"
+                {...(activeTab !== "archived" ? clickableRecordProps(() => onOpen(student), `Open ${formatStudentName(student)}`) : {})}
+                className={activeTab !== "archived" ? "clickable-record transition hover:bg-[#FCFBFA]" : "transition hover:bg-[#FCFBFA]"}
               >
                 <td className="px-5 py-5 align-top">
                   <p className="break-words text-[14px] font-semibold leading-5 text-[#37322F]">
@@ -897,9 +899,6 @@ function StudentList({
                       </button>
                     ) : (
                       <>
-                        <ActionButton onClick={() => onOpen(student)}>
-                          {student.profileCompleted ? "View" : "Complete"}
-                        </ActionButton>
 
                         <ActionButton onClick={() => onEnrollment(student)}>
                           Enrollment
@@ -916,7 +915,7 @@ function StudentList({
 
       <div className="divide-y divide-[#EEEAE7] md:hidden">
         {students.map((student) => (
-          <article key={student._id || student.id} className="p-4">
+          <article key={student._id || student.id} {...(activeTab !== "archived" ? clickableRecordProps(() => onOpen(student), `Open ${formatStudentName(student)}`) : {})} className={activeTab !== "archived" ? "clickable-record p-4" : "p-4"}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h3 className="truncate text-[17px] font-semibold">
@@ -944,9 +943,6 @@ function StudentList({
                   </ActionButton>
                 ) : (
                   <>
-                    <ActionButton onClick={() => onOpen(student)}>
-                      View
-                    </ActionButton>
 
                     <ActionButton onClick={() => onEnrollment(student)}>
                       Enrollment

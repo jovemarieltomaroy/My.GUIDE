@@ -16,3 +16,35 @@ export function aggregateCaseReport(type, cases) {
   }
   return [...groups.values()].sort((a,b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
 }
+
+export function buildCombinedCaseReport(cases) {
+  const domains = new Map();
+  for (const record of cases) {
+    const domain = record.problemAssessment?.mainDomain || 'Not recorded';
+    domains.set(domain, (domains.get(domain) || 0) + 1);
+  }
+  const share = count => `${cases.length ? (count / cases.length * 100).toFixed(1) : '0.0'}%`;
+  return [
+    {
+      title: 'Cases by domain',
+      rows: [...domains].sort(([a], [b]) => a.localeCompare(b))
+        .map(([Domain, Cases]) => ({ Domain, Cases, Share: share(Cases) })),
+    },
+    {
+      title: 'Monthly case trends',
+      description: 'Cases opened each month (Asia/Manila), grouped by domain. Months with no cases are omitted.',
+      rows: aggregateCaseReport('case-trends', cases)
+        .map(({ Month, Concern, Cases }) => ({ Month, Domain: Concern, Cases })),
+    },
+    {
+      title: 'Cases by status',
+      description: 'Current status of cases opened during the selected period.',
+      rows: aggregateCaseReport('case-status', cases)
+        .map(row => ({ ...row, Share: share(row.Cases) })),
+    },
+    {
+      title: 'Concern breakdown',
+      rows: aggregateCaseReport('case-summary', cases),
+    },
+  ];
+}

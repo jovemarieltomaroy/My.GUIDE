@@ -8,7 +8,8 @@ async function validateKnowledgeAttachments(resources, user) {
     for (const resource of resources) {
         if (!resource || typeof resource !== 'object') throw attachmentError('Invalid attachment.');
         const id = resourceIdFromUrl(resource.url);
-        // A forged Link label or direct upload path must never bypass KB restrictions.
+         
+     
         if (resource.resourceId && !id) throw attachmentError('Use the protected Knowledge Base resource URL.');
         if (!id) {
             if (typeof resource.url === 'string' && (resource.url.includes('knowledge-base') || resource.url.includes('knowledge-resources'))) throw attachmentError('Invalid Knowledge Base attachment URL.');

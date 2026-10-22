@@ -27,8 +27,8 @@ test('nested patches preserve existing observations and consent timestamp', () =
   assert.equal(foundCase.mentalStatus.grooming, 'Updated');
   assert.equal(foundCase.consent.consentDate.getTime(), originalConsentDate.getTime());
 });
-test('generation passes labeled mental status and never automatically attaches suggested PDFs', async () => {
-  const foundCase = { _id:'case', createdBy:'admin', assignedCounselor:'admin', caseStatus:'Open', mentalStatus:{orientation:'Oriented'}, currentPresentation:{narrativeDescription:'Academic stress'}, backgroundAndPsychosocialHistory:{familyContext:'Supportive'}, llmRecommendations:[], actionHistory:[], async save(){this.saved=true;} };
+test('generation keeps presentation details in RAG but uses only the narrative as the concern summary', async () => {
+  const foundCase = { _id:'case', createdBy:'admin', assignedCounselor:'admin', caseStatus:'Open', mentalStatus:{orientation:'Oriented'}, currentPresentation:{narrativeDescription:'Academic stress',intensity:'Moderate'}, backgroundAndPsychosocialHistory:{familyContext:'Supportive'}, llmRecommendations:[], actionHistory:[], async save(){this.saved=true;} };
   let options, data;
   const supportingResource = {resourceId:'012345678901234567890123',resourceType:'worksheet',title:'Worksheet'};
   const recommendation = {intervention:'Planning',rationale:'Relevant',counselorActions:[{action:'Review tasks'}],supportingResource};
@@ -39,7 +39,10 @@ test('generation passes labeled mental status and never automatically attaches s
   assert.equal(res.code,201);
   assert.match(options.retrievalQuery,/orientation: Oriented/);
   assert.match(options.retrievalQuery,/family Context: Supportive/);
+  assert.match(options.retrievalQuery,/intensity: Moderate/);
   assert.match(data.mentalStatus,/orientation: Oriented/);
+  assert.match(data.currentPresentation,/intensity: Moderate/);
+  assert.equal(foundCase.llmRecommendations[0].concernSummary,'Academic stress');
   assert.equal(foundCase.llmRecommendations[0].resources.length,0);
   assert.equal(foundCase.llmRecommendations[0].suggestedMaterials.length,1);
   assert.equal(foundCase.llmRecommendations[0].suggestedMaterials[0].title,'Worksheet');

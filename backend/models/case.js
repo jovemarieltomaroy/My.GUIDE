@@ -696,7 +696,7 @@ const caseRecordSchema = new mongoose.Schema(
                     'Walk-in',
                     'Faculty-Referred',
                     'Staff-Referred',
-                    'Peer-Referred',
+                    'Student-Referred',
                     'Other',
                 ],
                 default: 'Walk-in',

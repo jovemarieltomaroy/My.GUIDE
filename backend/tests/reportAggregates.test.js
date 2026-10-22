@@ -24,3 +24,26 @@ test('case status counts handle empty data and missing statuses', async () => {
  assert.equal(rows.find(row=>row.Status==='Open').Cases,2);
  assert.equal(rows.find(row=>row.Status==='Not recorded').Cases,1);
 });
+
+test('combined report preserves case totals across all breakdowns and excludes identities', async () => {
+ const { buildCombinedCaseReport } = await import('../../frontend/src/utils/reportAggregates.js');
+ const records = [...cases, { student: { firstName: 'Private name' }, caseNumber: 'PRIVATE-CASE' }];
+ const sections = buildCombinedCaseReport(records);
+ assert.equal(sections.length, 4);
+ for (const section of sections) {
+  assert.equal(section.rows.reduce((sum, row) => sum + row.Cases, 0), records.length);
+ }
+ const domains = sections.find(section => section.title === 'Cases by domain').rows;
+ assert.equal(domains.find(row => row.Domain === 'Academic').Share, '75.0%');
+ assert.equal(domains.find(row => row.Domain === 'Not recorded').Cases, 1);
+ const trends = sections.find(section => section.title === 'Monthly case trends').rows;
+ assert.equal(trends.find(row => row.Month === '2026-10').Cases, 3);
+ assert.equal(trends.find(row => row.Month === 'Not recorded').Cases, 1);
+ assert.ok(!JSON.stringify(sections).includes('Private name'));
+ assert.ok(!JSON.stringify(sections).includes('PRIVATE-CASE'));
+});
+
+test('combined report handles an empty filtered set', async () => {
+ const { buildCombinedCaseReport } = await import('../../frontend/src/utils/reportAggregates.js');
+ assert.ok(buildCombinedCaseReport([]).every(section => section.rows.length === 0));
+});

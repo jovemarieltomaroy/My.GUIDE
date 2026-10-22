@@ -38,6 +38,10 @@ const login = async (req, res) => {
         });
     }
 
+    return sendLoginResponse(user, res);
+};
+
+const sendLoginResponse = (user, res) => {
     const token = generateToken(user._id);
 
     res.cookie("token", token, {
@@ -102,4 +106,4 @@ const refreshToken = (req, res) => {
 
 }
 
-module.exports = { login, refreshToken };
+module.exports = { login, refreshToken, sendLoginResponse };

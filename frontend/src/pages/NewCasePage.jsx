@@ -1,3 +1,4 @@
+import { defaultCounselorCollege, handledCounselorColleges } from "../utils/counselorCollege";
 import { importPreCounselingInformation } from "../utils/preCounselingImport";
 import LLMRecommendationsPage from "./LLMRecommendationsPage";
 import {
@@ -16,16 +17,6 @@ import { apiRequest } from "../config/api";
 import { useAuth } from "../context/AuthContext";
 
 const CLIENT_ENTRY_TYPES = ["Walk-in", "Referred", "Scheduled"];
-
-const COLLEGES = [
-  "College of Engineering",
-  "College of Science and Mathematics",
-  "College of Computer Studies",
-  "College of Education",
-  "College of Arts and Social Sciences",
-  "College of Economics, Business and Accountancy",
-  "College of Health Sciences",
-];
 
 const YEAR_LEVELS = [
   "1",
@@ -289,6 +280,13 @@ export default function NewCasePage() {
     }));
   }, [user]);
 
+  useEffect(() => {
+    const college = defaultCounselorCollege(user);
+    if (!college || !formData.temporaryStudent.isTemporary) return;
+    setFormData(current => current.temporaryStudent.college === college ? current : ({ ...current,
+      temporaryStudent: { ...current.temporaryStudent, college } }));
+  }, [user, formData.temporaryStudent.isTemporary, formData.temporaryStudent.college]);
+
   if (!user) {
     return null;
   }
@@ -419,6 +417,7 @@ export default function NewCasePage() {
           temporaryStudent: {
             ...current.temporaryStudent,
             isTemporary: true,
+            college: current.temporaryStudent.college || defaultCounselorCollege(user),
           },
         }));
         setErrors((current) => ({
@@ -876,7 +875,7 @@ export default function NewCasePage() {
         setSidebarOpen={setSidebarOpen}
       />
 
-      <div className="min-h-screen lg:pl-[220px]">
+      <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex min-h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-7">
           <div className="flex w-full flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
@@ -958,7 +957,7 @@ export default function NewCasePage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1480px] px-4 py-5 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1480px] px-4 py-5 sm:px-6 lg:px-7">
           {pageError && (
             <Alert
               tone="error"
@@ -1113,8 +1112,10 @@ export default function NewCasePage() {
                           ["program", "Program", false],
                           ["yearLevel", "Year level", true],
                         ].map(([field, label, required]) => {
+                          const handledColleges = handledCounselorColleges(user);
+                          const singleCollege = field === "college" && handledColleges.length === 1;
                           const options = field === "college"
-                            ? COLLEGES
+                            ? (handledColleges.length > 1 ? handledColleges : null)
                             : field === "yearLevel" ? YEAR_LEVELS : null;
                           const fieldProps = {
                             value: formData.temporaryStudent[field],
@@ -1149,6 +1150,7 @@ export default function NewCasePage() {
                                 <input
                                   {...fieldProps}
                                   type={field === "email" ? "email" : "text"}
+                                  readOnly={singleCollege}
                                 />
                               )}
                             </Field>
@@ -1199,6 +1201,24 @@ export default function NewCasePage() {
                       ))}
                     </select>
                   </Field>
+                {formData.clientEntryType === "Referred" && (
+                  <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
+                    <Field label="Referral source" required>
+                      <select value={formData.referralInformation.referralSource} onChange={(event) => updateNested("referralInformation", "referralSource", event.target.value)} className={`${inputClass} !text-[15px]`}>
+                        <option value="Faculty-Referred">Faculty</option>
+                        <option value="Staff-Referred">Staff</option>
+                        <option value="Student-Referred">Student</option>
+                        <option value="Other-Referred">Other</option>
+                      </select>
+                    </Field>
+                    <Field label="Referred by">
+                      <input value={formData.referralInformation.referredBy} onChange={(event) => updateNested("referralInformation", "referredBy", event.target.value)} className={`${inputClass} !text-[15px]`} />
+                    </Field>
+                    <Field label="Referral question / reason" className="sm:col-span-2">
+                      <textarea value={formData.referralInformation.referralQuestion} onChange={(event) => updateNested("referralInformation", "referralQuestion", event.target.value)} rows={3} className={`${textareaClass} !text-[15px]`} />
+                    </Field>
+                  </div>
+                )}
                 </div>
               </FormSection>
 
@@ -1324,24 +1344,6 @@ export default function NewCasePage() {
                   </div>
                 )}
 
-                {formData.clientEntryType === "Referred" && (
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <Field label="Referral source" required>
-                      <select value={formData.referralInformation.referralSource} onChange={(event) => updateNested("referralInformation", "referralSource", event.target.value)} className={`${inputClass} !text-[15px]`}>
-                        <option value="Faculty-Referred">Faculty</option>
-                        <option value="Staff-Referred">Staff</option>
-                        <option value="Peer-Referred">Peer</option>
-                        <option value="Other-Referred">Other</option>
-                      </select>
-                    </Field>
-                    <Field label="Referred by">
-                      <input value={formData.referralInformation.referredBy} onChange={(event) => updateNested("referralInformation", "referredBy", event.target.value)} className={`${inputClass} !text-[15px]`} />
-                    </Field>
-                    <Field label="Referral question / reason" className="sm:col-span-2">
-                      <textarea value={formData.referralInformation.referralQuestion} onChange={(event) => updateNested("referralInformation", "referralQuestion", event.target.value)} rows={3} className={`${textareaClass} !text-[15px]`} />
-                    </Field>
-                  </div>
-                )}
               </FormSection>
 
               <FormSection
@@ -1372,6 +1374,49 @@ export default function NewCasePage() {
                       placeholder="Describe the presenting concern and relevant intake narrative."
                       className={`${textareaClass} !text-[15px]`}
                     />
+                  </Field>
+                  <Field label="Onset">
+                    <input
+                      value={formData.currentPresentation.onset}
+                      onChange={(event) =>
+                        updateNested("currentPresentation", "onset", event.target.value)
+                      }
+                    className={`${inputClass} !text-[15px]`}
+                    />
+                  </Field>
+
+                  <Field label="Duration">
+                    <input
+                      value={formData.currentPresentation.duration}
+                      onChange={(event) =>
+                        updateNested("currentPresentation", "duration", event.target.value)
+                      }
+                      className={`${inputClass} !text-[15px]`}
+                    />
+                  </Field>
+
+                  <Field label="Frequency">
+                    <input
+                      value={formData.currentPresentation.frequency}
+                      onChange={(event) =>
+                        updateNested("currentPresentation", "frequency", event.target.value)
+                      }
+                      className={`${inputClass} !text-[15px]`}
+                    />
+                  </Field>
+
+                  <Field label="Intensity">
+                    <select
+                      value={formData.currentPresentation.intensity}
+                      onChange={(event) =>
+                        updateNested("currentPresentation", "intensity", event.target.value)
+                      }
+                      className={`${inputClass} !text-[15px]`}
+                    >
+                      {INTENSITY_LEVELS.map((level) => (
+                        <option key={level} value={level}>{level}</option>
+                      ))}
+                    </select>
                   </Field>
 
                   <section className="sm:col-span-2 xl:col-span-3 rounded-xl border border-[#E5E0DC] bg-[#FCFBFA] p-4 sm:p-5" aria-labelledby="mental-status-heading">
@@ -1519,49 +1564,6 @@ export default function NewCasePage() {
                     </fieldset>
                   </section>
 
-                  <Field label="Onset">
-                    <input
-                      value={formData.currentPresentation.onset}
-                      onChange={(event) =>
-                        updateNested("currentPresentation", "onset", event.target.value)
-                      }
-                    className={`${inputClass} !text-[15px]`}
-                    />
-                  </Field>
-
-                  <Field label="Duration">
-                    <input
-                      value={formData.currentPresentation.duration}
-                      onChange={(event) =>
-                        updateNested("currentPresentation", "duration", event.target.value)
-                      }
-                      className={`${inputClass} !text-[15px]`}
-                    />
-                  </Field>
-
-                  <Field label="Frequency">
-                    <input
-                      value={formData.currentPresentation.frequency}
-                      onChange={(event) =>
-                        updateNested("currentPresentation", "frequency", event.target.value)
-                      }
-                      className={`${inputClass} !text-[15px]`}
-                    />
-                  </Field>
-
-                  <Field label="Intensity">
-                    <select
-                      value={formData.currentPresentation.intensity}
-                      onChange={(event) =>
-                        updateNested("currentPresentation", "intensity", event.target.value)
-                      }
-                      className={`${inputClass} !text-[15px]`}
-                    >
-                      {INTENSITY_LEVELS.map((level) => (
-                        <option key={level} value={level}>{level}</option>
-                      ))}
-                    </select>
-                  </Field>
                 </div>
               </FormSection>
 
@@ -1595,6 +1597,7 @@ export default function NewCasePage() {
 
                   <ProblemList
                     label="Primary problems"
+                    allowAdd={false}
                     required
                     values={formData.problemAssessment.primaryProblems}
                     error={errors["problemAssessment.primaryProblems"]}
@@ -2279,6 +2282,7 @@ function ProblemList({
   values,
   onChange,
   required = false,
+  allowAdd = true,
   error,
 }) {
   const updateItem = (
@@ -2325,7 +2329,7 @@ function ProblemList({
           )}
         </span>
 
-        <button
+        {allowAdd && <button
           type="button"
           onClick={addItem}
           className="inline-flex h-6 items-center gap-1 rounded-md border border-[#D9D2CE] px-2 text-[13px] font-semibold text-[#625B57] hover:border-[#8C1518] hover:text-[#8C1518]"
@@ -2335,7 +2339,7 @@ function ProblemList({
             className="h-2.5 w-2.5"
           />
           Add
-        </button>
+        </button>}
       </div>
 
       <div className="mt-1.5 space-y-2">
