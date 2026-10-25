@@ -1,12 +1,7 @@
-import fullLogo from "../assets/myguide-logo.png";
-import iconLogo from "../assets/myguide-icon.png";
+import fullLogo from "../assets/myguide-brand-logo.svg";
+import iconLogo from "../assets/myguide-brand-icon.svg";
 
-export default function Logo({
-  variant = "full",
-  light = false,
-  onClick,
-  className = "",
-}) {
+export default function Logo({ variant = "full", light = false, onClick, className = "" }) {
   const isIcon = variant === "icon";
 
   return (
@@ -20,17 +15,11 @@ export default function Logo({
         src={isIcon ? iconLogo : fullLogo}
         alt="My.GUIDE"
         className={
-          isIcon
-            ? "h-11 w-11 object-contain sm:h-12 sm:w-12"
-            : "h-10 w-auto object-contain sm:h-11"
+          isIcon ? "h-11 w-11 object-contain sm:h-12 sm:w-12" : "h-10 w-auto object-contain sm:h-11"
         }
       />
 
-      {light && (
-        <span className="sr-only">
-          My.GUIDE Guidance Case Management System
-        </span>
-      )}
+      {light && <span className="sr-only">My.GUIDE Guidance Case Management System</span>}
     </button>
   );
 }

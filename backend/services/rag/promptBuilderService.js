@@ -7,70 +7,31 @@
  * @param {*} value
  * @returns {string}
  */
-const formatCaseField = (
-    value
-) => {
-    if (
-        value === null ||
-        value === undefined ||
-        value === ""
-    ) {
-        return "Not provided";
+const formatCaseField = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return "Not provided";
+  }
+
+  if (typeof value === "string") {
+    return value.trim() || "Not provided";
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return "Not provided";
     }
 
-    if (
-        typeof value === "string"
-    ) {
-        return (
-            value.trim() ||
-            "Not provided"
-        );
-    }
+    return value
+      .map((item) => (typeof item === "object" ? JSON.stringify(item) : String(item)))
+      .join("; ");
+  }
 
-    if (
-        Array.isArray(
-            value
-        )
-    ) {
-        if (
-            value.length === 0
-        ) {
-            return "Not provided";
-        }
+  if (typeof value === "object") {
+    return JSON.stringify(value, null, 2);
+  }
 
-        return value
-            .map(
-                (item) =>
-                    typeof item ===
-                    "object"
-                        ? JSON.stringify(
-                              item
-                          )
-                        : String(
-                              item
-                          )
-            )
-            .join(
-                "; "
-            );
-    }
-
-    if (
-        typeof value ===
-        "object"
-    ) {
-        return JSON.stringify(
-            value,
-            null,
-            2
-        );
-    }
-
-    return String(
-        value
-    );
+  return String(value);
 };
-
 
 /**
  * Builds the grounded intervention
@@ -80,106 +41,46 @@ const formatCaseField = (
  * @param {Array<object>} retrievedChunks
  * @returns {string}
  */
-const buildInterventionPrompt = (
-    caseData,
-    retrievedChunks
-) => {
-    /*
-     * ---------------------------------------------
-     * VALIDATE INPUT
-     * ---------------------------------------------
-     */
+const buildInterventionPrompt = (caseData, retrievedChunks) => {
+  /*
+   * ---------------------------------------------
+   * VALIDATE INPUT
+   * ---------------------------------------------
+   */
 
-    if (
-        !caseData ||
-        typeof caseData !==
-            "object"
-    ) {
-        throw new Error(
-            "Valid case data is required."
-        );
-    }
+  if (!caseData || typeof caseData !== "object") {
+    throw new Error("Valid case data is required.");
+  }
 
+  if (!Array.isArray(retrievedChunks)) {
+    throw new Error("Retrieved chunks must be provided as an array.");
+  }
 
-    if (
-        !Array.isArray(
-            retrievedChunks
-        )
-    ) {
-        throw new Error(
-            "Retrieved chunks must be provided as an array."
-        );
-    }
+  if (retrievedChunks.length === 0) {
+    throw new Error("No reference material was retrieved.");
+  }
 
+  /*
+   * ---------------------------------------------
+   * BUILD RETRIEVED REFERENCE CONTEXT
+   * ---------------------------------------------
+   */
 
-    if (
-        retrievedChunks.length ===
-        0
-    ) {
-        throw new Error(
-            "No reference material was retrieved."
-        );
-    }
+  const referenceContext = retrievedChunks
+    .map((chunk, index) => {
+      const source = chunk.metadata?.source || "Unknown source";
 
+      const title = chunk.metadata?.title || source;
 
-    /*
-     * ---------------------------------------------
-     * BUILD RETRIEVED REFERENCE CONTEXT
-     * ---------------------------------------------
-     */
+      const resourceType = chunk.metadata?.resourceType || "reference";
 
-    const referenceContext =
-        retrievedChunks
-            .map(
-                (
-                    chunk,
-                    index
-                ) => {
-                    const source =
-                        chunk
-                            .metadata
-                            ?.source ||
-                        "Unknown source";
+      const topic = chunk.metadata?.topic || "Not specified";
 
+      const pageNumber = chunk.metadata?.pageNumber ?? "Unknown";
 
-                    const title =
-                        chunk
-                            .metadata
-                            ?.title ||
-                        source;
+      const score = typeof chunk.score === "number" ? chunk.score.toFixed(4) : "Not available";
 
-
-                    const resourceType =
-                        chunk
-                            .metadata
-                            ?.resourceType ||
-                        "reference";
-
-
-                    const topic =
-                        chunk
-                            .metadata
-                            ?.topic ||
-                        "Not specified";
-
-
-                    const pageNumber =
-                        chunk
-                            .metadata
-                            ?.pageNumber ??
-                        "Unknown";
-
-
-                    const score =
-                        typeof chunk.score ===
-                        "number"
-                            ? chunk.score.toFixed(
-                                  4
-                              )
-                            : "Not available";
-
-
-                    return `
+      return `
 REFERENCE ${index + 1}
 
 Title: ${title}
@@ -192,20 +93,16 @@ Retrieval Score: ${score}
 Content:
 ${chunk.content}
 `;
-                }
-            )
-            .join(
-                "\n"
-            );
+    })
+    .join("\n");
 
+  /*
+   * ---------------------------------------------
+   * COMPLETE PROMPT
+   * ---------------------------------------------
+   */
 
-    /*
-     * ---------------------------------------------
-     * COMPLETE PROMPT
-     * ---------------------------------------------
-     */
-
-    return `
+  return `
 You are the intervention recommendation support component of My.GUIDE, a counseling case management system.
 
 Generate counselor-facing intervention recommendations using ONLY:
@@ -678,30 +575,72 @@ Referral Information:
 ${formatCaseField(caseData.referralInformation)}
 
 Current Presentation:
-${formatCaseField(
-    caseData.currentPresentation
-)}
+${formatCaseField(caseData.currentPresentation)}
 
 Problem Assessment:
-${formatCaseField(
-    caseData.problemAssessment
-)}
+${formatCaseField(caseData.problemAssessment)}
 
 Case Formulation Factors:
-${formatCaseField(
-    caseData.caseFormulationFactors
-)}
+${formatCaseField(caseData.caseFormulationFactors)}
 
 Background and Psychosocial History:
-${formatCaseField(
-    caseData.backgroundAndPsychosocialHistory
-)}
+${formatCaseField(caseData.backgroundAndPsychosocialHistory)}
 
 Case Formulation:
-${formatCaseField(
-    caseData.caseFormulation
-)}
+${formatCaseField(caseData.caseFormulation)}
 
+
+==================================================
+GENERATION MODE: ${caseData.recommendationType || "initial"}
+==================================================
+
+${caseData.recommendationType === "updated" ? `
+UPDATED INTERVENTION CONTEXT (documented case information)
+PREVIOUS APPROVED INTERVENTION / LINKED PLAN (check actual approvalStatus):
+${formatCaseField(caseData.progressContext?.previousIntervention)}
+
+PREVIOUS INTERVENTION OUTCOME / LATEST PROGRESS NOTE:
+${formatCaseField(caseData.progressContext?.latestProgress)}
+
+Earlier evaluations of the same linked intervention:
+${formatCaseField(caseData.progressContext?.earlierProgress)}
+
+COUNSELOR'S PROPOSED NEXT STEPS:
+${formatCaseField(caseData.progressContext?.latestProgress?.newPlanOfAction)}
+
+Consider what was attempted, student response, goal progress, supporting notes,
+and unresolved concerns. Describe effectiveness only as supported by these
+observations; preserve mixed findings and uncertainty. Do not equate slight goal
+progress with overall effectiveness or invent an outcome when not assessed.
+Recommend meaningful adjustments supported by retrieved references. Avoid simply
+repeating ineffective strategies without a documented reason. Preserve useful
+components when justified. Proposed next steps are counselor input, not reference
+evidence: every recommended action still needs retrieved support. A linked plan
+is approved only if its actual approvalStatus says Approved. Null history means
+no linked previous intervention is available; do not invent one.
+The linked plan is historical context, not a template for the new plan.
+Distinguish previously implemented actions, documented meaningful benefit,
+limited or temporary benefit, unresolved concerns, and counselor-proposed adjustments.
+Do not classify temporary relief as meaningful sustained improvement. When benefit
+is unclear, say so. Prioritize actions addressing unresolved concerns; retain prior
+helpful actions as supporting components only when justified by documented outcomes.
+For every updated counselor action, include "changeType" ("continued", "adjusted",
+or "new") and "changeReason" explaining the documented reason and reference support.
+These are model assessments for counselor review, not established facts.
+Select practical resources relevant to those actions. Cited eligible handouts and
+worksheets may also be suggested; reference-type sources remain evidence only.
+
+Evaluate the documented limited benefit without inventing its cause. Explain how
+recommended actions address unresolved concerns and the counselor's next steps.
+If the references support only repetition without a justified response to the
+latest findings, return insufficient_reference_material. Do not invent a revision.
+For updated generation, add a top-level "updateAssessment" object:
+{ "outcomeConsidered": true, "proposedNextStepsConsidered": true,
+  "decision": "revise|continue|mixed", "justification": "Brief explanation grounded in the documented outcome and retrieved evidence, including why any retained strategy is useful." }
+Use actual booleans and choose one decision. Explain unsupported proposed steps
+in the justification instead of claiming they were recommended.
+
+` : "Use original case assessment for initial intervention generation."}
 
 ==================================================
 RETRIEVED APPROVED REFERENCE MATERIALS
@@ -709,6 +648,29 @@ RETRIEVED APPROVED REFERENCE MATERIALS
 
 ${referenceContext}
 
+
+==================================================
+GOAL, ACTION QUALITY, AND FOLLOW-UP
+==================================================
+
+For status "ok", BOTH top-level "goal" and "followUpPlan" are REQUIRED.
+Return one top-level "goal": a concise student-centered intended outcome based
+on documented concerns and the retained evidence-supported actions. Describe the
+improvement sought; do not list intervention titles, diagnose, promise improvement,
+or introduce undocumented concerns. Use professional, understandable language.
+Return "followUpPlan": what the counselor should evaluate at the next session:
+progress toward this goal, response to the proposed activities, implementation
+barriers, and whether adjustment is needed. Do NOT include dates, intervals, or
+repeat a schedule. The saved counselor schedule is supplied separately by the backend.
+Sequence concrete actions logically. Avoid vague counseling instructions.
+New means not previously implemented; adjusted requires a real modification of a
+previously implemented activity; continued requires a justified retained activity.
+Addressing an old concern does NOT by itself make an activity adjusted. When history
+is incomplete, avoid claiming certainty; the counselor must verify classification.
+Each citation must describe the actual technique, not merely discuss the concern.
+A general anxiety handout does not support cognitive restructuring unless the
+cited passage actually describes examining/challenging thoughts. Exclude unsupported
+techniques rather than citing background information as direct intervention evidence.
 
 ==================================================
 RESPONSE LENGTH RULES
@@ -758,6 +720,14 @@ Otherwise return:
 {
   "status": "ok",
   "reason": null,
+  "goal": "A specific intended student outcome addressing the documented concern, without listing intervention titles.",
+  "followUpPlan": "Evaluate progress toward the goal, response to the recommended activities, implementation barriers, and need for adjustment at the next session.",
+  ${caseData.recommendationType === "updated" ? `"updateAssessment": {
+    "outcomeConsidered": true,
+    "proposedNextStepsConsidered": true,
+    "decision": "revise",
+    "justification": "Explain the evidence-supported adjustment or justified continuation in light of the latest outcome. Choose revise, continue, or mixed as appropriate."
+  },` : ""}
   "recommendations": [
     {
       "intervention": "Concise intervention name",
@@ -765,10 +735,14 @@ Otherwise return:
       "counselorActions": [
         {
           "action": "Specific concise counselor action.",
+          ${caseData.recommendationType === "updated" ? `"changeType": "adjusted",
+          "changeReason": "Explain why this action addresses the documented remaining difficulty.",` : ""}
           "referenceNumbers": [5]
         },
         {
           "action": "Another concise counselor action.",
+          ${caseData.recommendationType === "updated" ? `"changeType": "new",
+          "changeReason": "Explain why this action is introduced based on the latest progress.",` : ""}
           "referenceNumbers": [4]
         }
       ],
@@ -905,7 +879,6 @@ Return valid JSON only.
 `;
 };
 
-
 module.exports = {
-    buildInterventionPrompt,
+  buildInterventionPrompt,
 };

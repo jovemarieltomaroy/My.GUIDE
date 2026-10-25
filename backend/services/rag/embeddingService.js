@@ -1,16 +1,8 @@
-const EMBEDDING_PROVIDER = (
-    process.env.EMBEDDING_PROVIDER || "ollama"
-)
-    .trim()
-    .toLowerCase();
+const EMBEDDING_PROVIDER = (process.env.EMBEDDING_PROVIDER || "ollama").trim().toLowerCase();
 
-const OLLAMA_BASE_URL =
-    process.env.OLLAMA_BASE_URL ||
-    "http://localhost:11434";
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 
-const OLLAMA_EMBEDDING_MODEL =
-    process.env.OLLAMA_EMBEDDING_MODEL ||
-    "embeddinggemma";
+const OLLAMA_EMBEDDING_MODEL = process.env.OLLAMA_EMBEDDING_MODEL || "embeddinggemma";
 
 /**
  * Validates the environment configuration required by
@@ -19,27 +11,21 @@ const OLLAMA_EMBEDDING_MODEL =
  * @returns {void}
  */
 const validateEmbeddingConfiguration = () => {
-    switch (EMBEDDING_PROVIDER) {
-        case "ollama":
-            if (!OLLAMA_BASE_URL) {
-                throw new Error(
-                    "OLLAMA_BASE_URL is missing from the environment variables."
-                );
-            }
+  switch (EMBEDDING_PROVIDER) {
+    case "ollama":
+      if (!OLLAMA_BASE_URL) {
+        throw new Error("OLLAMA_BASE_URL is missing from the environment variables.");
+      }
 
-            if (!OLLAMA_EMBEDDING_MODEL) {
-                throw new Error(
-                    "OLLAMA_EMBEDDING_MODEL is missing from the environment variables."
-                );
-            }
+      if (!OLLAMA_EMBEDDING_MODEL) {
+        throw new Error("OLLAMA_EMBEDDING_MODEL is missing from the environment variables.");
+      }
 
-            break;
+      break;
 
-        default:
-            throw new Error(
-                `Unsupported embedding provider: ${EMBEDDING_PROVIDER}`
-            );
-    }
+    default:
+      throw new Error(`Unsupported embedding provider: ${EMBEDDING_PROVIDER}`);
+  }
 };
 
 /**
@@ -49,26 +35,17 @@ const validateEmbeddingConfiguration = () => {
  * @returns {string[]}
  */
 const normalizeEmbeddingTexts = (texts) => {
-    if (!Array.isArray(texts) || texts.length === 0) {
-        throw new Error(
-            "At least one text value is required."
-        );
+  if (!Array.isArray(texts) || texts.length === 0) {
+    throw new Error("At least one text value is required.");
+  }
+
+  return texts.map((text, index) => {
+    if (typeof text !== "string" || !text.trim()) {
+      throw new Error(`Text at index ${index} is empty or invalid.`);
     }
 
-    return texts.map((text, index) => {
-        if (
-            typeof text !== "string" ||
-            !text.trim()
-        ) {
-            throw new Error(
-                `Text at index ${index} is empty or invalid.`
-            );
-        }
-
-        return text
-            .replace(/\s+/g, " ")
-            .trim();
-    });
+    return text.replace(/\s+/g, " ").trim();
+  });
 };
 
 /**
@@ -77,45 +54,33 @@ const normalizeEmbeddingTexts = (texts) => {
  * @param {string[]} texts - Normalized text values.
  * @returns {Promise<number[][]>}
  */
-const generateOllamaEmbeddings = async (
-    texts
-) => {
-    const response = await fetch(
-        `${OLLAMA_BASE_URL}/api/embed`,
-        {
-            method: "POST",
+const generateOllamaEmbeddings = async (texts) => {
+  const response = await fetch(`${OLLAMA_BASE_URL}/api/embed`, {
+    method: "POST",
 
-            headers: {
-                "Content-Type":
-                    "application/json",
-            },
+    headers: {
+      "Content-Type": "application/json",
+    },
 
-            body: JSON.stringify({
-                model:
-                    OLLAMA_EMBEDDING_MODEL,
-                input: texts,
-            }),
-        }
-    );
+    body: JSON.stringify({
+      model: OLLAMA_EMBEDDING_MODEL,
+      input: texts,
+    }),
+  });
 
-    if (!response.ok) {
-        const errorText =
-            await response.text();
+  if (!response.ok) {
+    const errorText = await response.text();
 
-        throw new Error(
-            `Ollama embedding request failed with status ${response.status}: ${errorText}`
-        );
-    }
+    throw new Error(`Ollama embedding request failed with status ${response.status}: ${errorText}`);
+  }
 
-    const data = await response.json();
+  const data = await response.json();
 
-    if (!Array.isArray(data.embeddings)) {
-        throw new Error(
-            "Ollama returned an invalid embedding response."
-        );
-    }
+  if (!Array.isArray(data.embeddings)) {
+    throw new Error("Ollama returned an invalid embedding response.");
+  }
 
-    return data.embeddings;
+  return data.embeddings;
 };
 
 /**
@@ -125,53 +90,31 @@ const generateOllamaEmbeddings = async (
  * @param {number} expectedCount - Expected result count.
  * @returns {void}
  */
-const validateEmbeddingResults = (
-    embeddings,
-    expectedCount
-) => {
-    if (
-        !Array.isArray(embeddings) ||
-        embeddings.length !== expectedCount
-    ) {
-        throw new Error(
-            "The embedding provider returned an incomplete number of results."
-        );
-    }
+const validateEmbeddingResults = (embeddings, expectedCount) => {
+  if (!Array.isArray(embeddings) || embeddings.length !== expectedCount) {
+    throw new Error("The embedding provider returned an incomplete number of results.");
+  }
 
-    const invalidEmbeddingIndex =
-        embeddings.findIndex(
-            (embedding) =>
-                !Array.isArray(embedding) ||
-                embedding.length === 0 ||
-                embedding.some(
-                    (value) =>
-                        typeof value !==
-                            "number" ||
-                        !Number.isFinite(value)
-                )
-        );
+  const invalidEmbeddingIndex = embeddings.findIndex(
+    (embedding) =>
+      !Array.isArray(embedding) ||
+      embedding.length === 0 ||
+      embedding.some((value) => typeof value !== "number" || !Number.isFinite(value))
+  );
 
-    if (invalidEmbeddingIndex !== -1) {
-        throw new Error(
-            `The embedding at index ${invalidEmbeddingIndex} is invalid.`
-        );
-    }
+  if (invalidEmbeddingIndex !== -1) {
+    throw new Error(`The embedding at index ${invalidEmbeddingIndex} is invalid.`);
+  }
 
-    const expectedDimensions =
-        embeddings[0].length;
+  const expectedDimensions = embeddings[0].length;
 
-    const hasInconsistentDimensions =
-        embeddings.some(
-            (embedding) =>
-                embedding.length !==
-                expectedDimensions
-        );
+  const hasInconsistentDimensions = embeddings.some(
+    (embedding) => embedding.length !== expectedDimensions
+  );
 
-    if (hasInconsistentDimensions) {
-        throw new Error(
-            "The embedding provider returned vectors with inconsistent dimensions."
-        );
-    }
+  if (hasInconsistentDimensions) {
+    throw new Error("The embedding provider returned vectors with inconsistent dimensions.");
+  }
 };
 
 /**
@@ -180,36 +123,25 @@ const validateEmbeddingResults = (
  * @param {string[]} texts - Text values to embed.
  * @returns {Promise<number[][]>}
  */
-const generateEmbeddings = async (
-    texts
-) => {
-    validateEmbeddingConfiguration();
+const generateEmbeddings = async (texts) => {
+  validateEmbeddingConfiguration();
 
-    const normalizedTexts =
-        normalizeEmbeddingTexts(texts);
+  const normalizedTexts = normalizeEmbeddingTexts(texts);
 
-    let embeddings;
+  let embeddings;
 
-    switch (EMBEDDING_PROVIDER) {
-        case "ollama":
-            embeddings =
-                await generateOllamaEmbeddings(
-                    normalizedTexts
-                );
-            break;
+  switch (EMBEDDING_PROVIDER) {
+    case "ollama":
+      embeddings = await generateOllamaEmbeddings(normalizedTexts);
+      break;
 
-        default:
-            throw new Error(
-                `Unsupported embedding provider: ${EMBEDDING_PROVIDER}`
-            );
-    }
+    default:
+      throw new Error(`Unsupported embedding provider: ${EMBEDDING_PROVIDER}`);
+  }
 
-    validateEmbeddingResults(
-        embeddings,
-        normalizedTexts.length
-    );
+  validateEmbeddingResults(embeddings, normalizedTexts.length);
 
-    return embeddings;
+  return embeddings;
 };
 
 /**
@@ -218,16 +150,13 @@ const generateEmbeddings = async (
  * @param {string} text - Text to embed.
  * @returns {Promise<number[]>}
  */
-const generateEmbedding = async (
-    text
-) => {
-    const embeddings =
-        await generateEmbeddings([text]);
+const generateEmbedding = async (text) => {
+  const embeddings = await generateEmbeddings([text]);
 
-    return embeddings[0];
+  return embeddings[0];
 };
 
 module.exports = {
-    generateEmbedding,
-    generateEmbeddings,
+  generateEmbedding,
+  generateEmbeddings,
 };

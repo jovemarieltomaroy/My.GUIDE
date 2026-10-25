@@ -10,17 +10,13 @@ export default function ChangePasswordPage() {
   const navigate = useNavigate();
   const { user, setUser, clearUser } = useAuth();
 
-  const [showCurrentPassword, setShowCurrentPassword] =
-    useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
 
-  const [showNewPassword, setShowNewPassword] =
-    useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     currentPassword: "",
@@ -31,11 +27,11 @@ export default function ChangePasswordPage() {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-  if (!user) {
-    navigate("/login", {
-      replace: true,
-    });
-  }
+    if (!user) {
+      navigate("/login", {
+        replace: true,
+      });
+    }
   }, [user, navigate]);
 
   const updateField = (event) => {
@@ -57,27 +53,19 @@ export default function ChangePasswordPage() {
     const validationErrors = {};
 
     if (!formData.currentPassword) {
-      validationErrors.currentPassword =
-        "Current password is required.";
+      validationErrors.currentPassword = "Current password is required.";
     }
 
     if (!formData.newPassword) {
-      validationErrors.newPassword =
-        "New password is required.";
+      validationErrors.newPassword = "New password is required.";
     } else if (formData.newPassword.length < 8) {
-      validationErrors.newPassword =
-        "New password must contain at least 8 characters.";
+      validationErrors.newPassword = "New password must contain at least 8 characters.";
     }
 
     if (!formData.confirmNewPassword) {
-      validationErrors.confirmNewPassword =
-        "Please confirm your new password.";
-    } else if (
-      formData.newPassword !==
-      formData.confirmNewPassword
-    ) {
-      validationErrors.confirmNewPassword =
-        "New passwords do not match.";
+      validationErrors.confirmNewPassword = "Please confirm your new password.";
+    } else if (formData.newPassword !== formData.confirmNewPassword) {
+      validationErrors.confirmNewPassword = "New passwords do not match.";
     }
 
     if (
@@ -85,8 +73,7 @@ export default function ChangePasswordPage() {
       formData.newPassword &&
       formData.currentPassword === formData.newPassword
     ) {
-      validationErrors.newPassword =
-        "New password cannot be the same as your current password.";
+      validationErrors.newPassword = "New password cannot be the same as your current password.";
     }
 
     return validationErrors;
@@ -97,9 +84,7 @@ export default function ChangePasswordPage() {
 
     const validationErrors = validateForm();
 
-    if (
-      Object.keys(validationErrors).length > 0
-    ) {
+    if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
@@ -112,13 +97,11 @@ export default function ChangePasswordPage() {
         method: "PATCH",
 
         body: JSON.stringify({
-          currentPassword:
-            formData.currentPassword,
+          currentPassword: formData.currentPassword,
 
           newPassword: formData.newPassword,
 
-          confirmNewPassword:
-            formData.confirmNewPassword,
+          confirmNewPassword: formData.confirmNewPassword,
         }),
       });
 
@@ -141,16 +124,11 @@ export default function ChangePasswordPage() {
         replace: true,
       });
     } catch (error) {
-      console.error(
-        "Password change error:",
-        error,
-      );
+      console.error("Password change error:", error);
 
       if (error.status === 401) {
         setErrors({
-          currentPassword:
-            error.message ||
-            "Your current password is incorrect.",
+          currentPassword: error.message || "Your current password is incorrect.",
         });
 
         return;
@@ -167,9 +145,7 @@ export default function ChangePasswordPage() {
       }
 
       setErrors({
-        general:
-          error.message ||
-          "Unable to change your password.",
+        general: error.message || "Unable to change your password.",
       });
     } finally {
       setIsSubmitting(false);
@@ -208,15 +184,12 @@ export default function ChangePasswordPage() {
 
             <h1 className="mt-8 text-5xl font-semibold leading-[1.08] tracking-[-0.05em] text-white xl:text-[4rem]">
               Secure your
-              <span className="block text-[#E0C268]">
-                My.GUIDE account.
-              </span>
+              <span className="block text-[#E0C268]">My.GUIDE account.</span>
             </h1>
 
             <p className="mt-6 max-w-lg text-base leading-8 text-white/60">
-              Replace the temporary password
-              provided by your administrator before
-              continuing to the system.
+              Replace the temporary password provided by your administrator before continuing to the
+              system.
             </p>
 
             <div className="mt-10 space-y-3">
@@ -263,11 +236,7 @@ export default function ChangePasswordPage() {
             }}
             className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-[13px] font-medium text-[#68625F] transition hover:bg-white hover:text-[#8C1518]"
           >
-            <Icon
-              name="logout"
-              className="h-4 w-4"
-            />
-
+            <Icon name="logout" className="h-4 w-4" />
             Sign out
           </button>
         </header>
@@ -287,23 +256,16 @@ export default function ChangePasswordPage() {
             </h2>
 
             <p className="mt-4 text-[15px] leading-7 text-[#746E6A]">
-              You are currently using a temporary
-              password. Create a new password to
-              secure your account.
+              You are currently using a temporary password. Create a new password to secure your
+              account.
             </p>
           </div>
 
           <ProgressSteps currentStep={1} />
 
-          {errors.general && (
-            <ErrorAlert message={errors.general} />
-          )}
+          {errors.general && <ErrorAlert message={errors.general} />}
 
-          <form
-            onSubmit={handleSubmit}
-            className="mt-8"
-            noValidate
-          >
+          <form onSubmit={handleSubmit} className="mt-8" noValidate>
             <PasswordField
               id="currentPassword"
               name="currentPassword"
@@ -311,11 +273,7 @@ export default function ChangePasswordPage() {
               value={formData.currentPassword}
               onChange={updateField}
               showPassword={showCurrentPassword}
-              onToggleVisibility={() =>
-                setShowCurrentPassword(
-                  (current) => !current,
-                )
-              }
+              onToggleVisibility={() => setShowCurrentPassword((current) => !current)}
               error={errors.currentPassword}
               autoComplete="current-password"
             />
@@ -328,11 +286,7 @@ export default function ChangePasswordPage() {
                 value={formData.newPassword}
                 onChange={updateField}
                 showPassword={showNewPassword}
-                onToggleVisibility={() =>
-                  setShowNewPassword(
-                    (current) => !current,
-                  )
-                }
+                onToggleVisibility={() => setShowNewPassword((current) => !current)}
                 error={errors.newPassword}
                 autoComplete="new-password"
               />
@@ -343,26 +297,16 @@ export default function ChangePasswordPage() {
                 id="confirmNewPassword"
                 name="confirmNewPassword"
                 label="Confirm new password"
-                value={
-                  formData.confirmNewPassword
-                }
+                value={formData.confirmNewPassword}
                 onChange={updateField}
                 showPassword={showConfirmPassword}
-                onToggleVisibility={() =>
-                  setShowConfirmPassword(
-                    (current) => !current,
-                  )
-                }
-                error={
-                  errors.confirmNewPassword
-                }
+                onToggleVisibility={() => setShowConfirmPassword((current) => !current)}
+                error={errors.confirmNewPassword}
                 autoComplete="new-password"
               />
             </div>
 
-            <PasswordStrength
-              password={formData.newPassword}
-            />
+            <PasswordStrength password={formData.newPassword} />
 
             <button
               type="submit"
@@ -372,13 +316,11 @@ export default function ChangePasswordPage() {
               {isSubmitting ? (
                 <>
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-
                   Updating password
                 </>
               ) : (
                 <>
                   Change password and continue
-
                   <Icon
                     name="arrowRight"
                     className="h-4 w-4 transition group-hover:translate-x-0.5"
@@ -390,17 +332,12 @@ export default function ChangePasswordPage() {
 
           <div className="mt-7 flex items-start gap-3 border-t border-[#E8E3DF] pt-6">
             <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#F4EAEA] text-[#8C1518]">
-              <Icon
-                name="shield"
-                className="h-4 w-4"
-              />
+              <Icon name="shield" className="h-4 w-4" />
             </div>
 
             <p className="text-[16px] leading-6 text-[#7E7874]">
-              After changing your password, you
-              will be asked to complete your
-              counselor profile before accessing
-              the dashboard.
+              After changing your password, you will be asked to complete your counselor profile
+              before accessing the dashboard.
             </p>
           </div>
         </div>
@@ -422,10 +359,7 @@ function PasswordField({
 }) {
   return (
     <div>
-      <label
-        htmlFor={id}
-        className="mb-2 block text-[13px] font-semibold text-[#3C3835]"
-      >
+      <label htmlFor={id} className="mb-2 block text-[13px] font-semibold text-[#3C3835]">
         {label}
       </label>
 
@@ -437,18 +371,13 @@ function PasswordField({
         }`}
       >
         <span className="pl-4 text-[#A39D98] group-focus-within:text-[#8C1518]">
-          <Icon
-            name="lock"
-            className="h-[18px] w-[18px]"
-          />
+          <Icon name="lock" className="h-[18px] w-[18px]" />
         </span>
 
         <input
           id={id}
           name={name}
-          type={
-            showPassword ? "text" : "password"
-          }
+          type={showPassword ? "text" : "password"}
           value={value}
           onChange={onChange}
           autoComplete={autoComplete}
@@ -459,26 +388,13 @@ function PasswordField({
           type="button"
           onClick={onToggleVisibility}
           className="mr-2 grid h-9 w-9 place-items-center rounded-lg text-[#9C9692] hover:bg-[#F5F2F0]"
-          aria-label={
-            showPassword
-              ? "Hide password"
-              : "Show password"
-          }
+          aria-label={showPassword ? "Hide password" : "Show password"}
         >
-          <Icon
-            name={
-              showPassword ? "eyeOff" : "eye"
-            }
-            className="h-[18px] w-[18px]"
-          />
+          <Icon name={showPassword ? "eyeOff" : "eye"} className="h-[18px] w-[18px]" />
         </button>
       </div>
 
-      {error && (
-        <p className="mt-2 text-[13px] font-medium text-red-600">
-          {error}
-        </p>
-      )}
+      {error && <p className="mt-2 text-[13px] font-medium text-red-600">{error}</p>}
     </div>
   );
 }
@@ -509,35 +425,21 @@ function PasswordStrength({ password }) {
 
   return (
     <div className="mt-5 rounded-xl border border-[#E5E0DC] bg-white p-4">
-      <p className="text-[15px] font-semibold text-[#4B4541]">
-        Password recommendations
-      </p>
+      <p className="text-[15px] font-semibold text-[#4B4541]">Password recommendations</p>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {requirements.map((requirement) => (
-          <div
-            key={requirement.label}
-            className="flex items-center gap-2"
-          >
+          <div key={requirement.label} className="flex items-center gap-2">
             <span
               className={`grid h-4 w-4 place-items-center rounded-full ${
-                requirement.met
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-[#F1EEEC] text-[#AAA29D]"
+                requirement.met ? "bg-emerald-100 text-emerald-700" : "bg-[#F1EEEC] text-[#AAA29D]"
               }`}
             >
-              <Icon
-                name="check"
-                className="h-2.5 w-2.5"
-              />
+              <Icon name="check" className="h-2.5 w-2.5" />
             </span>
 
             <span
-              className={`text-[15px] ${
-                requirement.met
-                  ? "text-emerald-700"
-                  : "text-[#837C78]"
-              }`}
+              className={`text-[15px] ${requirement.met ? "text-emerald-700" : "text-[#837C78]"}`}
             >
               {requirement.label}
             </span>
@@ -548,27 +450,17 @@ function PasswordStrength({ password }) {
   );
 }
 
-function SecurityItem({
-  title,
-  description,
-}) {
+function SecurityItem({ title, description }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.05] p-4">
       <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/[0.07] text-[#DFC066]">
-        <Icon
-          name="check"
-          className="h-4 w-4"
-        />
+        <Icon name="check" className="h-4 w-4" />
       </div>
 
       <div>
-        <p className="text-[13px] font-semibold text-white/90">
-          {title}
-        </p>
+        <p className="text-[13px] font-semibold text-white/90">{title}</p>
 
-        <p className="mt-1 text-[15px] leading-5 text-white/45">
-          {description}
-        </p>
+        <p className="mt-1 text-[15px] leading-5 text-white/45">{description}</p>
       </div>
     </div>
   );
@@ -595,46 +487,25 @@ function ProgressSteps({ currentStep }) {
 
       <div className="h-px flex-1 bg-[#DED9D5]" />
 
-      <Step
-        number="3"
-        label="Dashboard"
-        active={currentStep === 3}
-        complete={false}
-      />
+      <Step number="3" label="Dashboard" active={currentStep === 3} complete={false} />
     </div>
   );
 }
 
-function Step({
-  number,
-  label,
-  active,
-  complete,
-}) {
+function Step({ number, label, active, complete }) {
   return (
     <div className="flex shrink-0 items-center gap-2">
       <span
         className={`grid h-6 w-6 place-items-center rounded-full text-[15px] font-semibold ${
-          active || complete
-            ? "bg-[#8C1518] text-white"
-            : "bg-[#F0EDEB] text-[#99918C]"
+          active || complete ? "bg-[#8C1518] text-white" : "bg-[#F0EDEB] text-[#99918C]"
         }`}
       >
-        {complete ? (
-          <Icon
-            name="check"
-            className="h-3 w-3"
-          />
-        ) : (
-          number
-        )}
+        {complete ? <Icon name="check" className="h-3 w-3" /> : number}
       </span>
 
       <span
         className={`hidden text-[15px] font-medium sm:block ${
-          active
-            ? "text-[#8C1518]"
-            : "text-[#88817D]"
+          active ? "text-[#8C1518]" : "text-[#88817D]"
         }`}
       >
         {label}

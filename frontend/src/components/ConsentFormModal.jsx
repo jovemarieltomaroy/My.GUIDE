@@ -67,28 +67,85 @@ export default function ConsentFormModal({ open, onClose }) {
         <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
           <div className="space-y-5">
             <ConsentSection>
-              <p>Counseling is a confidential process designed to help you address your concerns, come to a better understanding of yourself, and learn effective personal and interpersonal coping strategies. It involves a relationship between you and a trained Counselor who has the desire and willingness to help you accomplish your individual goals.</p>
-              <p>Counseling involves sharing sensitive, personal, and private information that may at times be distressing. During the course of counseling, there may be periods of increased anxiety or confusion. The outcome of counseling is often positive; however, the level of satisfaction for any individual is not predictable. Your counselor is available to support you throughout the counseling process.</p>
+              <p>
+                Counseling is a confidential process designed to help you address your concerns,
+                come to a better understanding of yourself, and learn effective personal and
+                interpersonal coping strategies. It involves a relationship between you and a
+                trained Counselor who has the desire and willingness to help you accomplish your
+                individual goals.
+              </p>
+              <p>
+                Counseling involves sharing sensitive, personal, and private information that may at
+                times be distressing. During the course of counseling, there may be periods of
+                increased anxiety or confusion. The outcome of counseling is often positive;
+                however, the level of satisfaction for any individual is not predictable. Your
+                counselor is available to support you throughout the counseling process.
+              </p>
             </ConsentSection>
             <ConsentSection title="Confidentiality">
-              <p>All interactions with the counseling services of the Office of Guidance and Counseling (OGC), including scheduling of or attendance at appointments, content of your sessions, progress in counseling, and your records are confidential. No record of counseling is contained in any academic, educational or job placement file. You may request in writing that the counselor releases specific information about your counseling to persons you designate.</p>
+              <p>
+                All interactions with the counseling services of the Office of Guidance and
+                Counseling (OGC), including scheduling of or attendance at appointments, content of
+                your sessions, progress in counseling, and your records are confidential. No record
+                of counseling is contained in any academic, educational or job placement file. You
+                may request in writing that the counselor releases specific information about your
+                counseling to persons you designate.
+              </p>
             </ConsentSection>
             <ConsentSection title="Exceptions to Confidentiality">
-              <p>Under the following circumstances can only there be a breach in confidentiality:</p>
-              <p>1. The counseling staff works as a team. Your counselor may consult with other counselors to provide the best possible care. These case consultation/case conferences are for professional training purposes; and do not usually include any identifiers of the client.</p>
-              <p>2. If there is evidence of clear and imminent danger or harm to yourself and/or others, a Counselor is legally required to report this information to the authorities responsible for ensuring safety.</p>
-              <p>3. The staff of the Office of Guidance and Counseling who learn of, or strongly suspect physical or sexual abuse or neglect of a person under 18 years of age, must report this information to local authorities for child protection services (RA 7610).</p>
-              <p>4. A court order, issued by a competent judge, may require the counselor to release information contained in records and/or require a counselor to testify in court hearing.</p>
+              <p>
+                Under the following circumstances can only there be a breach in confidentiality:
+              </p>
+              <p>
+                1. The counseling staff works as a team. Your counselor may consult with other
+                counselors to provide the best possible care. These case consultation/case
+                conferences are for professional training purposes; and do not usually include any
+                identifiers of the client.
+              </p>
+              <p>
+                2. If there is evidence of clear and imminent danger or harm to yourself and/or
+                others, a Counselor is legally required to report this information to the
+                authorities responsible for ensuring safety.
+              </p>
+              <p>
+                3. The staff of the Office of Guidance and Counseling who learn of, or strongly
+                suspect physical or sexual abuse or neglect of a person under 18 years of age, must
+                report this information to local authorities for child protection services (RA
+                7610).
+              </p>
+              <p>
+                4. A court order, issued by a competent judge, may require the counselor to release
+                information contained in records and/or require a counselor to testify in court
+                hearing.
+              </p>
             </ConsentSection>
             <ConsentSection title="Client's Roles">
-              <p>1. The client further agrees to willingly cooperate in attending scheduled/booked counseling sessions, follow-up and/or tutorial sessions, and accomplish assigned homework/s as agreed by both parties.</p>
-              <p>2. The client understands that as he/she seeks professional help, the counseling relationship established shall come to a termination or closure after careful evaluation and discretion of the attending counselor. There is <strong>no fee</strong> for counseling services availed by students within the Institute.</p>
+              <p>
+                1. The client further agrees to willingly cooperate in attending scheduled/booked
+                counseling sessions, follow-up and/or tutorial sessions, and accomplish assigned
+                homework/s as agreed by both parties.
+              </p>
+              <p>
+                2. The client understands that as he/she seeks professional help, the counseling
+                relationship established shall come to a termination or closure after careful
+                evaluation and discretion of the attending counselor. There is{" "}
+                <strong>no fee</strong> for counseling services availed by students within the
+                Institute.
+              </p>
             </ConsentSection>
             <ConsentSection title="Referral to Experts">
-              <p>If you are referred off campus to health, mental health, or substance abuse professionals, you are responsible for their charges, except when referred to clinicians who have memorandum of understanding/MOU with the Institute.</p>
+              <p>
+                If you are referred off campus to health, mental health, or substance abuse
+                professionals, you are responsible for their charges, except when referred to
+                clinicians who have memorandum of understanding/MOU with the Institute.
+              </p>
             </ConsentSection>
             <ConsentSection title="Consent Acknowledgment">
-              <p>I have read and discussed the above information with my Counselor. I understand the risks and benefits of counseling, the nature and limits of confidentiality, and what is expected of me as a client of the Counseling Services.</p>
+              <p>
+                I have read and discussed the above information with my Counselor. I understand the
+                risks and benefits of counseling, the nature and limits of confidentiality, and what
+                is expected of me as a client of the Counseling Services.
+              </p>
             </ConsentSection>
           </div>
         </div>

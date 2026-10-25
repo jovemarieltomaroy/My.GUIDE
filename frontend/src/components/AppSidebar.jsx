@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 
 import Icon from "./Icon";
-import sidebarLogo from "../assets/myguide-sidebar-icon.png";
+import sidebarLogo from "../assets/myguide-brand-icon-light.svg";
 import { useAuth } from "../context/AuthContext";
 
 const ADMIN_ROLE = "Counselor-Admin";
@@ -9,9 +9,7 @@ const ADMIN_ROLE = "Counselor-Admin";
 const ADMIN_MENU = [
   {
     label: "Overview",
-    items: [
-      { name: "Dashboard", icon: "dashboard", path: "/dashboard" },
-    ],
+    items: [{ name: "Dashboard", icon: "dashboard", path: "/dashboard" }],
   },
   {
     label: "Case Management",
@@ -43,18 +41,14 @@ const ADMIN_MENU = [
   },
   {
     label: "Account",
-    items: [
-      { name: "My Profile", icon: "user", path: "/me" },
-    ],
+    items: [{ name: "My Profile", icon: "user", path: "/me" }],
   },
 ];
 
 const COUNSELOR_MENU = [
   {
     label: "Overview",
-    items: [
-      { name: "Dashboard", icon: "dashboard", path: "/dashboard" },
-    ],
+    items: [{ name: "Dashboard", icon: "dashboard", path: "/dashboard" }],
   },
   {
     label: "Case Management",
@@ -118,7 +112,7 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex min-h-[64px] shrink-0 items-center justify-between border-b border-white/[0.08] px-3.5">
+        <div className="flex h-[62px] shrink-0 items-center justify-between border-b border-white/[0.08] bg-[#7D1718] px-3.5">
           <div className="flex min-w-0 items-center gap-2">
             <img
               src={sidebarLogo}
@@ -127,16 +121,14 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
             />
 
             <div className="min-w-0">
-              <p className="truncate text-[18px] font-semibold leading-none text-white">
-                My.GUIDE
-              </p>
+              <p className="truncate text-[18px] font-semibold leading-none text-white">My.GUIDE</p>
             </div>
           </div>
 
           <button
             type="button"
             onClick={() => setSidebarOpen(false)}
-            className="grid h-7 w-7 place-items-center rounded-md text-white/50 hover:bg-white/10 hover:text-white lg:hidden"
+            className="grid h-7 w-7 place-items-center rounded-md text-white/70 hover:bg-white/10 hover:text-white lg:hidden"
             aria-label="Close sidebar"
           >
             <Icon name="close" className="h-3.5 w-3.5" />
@@ -155,7 +147,7 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
               <p className="truncate text-[16px] font-semibold leading-5 text-white">
                 {formatUserName(user)}
               </p>
-              <p className="truncate text-[14px] font-medium leading-5 text-[#E2C15D]">
+              <p className="truncate text-[14px] font-medium leading-5 text-[#FFC440]">
                 {user?.role}
               </p>
             </div>
@@ -193,9 +185,7 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
                       <Icon
                         name={item.icon}
                         className={`h-4 w-4 shrink-0 ${
-                          isActive
-                            ? "text-[#E4C45D]"
-                            : "text-white/40 group-hover:text-white/80"
+                          isActive ? "text-[#FFC440]" : "text-white/40 group-hover:text-white/80"
                         }`}
                       />
                       <span className="min-w-0 leading-5">{item.name}</span>
@@ -243,7 +233,5 @@ function UserAvatar({ user }) {
 }
 
 function formatUserName(user) {
-  return [user?.firstName, user?.lastName]
-    .filter(Boolean)
-    .join(" ");
+  return [user?.firstName, user?.lastName].filter(Boolean).join(" ");
 }

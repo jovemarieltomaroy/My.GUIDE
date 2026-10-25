@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -14,12 +9,7 @@ import { useAuth } from "../context/AuthContext";
 
 const ADMIN_ROLE = "Counselor-Admin";
 
-const PROGRESS_STATUSES = [
-  "Improved",
-  "No Progress",
-  "Worsened",
-  "Needs Follow-up",
-];
+const PROGRESS_STATUSES = ["Improved", "No Progress", "Worsened", "Needs Follow-up"];
 
 const STUDENT_RESPONSES = [
   "Positive Response",
@@ -155,11 +145,9 @@ export default function ProgressNotesPage() {
 
         const caseMap = new Map();
 
-        [...(myCases || []), ...(temporaryCases || [])].forEach(
-          (caseRecord) => {
-            caseMap.set(caseRecord._id || caseRecord.id, caseRecord);
-          },
-        );
+        [...(myCases || []), ...(temporaryCases || [])].forEach((caseRecord) => {
+          caseMap.set(caseRecord._id || caseRecord.id, caseRecord);
+        });
 
         retrievedCases = Array.from(caseMap.values());
       }
@@ -172,10 +160,7 @@ export default function ProgressNotesPage() {
 
       if (
         selectedCaseId &&
-        !retrievedCases.some(
-          (caseRecord) =>
-            (caseRecord._id || caseRecord.id) === selectedCaseId,
-        )
+        !retrievedCases.some((caseRecord) => (caseRecord._id || caseRecord.id) === selectedCaseId)
       ) {
         setSelectedCaseId("");
         setSelectedCase(null);
@@ -235,14 +220,12 @@ export default function ProgressNotesPage() {
         }
 
         setSelectedCase(null);
-        setPageError(
-          error.message || "Unable to retrieve the selected case.",
-        );
+        setPageError(error.message || "Unable to retrieve the selected case.");
       } finally {
         setIsLoadingCase(false);
       }
     },
-    [handleUnauthorized],
+    [handleUnauthorized]
   );
 
   useEffect(() => {
@@ -267,17 +250,12 @@ export default function ProgressNotesPage() {
           caseRecord.problemAssessment?.mainDomain,
         ]
           .filter(Boolean)
-          .some((value) =>
-            String(value).toLowerCase().includes(normalizedSearch),
-          );
+          .some((value) => String(value).toLowerCase().includes(normalizedSearch));
 
-      const matchesStatus =
-        !statusFilter || caseRecord.caseStatus === statusFilter;
+      const matchesStatus = !statusFilter || caseRecord.caseStatus === statusFilter;
 
       const latestNote = getLatestProgressNote(caseRecord);
-      const matchesProgress =
-        !progressFilter ||
-        latestNote?.progressStatus === progressFilter;
+      const matchesProgress = !progressFilter || latestNote?.progressStatus === progressFilter;
 
       return matchesSearch && matchesStatus && matchesProgress;
     });
@@ -285,20 +263,15 @@ export default function ProgressNotesPage() {
 
   const progressNotes = useMemo(() => {
     return [...(selectedCase?.progressNotes || [])].sort(
-      (a, b) =>
-        new Date(b.noteDate || b.createdAt) -
-        new Date(a.noteDate || a.createdAt),
+      (a, b) => new Date(b.noteDate || b.createdAt) - new Date(a.noteDate || a.createdAt)
     );
   }, [selectedCase]);
 
   const assignedCounselorId =
-    selectedCase?.assignedCounselor?._id ||
-    selectedCase?.assignedCounselor;
+    selectedCase?.assignedCounselor?._id || selectedCase?.assignedCounselor;
 
   const isAssignedCounselor =
-    Boolean(selectedCase && user?._id) &&
-    assignedCounselorId?.toString() ===
-      user._id.toString();
+    Boolean(selectedCase && user?._id) && assignedCounselorId?.toString() === user._id.toString();
 
   const currentTemporaryAccess = useMemo(() => {
     if (!selectedCase || !user?._id) {
@@ -306,31 +279,23 @@ export default function ProgressNotesPage() {
     }
 
     return (
-      selectedCase.temporaryCounselor || []
-    ).find((access) => {
-      const counselorId =
-        access.counselor?._id ||
-        access.counselor;
+      (selectedCase.temporaryCounselor || []).find((access) => {
+        const counselorId = access.counselor?._id || access.counselor;
 
-      const accessUntil =
-        new Date(access.accessUntil);
+        const accessUntil = new Date(access.accessUntil);
 
-      return (
-        counselorId?.toString() ===
-          user._id.toString() &&
-        access.isActive === true &&
-        !access.revokedAt &&
-        !Number.isNaN(
-          accessUntil.getTime(),
-        ) &&
-        accessUntil > new Date()
-      );
-    }) || null;
+        return (
+          counselorId?.toString() === user._id.toString() &&
+          access.isActive === true &&
+          !access.revokedAt &&
+          !Number.isNaN(accessUntil.getTime()) &&
+          accessUntil > new Date()
+        );
+      }) || null
+    );
   }, [selectedCase, user]);
 
-  const isTemporaryCounselor =
-    Boolean(currentTemporaryAccess) &&
-    !isAssignedCounselor;
+  const isTemporaryCounselor = Boolean(currentTemporaryAccess) && !isAssignedCounselor;
 
   const openNoteModal = () => {
     setNoteForm(EMPTY_NOTE_FORM);
@@ -348,33 +313,27 @@ export default function ProgressNotesPage() {
     setModalError("");
 
     const previousNoteIds = new Set(
-      (selectedCase.progressNotes || []).map((note) =>
-        String(note._id),
-      ),
+      (selectedCase.progressNotes || []).map((note) => String(note._id))
     );
 
     try {
-      const data = await apiRequest(
-        `/cases/${selectedCase._id}/progress-notes`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            progressStatus: noteForm.progressStatus,
-            progressSummary: noteForm.progressSummary.trim(),
-            newPlanOfAction: noteForm.newPlanOfAction.trim(),
-            timeSpan: noteForm.timeSpan.trim(),
-            remarks: noteForm.remarks.trim(),
-            interventionProgress: {
-              interventionPlan: noteForm.interventionPlanId || null,
-              studentResponse: noteForm.studentResponse,
-              goalProgress: noteForm.goalProgress,
-              recommendedPlanAction:
-                noteForm.recommendedPlanAction,
-              supportingNote: noteForm.supportingNote.trim(),
-            },
-          }),
-        },
-      );
+      const data = await apiRequest(`/cases/${selectedCase._id}/progress-notes`, {
+        method: "POST",
+        body: JSON.stringify({
+          progressStatus: noteForm.progressStatus,
+          progressSummary: noteForm.progressSummary.trim(),
+          newPlanOfAction: noteForm.newPlanOfAction.trim(),
+          timeSpan: noteForm.timeSpan.trim(),
+          remarks: noteForm.remarks.trim(),
+          interventionProgress: {
+            interventionPlan: noteForm.interventionPlanId || null,
+            studentResponse: noteForm.studentResponse,
+            goalProgress: noteForm.goalProgress,
+            recommendedPlanAction: noteForm.recommendedPlanAction,
+            supportingNote: noteForm.supportingNote.trim(),
+          },
+        }),
+      });
 
       const updatedCase = data?.case;
 
@@ -385,19 +344,13 @@ export default function ProgressNotesPage() {
       setSelectedCase(updatedCase);
       setCases((current) =>
         current.map((caseRecord) =>
-          (caseRecord._id || caseRecord.id) === updatedCase._id
-            ? updatedCase
-            : caseRecord,
-        ),
+          (caseRecord._id || caseRecord.id) === updatedCase._id ? updatedCase : caseRecord
+        )
       );
 
       const createdNote = [...(updatedCase.progressNotes || [])]
         .reverse()
-        .find(
-          (note) =>
-            note._id &&
-            !previousNoteIds.has(String(note._id)),
-        );
+        .find((note) => note._id && !previousNoteIds.has(String(note._id)));
 
       setNoteModalOpen(false);
 
@@ -406,62 +359,45 @@ export default function ProgressNotesPage() {
 
         if (!createdNote?._id) {
           setSuccessMessage(
-            "Progress note saved, but its ID could not be identified for recommendation generation.",
+            "Progress note saved, but its ID could not be identified for recommendation generation."
           );
           return;
         }
 
         navigate(
           `/llm-recommendations?caseId=${updatedCase._id}&progressNoteId=${createdNote._id}&mode=progress-based${
-            isTemporaryCounselor
-              ? "&access=temporary"
-              : ""
-          }`,
+            isTemporaryCounselor ? "&access=temporary" : ""
+          }`
         );
         return;
       }
 
-      setSuccessMessage(
-        data?.message || "Progress note added successfully.",
-      );
+      setSuccessMessage(data?.message || "Progress note added successfully.");
     } catch (error) {
       if (error.status === 401) {
         handleUnauthorized();
         return;
       }
 
-      setModalError(
-        error.message || "Unable to add the progress note.",
-      );
+      setModalError(error.message || "Unable to add the progress note.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const canAccessProgressWorkspace =
-    Boolean(selectedCase) &&
-    (
-      isAdmin ||
-      isAssignedCounselor ||
-      isTemporaryCounselor
-    );
+    Boolean(selectedCase) && (isAdmin || isAssignedCounselor || isTemporaryCounselor);
 
   const canAddProgressNote =
     canAccessProgressWorkspace &&
     !selectedCase.isArchived &&
-    !["Closed", "Terminated"].includes(
-      selectedCase.caseStatus,
-    );
+    !["Closed", "Terminated"].includes(selectedCase.caseStatus);
 
   if (!user) return null;
 
   return (
     <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#2F2A27]">
-      <AppSidebar
-        user={user}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-      />
+      <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex min-h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-7">
@@ -488,9 +424,7 @@ export default function ProgressNotesPage() {
               )}
 
               <div>
-                <h1 className="text-[20px] font-semibold">
-                  Progress Notes
-                </h1>
+                <h1 className="text-[20px] font-semibold">Progress Notes</h1>
                 <p className="hidden text-[14px] text-[#99918C] sm:block">
                   Record counseling-session progress and follow-up plans
                 </p>
@@ -511,104 +445,92 @@ export default function ProgressNotesPage() {
         </header>
 
         <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
-          {successMessage && (
-            <Alert tone="success" message={successMessage} />
-          )}
+          {successMessage && <Alert tone="success" message={successMessage} />}
 
           {pageError && <Alert tone="error" message={pageError} />}
 
           {!isFocusedCaseMode && (
             <section>
               <h2 className="text-[27px] font-semibold tracking-[-0.03em]">
-              Counseling progress documentation
-            </h2>
+                Counseling progress documentation
+              </h2>
 
-            <p className="mt-1 max-w-[760px] text-[14px] leading-4 text-[#89817D]">
-              Select an accessible case to review previous notes or record
-              the outcome of a counseling or follow-up session.
+              <p className="mt-1 max-w-[760px] text-[14px] leading-4 text-[#89817D]">
+                Select an accessible case to review previous notes or record the outcome of a
+                counseling or follow-up session.
               </p>
             </section>
           )}
 
           <div
             className={`grid gap-5 ${
-              isFocusedCaseMode
-                ? "mt-0 grid-cols-1"
-                : "mt-5 xl:grid-cols-[390px_minmax(0,1fr)]"
+              isFocusedCaseMode ? "mt-0 grid-cols-1" : "mt-5 xl:grid-cols-[390px_minmax(0,1fr)]"
             }`}
           >
             {!isFocusedCaseMode && (
               <section className="overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white">
-              <div className="border-b border-[#ECE8E5] p-4">
-                <h3 className="text-[17px] font-semibold">
-                  Accessible cases
-                </h3>
+                <div className="border-b border-[#ECE8E5] p-4">
+                  <h3 className="text-[17px] font-semibold">Accessible cases</h3>
 
-                <p className="mt-1 text-[13px] text-[#938B86]">
-                  {filteredCases.length} case
-                  {filteredCases.length === 1 ? "" : "s"} displayed
-                </p>
+                  <p className="mt-1 text-[13px] text-[#938B86]">
+                    {filteredCases.length} case
+                    {filteredCases.length === 1 ? "" : "s"} displayed
+                  </p>
 
-                <div className="mt-4 space-y-2">
-                  <div className="relative">
-                    <Icon
-                      name="search"
-                      className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[#AAA29D]"
-                    />
+                  <div className="mt-4 space-y-2">
+                    <div className="relative">
+                      <Icon
+                        name="search"
+                        className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[#AAA29D]"
+                      />
 
-                    <input
-                      type="search"
-                      value={searchInput}
-                      onChange={(event) =>
-                        setSearchInput(event.target.value)
-                      }
-                      placeholder="Search case or student..."
-                      className="h-8 w-full rounded-lg border border-[#E1DCD8] bg-[#FAF9F8] pl-8 pr-2.5 outline-none focus:border-[#8C1518]"
-                      style={{ fontSize: "15px" }}
-                    />
-                  </div>
+                      <input
+                        type="search"
+                        value={searchInput}
+                        onChange={(event) => setSearchInput(event.target.value)}
+                        placeholder="Search case or student..."
+                        className="h-8 w-full rounded-lg border border-[#E1DCD8] bg-[#FAF9F8] pl-8 pr-2.5 outline-none focus:border-[#8C1518]"
+                        style={{ fontSize: "15px" }}
+                      />
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <select
-                      value={statusFilter}
-                      onChange={(event) =>
-                        setStatusFilter(event.target.value)
-                      }
-                      className={filterClass}
-                      style={{ fontSize: "15px" }}
-                    >
-                      <option value="">Case statuses</option>
-                      <option value="Open">Open</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="For Follow-up">For Follow-up</option>
-                      <option value="Closed">Closed</option>
-                      <option value="Terminated">Terminated</option>
-                    </select>
+                    <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={statusFilter}
+                        onChange={(event) => setStatusFilter(event.target.value)}
+                        className={filterClass}
+                        style={{ fontSize: "15px" }}
+                      >
+                        <option value="">Case statuses</option>
+                        <option value="Open">Open</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="For Follow-up">For Follow-up</option>
+                        <option value="Closed">Closed</option>
+                        <option value="Terminated">Terminated</option>
+                      </select>
 
-                    <select
-                      value={progressFilter}
-                      onChange={(event) =>
-                        setProgressFilter(event.target.value)
-                      }
-                      className={filterClass}
-                      style={{ fontSize: "15px" }}
-                    >
-                      <option value="">Progress statuses</option>
-                      {PROGRESS_STATUSES.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
+                      <select
+                        value={progressFilter}
+                        onChange={(event) => setProgressFilter(event.target.value)}
+                        className={filterClass}
+                        style={{ fontSize: "15px" }}
+                      >
+                        <option value="">Progress statuses</option>
+                        {PROGRESS_STATUSES.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <CaseList
-                cases={filteredCases}
-                selectedCaseId={selectedCaseId}
-                isLoading={isLoadingCases}
-                onSelect={setSelectedCaseId}
+                <CaseList
+                  cases={filteredCases}
+                  selectedCaseId={selectedCaseId}
+                  isLoading={isLoadingCases}
+                  onSelect={setSelectedCaseId}
                 />
               </section>
             )}
@@ -624,46 +546,34 @@ export default function ProgressNotesPage() {
                     caseRecord={selectedCase}
                     canAddProgressNote={canAddProgressNote}
                     isTemporaryCounselor={isTemporaryCounselor}
-                    temporaryAccessUntil={
-                      currentTemporaryAccess?.accessUntil
-                    }
+                    temporaryAccessUntil={currentTemporaryAccess?.accessUntil}
                     onAddNote={openNoteModal}
                   />
 
                   {isTemporaryCounselor && (
                     <TemporaryProgressAccessNotice
-                      accessUntil={
-                        currentTemporaryAccess?.accessUntil
-                      }
+                      accessUntil={currentTemporaryAccess?.accessUntil}
                     />
                   )}
 
                   <div className="border-b border-[#ECE8E5] p-4">
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                      <InfoCard
-                        label="Case status"
-                        value={selectedCase.caseStatus || "—"}
-                      />
-                      <InfoCard
-                        label="Priority"
-                        value={selectedCase.priorityLevel || "—"}
-                      />
+                      <InfoCard label="Case status" value={selectedCase.caseStatus || "—"} />
+                      <InfoCard label="Priority" value={selectedCase.priorityLevel || "—"} />
                       <InfoCard
                         label="Main domain"
-                        value={
-                          selectedCase.problemAssessment?.mainDomain ||
-                          "—"
-                        }
+                        value={selectedCase.problemAssessment?.mainDomain || "—"}
                       />
-                      <InfoCard
-                        label="Progress notes"
-                        value={String(progressNotes.length)}
-                      />
+                      <InfoCard label="Progress notes" value={String(progressNotes.length)} />
                     </div>
                   </div>
 
                   <ProgressNotesList
                     notes={progressNotes}
+                    canGenerate={canAddProgressNote}
+                    onGenerate={(note) => navigate(
+                      `/llm-recommendations?caseId=${selectedCase._id}&progressNoteId=${note._id}&mode=updated`
+                    )}
                   />
                 </>
               ) : (
@@ -697,20 +607,13 @@ export default function ProgressNotesPage() {
   );
 }
 
-function CaseList({
-  cases,
-  selectedCaseId,
-  isLoading,
-  onSelect,
-}) {
+function CaseList({ cases, selectedCaseId, isLoading, onSelect }) {
   if (isLoading) {
     return (
       <div className="grid min-h-[420px] place-items-center">
         <div className="text-center">
           <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-2 border-[#8C1518]/20 border-t-[#8C1518]" />
-          <p className="mt-3 text-[14px] text-[#827B77]">
-            Loading cases...
-          </p>
+          <p className="mt-3 text-[14px] text-[#827B77]">Loading cases...</p>
         </div>
       </div>
     );
@@ -724,13 +627,10 @@ function CaseList({
             <Icon name="folder" className="h-5 w-5" />
           </div>
 
-          <p className="mt-4 text-[15px] font-semibold">
-            No accessible cases found
-          </p>
+          <p className="mt-4 text-[15px] font-semibold">No accessible cases found</p>
 
           <p className="mt-1 text-[14px] leading-4 text-[#938C87]">
-            Adjust the filters or verify that a case is assigned to this
-            counselor.
+            Adjust the filters or verify that a case is assigned to this counselor.
           </p>
         </div>
       </div>
@@ -750,9 +650,7 @@ function CaseList({
             type="button"
             onClick={() => onSelect(caseId)}
             className={`block w-full px-4 py-3.5 text-left transition ${
-              selected
-                ? "bg-[#F6ECEC]"
-                : "bg-white hover:bg-[#FCFBFA]"
+              selected ? "bg-[#F6ECEC]" : "bg-white hover:bg-[#FCFBFA]"
             }`}
           >
             <div className="flex items-start justify-between gap-3">
@@ -805,9 +703,7 @@ function CaseHeader({
     <header className="flex flex-col gap-3 border-b border-[#ECE8E5] p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-[17px] font-semibold">
-            {formatStudentName(caseRecord.student)}
-          </h3>
+          <h3 className="text-[17px] font-semibold">{formatStudentName(caseRecord.student)}</h3>
 
           <CaseStatusBadge status={caseRecord.caseStatus} />
 
@@ -819,8 +715,7 @@ function CaseHeader({
         </div>
 
         <p className="mt-1 text-[14px] text-[#938B86]">
-          {caseRecord.caseNumber} ·{" "}
-          {caseRecord.student?.studentIdNumber || "No student ID"}
+          {caseRecord.caseNumber} · {caseRecord.student?.studentIdNumber || "No student ID"}
         </p>
 
         <p className="mt-1 text-[13px] text-[#AAA19C]">
@@ -848,7 +743,7 @@ function CaseHeader({
   );
 }
 
-function ProgressNotesList({ notes }) {
+function ProgressNotesList({ notes, canGenerate, onGenerate }) {
   if (notes.length === 0) {
     return (
       <div className="grid min-h-[390px] place-items-center px-6 text-center">
@@ -857,9 +752,7 @@ function ProgressNotesList({ notes }) {
             <Icon name="note" className="h-5 w-5" />
           </div>
 
-          <p className="mt-4 text-[15px] font-semibold">
-            No progress notes yet
-          </p>
+          <p className="mt-4 text-[15px] font-semibold">No progress notes yet</p>
 
           <p className="mt-1 text-[14px] text-[#938C87]">
             Add the first progress note after the next counseling session.
@@ -887,31 +780,17 @@ function ProgressNotesList({ notes }) {
               </div>
 
               <p className="mt-2 text-[13px] text-[#A39B96]">
-                Attending counselor:{" "}
-                {formatCounselorName(
-                  note.attendingCounselor || note.addedBy,
-                )}
+                Attending counselor: {formatCounselorName(note.attendingCounselor || note.addedBy)}
               </p>
             </div>
           </div>
 
-          <NoteSection
-            label="Progress summary"
-            value={note.progressSummary}
-            required
-          />
+          <NoteSection label="Progress summary" value={note.progressSummary} required />
 
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <NoteSection
-              label="New plan of action"
-              value={note.newPlanOfAction}
-            />
+            <NoteSection label="New plan of action" value={note.newPlanOfAction} />
             <NoteSection label="Time span" value={note.timeSpan} />
-            <NoteSection
-              label="Remarks"
-              value={note.remarks}
-              className="md:col-span-2"
-            />
+            <NoteSection label="Remarks" value={note.remarks} className="md:col-span-2" />
           </div>
 
           {note.interventionProgress && (
@@ -929,24 +808,15 @@ function ProgressNotesList({ notes }) {
                   <div className="mt-2 grid gap-2 sm:grid-cols-3">
                     <MiniValue
                       label="Student response"
-                      value={
-                        note.interventionProgress.studentResponse ||
-                        "Not Assessed"
-                      }
+                      value={note.interventionProgress.studentResponse || "Not Assessed"}
                     />
                     <MiniValue
                       label="Goal progress"
-                      value={
-                        note.interventionProgress.goalProgress ||
-                        "Not Assessed"
-                      }
+                      value={note.interventionProgress.goalProgress || "Not Assessed"}
                     />
                     <MiniValue
                       label="Recommended action"
-                      value={
-                        note.interventionProgress
-                          .recommendedPlanAction || "Not Decided"
-                      }
+                      value={note.interventionProgress.recommendedPlanAction || "Not Decided"}
                     />
                   </div>
 
@@ -955,11 +825,22 @@ function ProgressNotesList({ notes }) {
                       {note.interventionProgress.supportingNote}
                     </p>
                   )}
+
+                  {note._id && note.interventionProgress.recommendedPlanAction === "Revise Intervention Plan" && (
+                    <button
+                      type="button"
+                      onClick={() => onGenerate(note)}
+                      disabled={!canGenerate}
+                      className="mt-3 inline-flex items-center justify-center gap-2 rounded-lg bg-violet-700 px-3 py-2 text-[14px] font-semibold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Icon name="sparkle" className="h-3.5 w-3.5" />
+                      Generate Updated Intervention Plan
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           )}
-
         </article>
       ))}
     </div>
@@ -1026,13 +907,10 @@ function ProgressNoteModal({
       >
         <header className="flex items-start justify-between gap-4 border-b border-[#ECE8E5] px-5 py-4">
           <div>
-            <h2 className="text-[20px] font-semibold">
-              Add progress note
-            </h2>
+            <h2 className="text-[20px] font-semibold">Add progress note</h2>
 
             <p className="mt-1 text-[14px] text-[#938B86]">
-              {caseRecord.caseNumber} ·{" "}
-              {formatStudentName(caseRecord.student)}
+              {caseRecord.caseNumber} · {formatStudentName(caseRecord.student)}
             </p>
           </div>
 
@@ -1063,11 +941,10 @@ function ProgressNoteModal({
                   </p>
 
                   <p className="mt-1 text-[13px] leading-4 text-blue-700">
-                    You may save this progress note, generate a
-                    progress-based intervention recommendation, and revise
-                    the recommendation draft. Only the assigned counselor
-                    can accept the recommendation as an intervention plan,
-                    approve it, or send it to the student.
+                    You may save this progress note, generate a progress-based intervention
+                    recommendation, and revise the recommendation draft. Only the assigned counselor
+                    can accept the recommendation as an intervention plan, approve it, or send it to
+                    the student.
                   </p>
                 </div>
               </div>
@@ -1079,9 +956,7 @@ function ProgressNoteModal({
               <select
                 required
                 value={form.progressStatus}
-                onChange={(event) =>
-                  update("progressStatus", event.target.value)
-                }
+                onChange={(event) => update("progressStatus", event.target.value)}
                 className={inputClass}
                 style={{ fontSize: "15px" }}
               >
@@ -1096,26 +971,18 @@ function ProgressNoteModal({
             <Field label="Time span">
               <input
                 value={form.timeSpan}
-                onChange={(event) =>
-                  update("timeSpan", event.target.value)
-                }
+                onChange={(event) => update("timeSpan", event.target.value)}
                 placeholder="e.g., Follow-up in 2 weeks"
                 className={inputClass}
                 style={{ fontSize: "15px" }}
               />
             </Field>
 
-            <Field
-              label="Progress summary"
-              required
-              className="sm:col-span-2"
-            >
+            <Field label="Progress summary" required className="sm:col-span-2">
               <textarea
                 required
                 value={form.progressSummary}
-                onChange={(event) =>
-                  update("progressSummary", event.target.value)
-                }
+                onChange={(event) => update("progressSummary", event.target.value)}
                 placeholder="Summarize the student’s current progress, concerns, and session outcome."
                 rows={5}
                 className={textareaClass}
@@ -1130,12 +997,10 @@ function ProgressNoteModal({
                 </div>
 
                 <div>
-                  <p className="text-[14px] font-semibold text-violet-800">
-                    Intervention progress
-                  </p>
+                  <p className="text-[14px] font-semibold text-violet-800">Intervention progress</p>
                   <p className="mt-1 text-[13px] leading-4 text-violet-700">
-                    Record how the student responded during this session.
-                    This is to see the effectiveness of the previous intervention plan given.
+                    Record how the student responded during this session. This is to see the
+                    effectiveness of the previous intervention plan given.
                   </p>
                 </div>
               </div>
@@ -1144,15 +1009,11 @@ function ProgressNoteModal({
                 <Field label="Related intervention plan">
                   <select
                     value={form.interventionPlanId}
-                    onChange={(event) =>
-                      update("interventionPlanId", event.target.value)
-                    }
+                    onChange={(event) => update("interventionPlanId", event.target.value)}
                     className={inputClass}
                     style={{ fontSize: "15px" }}
                   >
-                    <option value="">
-                      No specific plan selected
-                    </option>
+                    <option value="">No specific plan selected</option>
                     {(caseRecord.interventionPlans || []).map((plan, index) => (
                       <option key={plan._id || index} value={plan._id}>
                         {plan.problem || `Intervention plan ${index + 1}`}
@@ -1164,9 +1025,7 @@ function ProgressNoteModal({
                 <Field label="Student response">
                   <select
                     value={form.studentResponse}
-                    onChange={(event) =>
-                      update("studentResponse", event.target.value)
-                    }
+                    onChange={(event) => update("studentResponse", event.target.value)}
                     className={inputClass}
                     style={{ fontSize: "15px" }}
                   >
@@ -1181,9 +1040,7 @@ function ProgressNoteModal({
                 <Field label="Goal progress">
                   <select
                     value={form.goalProgress}
-                    onChange={(event) =>
-                      update("goalProgress", event.target.value)
-                    }
+                    onChange={(event) => update("goalProgress", event.target.value)}
                     className={inputClass}
                     style={{ fontSize: "15px" }}
                   >
@@ -1198,12 +1055,7 @@ function ProgressNoteModal({
                 <Field label="Recommended plan action">
                   <select
                     value={form.recommendedPlanAction}
-                    onChange={(event) =>
-                      update(
-                        "recommendedPlanAction",
-                        event.target.value,
-                      )
-                    }
+                    onChange={(event) => update("recommendedPlanAction", event.target.value)}
                     className={inputClass}
                     style={{ fontSize: "15px" }}
                   >
@@ -1215,15 +1067,10 @@ function ProgressNoteModal({
                   </select>
                 </Field>
 
-                <Field
-                  label="Supporting note"
-                  className="sm:col-span-2"
-                >
+                <Field label="Supporting note" className="sm:col-span-2">
                   <textarea
                     value={form.supportingNote}
-                    onChange={(event) =>
-                      update("supportingNote", event.target.value)
-                    }
+                    onChange={(event) => update("supportingNote", event.target.value)}
                     placeholder="Briefly describe the student's response, observed progress, or difficulty with the current intervention."
                     rows={3}
                     className={textareaClass}
@@ -1233,21 +1080,16 @@ function ProgressNoteModal({
               </div>
             </div>
 
-            <Field
-              label="New plan of action"
-              className="sm:col-span-2"
-            >
+            <Field label="New plan of action" className="sm:col-span-2">
               <p className="mb-1.5 text-[13px] leading-4 text-[#8D8580]">
-                Record what should happen after this session. This may continue
-                the current intervention, make a small adjustment, or describe
-                the direction for a substantially revised intervention plan.
+                Record what should happen after this session. This may continue the current
+                intervention, make a small adjustment, or describe the direction for a substantially
+                revised intervention plan.
               </p>
 
               <textarea
                 value={form.newPlanOfAction}
-                onChange={(event) =>
-                  update("newPlanOfAction", event.target.value)
-                }
+                onChange={(event) => update("newPlanOfAction", event.target.value)}
                 placeholder="Example: Continue weekly planning, review task completion after two weeks, and adjust the strategy if progress remains limited."
                 rows={4}
                 className={textareaClass}
@@ -1256,9 +1098,7 @@ function ProgressNoteModal({
 
               <button
                 type="button"
-                onClick={() =>
-                  setGenerateAfterSave((current) => !current)
-                }
+                onClick={() => setGenerateAfterSave((current) => !current)}
                 disabled={saving}
                 className={`mt-2 flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition disabled:opacity-50 ${
                   generateAfterSave
@@ -1268,9 +1108,7 @@ function ProgressNoteModal({
               >
                 <span
                   className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${
-                    generateAfterSave
-                      ? "bg-violet-700 text-white"
-                      : "bg-violet-100 text-violet-700"
+                    generateAfterSave ? "bg-violet-700 text-white" : "bg-violet-100 text-violet-700"
                   }`}
                 >
                   <Icon name="sparkle" className="h-3.5 w-3.5" />
@@ -1282,9 +1120,8 @@ function ProgressNoteModal({
                   </span>
 
                   <span className="mt-1 block text-[13px] leading-4 text-violet-700">
-                    After this note is saved, open the recommendation workspace
-                    using the progress summary, intervention progress, and new
-                    plan of action as additional context.
+                    After this note is saved, open the recommendation workspace using the progress
+                    summary, intervention progress, and new plan of action as additional context.
                     {isTemporaryCounselor
                       ? " You may generate and revise the draft, but only the assigned counselor can accept, approve, or send it."
                       : ""}
@@ -1302,9 +1139,7 @@ function ProgressNoteModal({
             <Field label="Remarks" className="sm:col-span-2">
               <textarea
                 value={form.remarks}
-                onChange={(event) =>
-                  update("remarks", event.target.value)
-                }
+                onChange={(event) => update("remarks", event.target.value)}
                 placeholder="Add other relevant observations or reminders."
                 rows={3}
                 className={textareaClass}
@@ -1314,9 +1149,9 @@ function ProgressNoteModal({
           </div>
 
           <div className="mt-5 rounded-lg border border-[#E7E2DF] bg-[#FAF8F7] px-3 py-2 text-[13px] leading-4 text-[#756E69]">
-            Selecting <strong>Needs Follow-up</strong> changes the case
-            status to <strong>For Follow-up</strong>. Other progress
-            statuses move an open case to <strong>In Progress</strong>.
+            Selecting <strong>Needs Follow-up</strong> changes the case status to{" "}
+            <strong>For Follow-up</strong>. Other progress statuses move an open case to{" "}
+            <strong>In Progress</strong>.
           </div>
 
           <div className="mt-5 flex justify-end gap-2 border-t border-[#ECE8E5] pt-4">
@@ -1353,9 +1188,7 @@ function ProgressNoteModal({
   );
 }
 
-function TemporaryProgressAccessNotice({
-  accessUntil,
-}) {
+function TemporaryProgressAccessNotice({ accessUntil }) {
   return (
     <div className="border-b border-[#ECE8E5] px-4 py-3">
       <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
@@ -1365,15 +1198,12 @@ function TemporaryProgressAccessNotice({
           </div>
 
           <div>
-            <p className="text-[14px] font-semibold text-blue-800">
-              Temporary counseling access
-            </p>
+            <p className="text-[14px] font-semibold text-blue-800">Temporary counseling access</p>
 
             <p className="mt-1 text-[13px] leading-4 text-blue-700">
-              You may add progress notes and generate or revise a
-              progress-based intervention recommendation. The resulting
-              draft must remain pending for the assigned counselor, who
-              alone can accept, approve, finalize, or send it.
+              You may add progress notes and generate or revise a progress-based intervention
+              recommendation. The resulting draft must remain pending for the assigned counselor,
+              who alone can accept, approve, finalize, or send it.
             </p>
 
             <p className="mt-1 text-[13px] font-semibold text-blue-700">
@@ -1392,9 +1222,7 @@ function MiniValue({ label, value }) {
       <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-violet-500">
         {label}
       </p>
-      <p className="mt-1 text-[13px] font-medium text-violet-800">
-        {value}
-      </p>
+      <p className="mt-1 text-[13px] font-medium text-violet-800">{value}</p>
     </div>
   );
 }
@@ -1422,9 +1250,7 @@ function LoadingCase() {
     <div className="grid min-h-[620px] place-items-center">
       <div className="text-center">
         <span className="mx-auto block h-7 w-7 animate-spin rounded-full border-2 border-[#8C1518]/20 border-t-[#8C1518]" />
-        <p className="mt-3 text-[14px] text-[#827B77]">
-          Loading case details...
-        </p>
+        <p className="mt-3 text-[14px] text-[#827B77]">Loading case details...</p>
       </div>
     </div>
   );
@@ -1434,19 +1260,12 @@ function InfoCard({ label, value }) {
   return (
     <article className="rounded-xl border border-[#E8E3E0] bg-[#FCFBFA] p-3">
       <p className="text-[13px] text-[#958D88]">{label}</p>
-      <p className="mt-1 break-words text-[14px] font-semibold text-[#4E4844]">
-        {value}
-      </p>
+      <p className="mt-1 break-words text-[14px] font-semibold text-[#4E4844]">{value}</p>
     </article>
   );
 }
 
-function NoteSection({
-  label,
-  value,
-  required = false,
-  className = "",
-}) {
+function NoteSection({ label, value, required = false, className = "" }) {
   return (
     <section className={`mt-3 ${className}`}>
       <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[#958D88]">
@@ -1534,18 +1353,14 @@ function getLatestProgressNote(caseRecord) {
   if (notes.length === 0) return null;
 
   return [...notes].sort(
-    (a, b) =>
-      new Date(b.noteDate || b.createdAt) -
-      new Date(a.noteDate || a.createdAt),
+    (a, b) => new Date(b.noteDate || b.createdAt) - new Date(a.noteDate || a.createdAt)
   )[0];
 }
 
 function formatStudentName(student) {
   if (!student) return "Unknown student";
 
-  return [student.firstName, student.middleName, student.lastName]
-    .filter(Boolean)
-    .join(" ");
+  return [student.firstName, student.middleName, student.lastName].filter(Boolean).join(" ");
 }
 
 function formatCounselorName(counselor) {
@@ -1555,9 +1370,7 @@ function formatCounselorName(counselor) {
     return "Assigned counselor";
   }
 
-  return [counselor.firstName, counselor.middleName, counselor.lastName]
-    .filter(Boolean)
-    .join(" ");
+  return [counselor.firstName, counselor.middleName, counselor.lastName].filter(Boolean).join(" ");
 }
 
 function formatDateTime(value) {

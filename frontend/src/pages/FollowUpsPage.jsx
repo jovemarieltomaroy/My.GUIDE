@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import AppSidebar from "../components/AppSidebar";
@@ -23,18 +18,9 @@ const FOLLOW_UP_TYPES = [
   "Other",
 ];
 
-const FOLLOW_UP_PRIORITIES = [
-  "Low",
-  "Moderate",
-  "High",
-  "Urgent",
-];
+const FOLLOW_UP_PRIORITIES = ["Low", "Moderate", "High", "Urgent"];
 
-const STORED_STATUSES = [
-  "Pending",
-  "Completed",
-  "Cancelled",
-];
+const STORED_STATUSES = ["Pending", "Completed", "Cancelled"];
 
 const FOLLOW_UP_TIME_OPTIONS = createTimeOptions();
 
@@ -81,9 +67,7 @@ export default function FollowUpsPage() {
   const [reminderConfirmOpen, setReminderConfirmOpen] = useState(false);
   const [followUpForReminder, setFollowUpForReminder] = useState(null);
   const [modalMode, setModalMode] = useState("create");
-  const [followUpForm, setFollowUpForm] = useState(
-    EMPTY_FOLLOW_UP_FORM,
-  );
+  const [followUpForm, setFollowUpForm] = useState(EMPTY_FOLLOW_UP_FORM);
 
   const isAdmin = user?.role === ADMIN_ROLE;
 
@@ -151,33 +135,22 @@ export default function FollowUpsPage() {
 
         const caseMap = new Map();
 
-        [...(myCases || []), ...(temporaryCases || [])].forEach(
-          (caseRecord) => {
-            caseMap.set(
-              caseRecord._id || caseRecord.id,
-              caseRecord,
-            );
-          },
-        );
+        [...(myCases || []), ...(temporaryCases || [])].forEach((caseRecord) => {
+          caseMap.set(caseRecord._id || caseRecord.id, caseRecord);
+        });
 
         retrievedCases = Array.from(caseMap.values());
       }
 
       if (!Array.isArray(retrievedCases)) {
-        throw new Error(
-          "The backend returned an invalid cases response.",
-        );
+        throw new Error("The backend returned an invalid cases response.");
       }
 
       setCases(retrievedCases);
 
       if (
         selectedCaseId &&
-        !retrievedCases.some(
-          (caseRecord) =>
-            (caseRecord._id || caseRecord.id) ===
-            selectedCaseId,
-        )
+        !retrievedCases.some((caseRecord) => (caseRecord._id || caseRecord.id) === selectedCaseId)
       ) {
         setSelectedCaseId("");
         setSelectedCase(null);
@@ -190,18 +163,11 @@ export default function FollowUpsPage() {
         return;
       }
 
-      setPageError(
-        error.message || "Unable to retrieve cases.",
-      );
+      setPageError(error.message || "Unable to retrieve cases.");
     } finally {
       setIsLoadingCases(false);
     }
-  }, [
-    user,
-    isAdmin,
-    selectedCaseId,
-    handleUnauthorized,
-  ]);
+  }, [user, isAdmin, selectedCaseId, handleUnauthorized]);
 
   useEffect(() => {
     fetchCases();
@@ -231,17 +197,12 @@ export default function FollowUpsPage() {
         const caseRecord = data?.case || data;
 
         if (!caseRecord?._id) {
-          throw new Error(
-            "The backend did not return the case record.",
-          );
+          throw new Error("The backend did not return the case record.");
         }
 
         setSelectedCase(caseRecord);
       } catch (error) {
-        console.error(
-          "Unable to retrieve case details:",
-          error,
-        );
+        console.error("Unable to retrieve case details:", error);
 
         if (error.status === 401) {
           handleUnauthorized();
@@ -249,15 +210,12 @@ export default function FollowUpsPage() {
         }
 
         setSelectedCase(null);
-        setPageError(
-          error.message ||
-            "Unable to retrieve the selected case.",
-        );
+        setPageError(error.message || "Unable to retrieve the selected case.");
       } finally {
         setIsLoadingCase(false);
       }
     },
-    [handleUnauthorized],
+    [handleUnauthorized]
   );
 
   useEffect(() => {
@@ -271,7 +229,7 @@ export default function FollowUpsPage() {
       (caseRecord.followUps || []).map((followUp) => ({
         ...followUp,
         caseRecord,
-      })),
+      }))
     );
   }, [cases]);
 
@@ -280,26 +238,15 @@ export default function FollowUpsPage() {
       pending: allFollowUps.filter(
         (item) =>
           item.status === "Pending" &&
-          getComputedFollowUpStatus(item.followUpDate, item.status) ===
-            "Pending",
+          getComputedFollowUpStatus(item.followUpDate, item.status) === "Pending"
       ).length,
       dueToday: allFollowUps.filter(
-        (item) =>
-          getComputedFollowUpStatus(
-            item.followUpDate,
-            item.status,
-          ) === "Due Today",
+        (item) => getComputedFollowUpStatus(item.followUpDate, item.status) === "Due Today"
       ).length,
       overdue: allFollowUps.filter(
-        (item) =>
-          getComputedFollowUpStatus(
-            item.followUpDate,
-            item.status,
-          ) === "Overdue",
+        (item) => getComputedFollowUpStatus(item.followUpDate, item.status) === "Overdue"
       ).length,
-      completed: allFollowUps.filter(
-        (item) => item.status === "Completed",
-      ).length,
+      completed: allFollowUps.filter((item) => item.status === "Completed").length,
     };
   }, [allFollowUps]);
 
@@ -307,9 +254,7 @@ export default function FollowUpsPage() {
     const normalizedSearch = searchQuery.toLowerCase();
 
     return cases.filter((caseRecord) => {
-      const studentName = formatStudentName(
-        caseRecord.student,
-      );
+      const studentName = formatStudentName(caseRecord.student);
 
       const searchableValues = [
         caseRecord.caseNumber,
@@ -324,11 +269,7 @@ export default function FollowUpsPage() {
         !normalizedSearch ||
         searchableValues
           .filter(Boolean)
-          .some((value) =>
-            String(value)
-              .toLowerCase()
-              .includes(normalizedSearch),
-          );
+          .some((value) => String(value).toLowerCase().includes(normalizedSearch));
 
       const followUps = caseRecord.followUps || [];
 
@@ -336,69 +277,38 @@ export default function FollowUpsPage() {
         statusFilter === "All" ||
         followUps.some(
           (followUp) =>
-            getComputedFollowUpStatus(
-              followUp.followUpDate,
-              followUp.status,
-            ) === statusFilter,
+            getComputedFollowUpStatus(followUp.followUpDate, followUp.status) === statusFilter
         );
 
       const matchesType =
-        !typeFilter ||
-        followUps.some(
-          (followUp) =>
-            followUp.followUpType === typeFilter,
-        );
+        !typeFilter || followUps.some((followUp) => followUp.followUpType === typeFilter);
 
       const matchesPriority =
-        !priorityFilter ||
-        followUps.some(
-          (followUp) =>
-            followUp.priority === priorityFilter,
-        );
+        !priorityFilter || followUps.some((followUp) => followUp.priority === priorityFilter);
 
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesType &&
-        matchesPriority
-      );
+      return matchesSearch && matchesStatus && matchesType && matchesPriority;
     });
-  }, [
-    cases,
-    searchQuery,
-    statusFilter,
-    typeFilter,
-    priorityFilter,
-  ]);
+  }, [cases, searchQuery, statusFilter, typeFilter, priorityFilter]);
 
   const selectedFollowUps = useMemo(() => {
-    const followUps = [
-      ...(selectedCase?.followUps || []),
-    ];
+    const followUps = [...(selectedCase?.followUps || [])];
 
     return followUps.sort((a, b) => {
-      const aCompleted =
-        ["Completed", "Cancelled"].includes(a.status);
-      const bCompleted =
-        ["Completed", "Cancelled"].includes(b.status);
+      const aCompleted = ["Completed", "Cancelled"].includes(a.status);
+      const bCompleted = ["Completed", "Cancelled"].includes(b.status);
 
       if (aCompleted !== bCompleted) {
         return aCompleted ? 1 : -1;
       }
 
-      return (
-        new Date(a.followUpDate) -
-        new Date(b.followUpDate)
-      );
+      return new Date(a.followUpDate) - new Date(b.followUpDate);
     });
   }, [selectedCase]);
 
   const canManageFollowUps =
     selectedCase &&
     !selectedCase.isArchived &&
-    !["Closed", "Terminated"].includes(
-      selectedCase.caseStatus,
-    );
+    !["Closed", "Terminated"].includes(selectedCase.caseStatus);
 
   const openCreateModal = () => {
     if (!selectedCase) return;
@@ -414,21 +324,14 @@ export default function FollowUpsPage() {
     setSelectedFollowUp(followUp);
     setModalMode("edit");
     setFollowUpForm({
-      followUpDate: toDateInput(
-        followUp.followUpDate,
-      ),
-      followUpTime: toTimeInput(
-        followUp.followUpDate,
-      ),
-      followUpType:
-        followUp.followUpType ||
-        "Counseling Session",
+      followUpDate: toDateInput(followUp.followUpDate),
+      followUpTime: toTimeInput(followUp.followUpDate),
+      followUpType: followUp.followUpType || "Counseling Session",
       purpose: followUp.purpose || "",
       priority: followUp.priority || "Moderate",
       status: followUp.status || "Pending",
       remarks: followUp.remarks || "",
-      completionRemarks:
-        followUp.completionRemarks || "",
+      completionRemarks: followUp.completionRemarks || "",
     });
     setModalError("");
     setFollowUpModalOpen(true);
@@ -438,21 +341,14 @@ export default function FollowUpsPage() {
     setSelectedFollowUp(followUp);
     setModalMode("complete");
     setFollowUpForm({
-      followUpDate: toDateInput(
-        followUp.followUpDate,
-      ),
-      followUpTime: toTimeInput(
-        followUp.followUpDate,
-      ),
-      followUpType:
-        followUp.followUpType ||
-        "Counseling Session",
+      followUpDate: toDateInput(followUp.followUpDate),
+      followUpTime: toTimeInput(followUp.followUpDate),
+      followUpType: followUp.followUpType || "Counseling Session",
       purpose: followUp.purpose || "",
       priority: followUp.priority || "Moderate",
       status: "Completed",
       remarks: followUp.remarks || "",
-      completionRemarks:
-        followUp.completionRemarks || "",
+      completionRemarks: followUp.completionRemarks || "",
     });
     setModalError("");
     setFollowUpModalOpen(true);
@@ -474,10 +370,7 @@ export default function FollowUpsPage() {
       if (modalMode === "create") {
         endpoint = `/cases/${selectedCase._id}/follow-ups`;
         payload = {
-          followUpDate: combineDateAndTime(
-            followUpForm.followUpDate,
-            followUpForm.followUpTime,
-          ),
+          followUpDate: combineDateAndTime(followUpForm.followUpDate, followUpForm.followUpTime),
           followUpType: followUpForm.followUpType,
           purpose: followUpForm.purpose.trim(),
           priority: followUpForm.priority,
@@ -489,10 +382,7 @@ export default function FollowUpsPage() {
         endpoint = `/cases/${selectedCase._id}/follow-ups/${selectedFollowUp._id}`;
         method = "PATCH";
         payload = {
-          followUpDate: combineDateAndTime(
-            followUpForm.followUpDate,
-            followUpForm.followUpTime,
-          ),
+          followUpDate: combineDateAndTime(followUpForm.followUpDate, followUpForm.followUpTime),
           followUpType: followUpForm.followUpType,
           purpose: followUpForm.purpose.trim(),
           priority: followUpForm.priority,
@@ -504,8 +394,7 @@ export default function FollowUpsPage() {
         endpoint = `/cases/${selectedCase._id}/follow-ups/${selectedFollowUp._id}/complete`;
         method = "PATCH";
         payload = {
-          completionRemarks:
-            followUpForm.completionRemarks.trim(),
+          completionRemarks: followUpForm.completionRemarks.trim(),
         };
       }
 
@@ -517,27 +406,19 @@ export default function FollowUpsPage() {
       const updatedCase = data?.case;
 
       if (!updatedCase) {
-        throw new Error(
-          "The backend did not return the updated case.",
-        );
+        throw new Error("The backend did not return the updated case.");
       }
 
       updateCaseInState(updatedCase);
       setFollowUpModalOpen(false);
-      setSuccessMessage(
-        data?.message ||
-          "Follow-up updated successfully.",
-      );
+      setSuccessMessage(data?.message || "Follow-up updated successfully.");
     } catch (error) {
       if (error.status === 401) {
         handleUnauthorized();
         return;
       }
 
-      setModalError(
-        error.message ||
-          "Unable to save the follow-up.",
-      );
+      setModalError(error.message || "Unable to save the follow-up.");
     } finally {
       setIsSaving(false);
     }
@@ -545,7 +426,7 @@ export default function FollowUpsPage() {
 
   const cancelFollowUp = async (followUp) => {
     const confirmed = window.confirm(
-      "Cancel this follow-up? It will remain in the record as cancelled.",
+      "Cancel this follow-up? It will remain in the record as cancelled."
     );
 
     if (!confirmed || !selectedCase) return;
@@ -558,48 +439,36 @@ export default function FollowUpsPage() {
         {
           method: "PATCH",
           body: JSON.stringify({
-            cancellationReason:
-              "Cancelled by counselor.",
+            cancellationReason: "Cancelled by counselor.",
           }),
-        },
+        }
       );
 
       const updatedCase = data?.case;
 
       if (!updatedCase) {
-        throw new Error(
-          "The backend did not return the updated case.",
-        );
+        throw new Error("The backend did not return the updated case.");
       }
 
       updateCaseInState(updatedCase);
-      setSuccessMessage(
-        data?.message ||
-          "Follow-up cancelled successfully.",
-      );
+      setSuccessMessage(data?.message || "Follow-up cancelled successfully.");
     } catch (error) {
       if (error.status === 401) {
         handleUnauthorized();
         return;
       }
 
-      setPageError(
-        error.message ||
-          "Unable to cancel the follow-up.",
-      );
+      setPageError(error.message || "Unable to cancel the follow-up.");
     }
   };
 
   const openReminderConfirmation = (followUp) => {
     if (!selectedCase || !followUp?._id) return;
 
-    const studentEmail =
-      selectedCase.student?.email?.trim();
+    const studentEmail = selectedCase.student?.email?.trim();
 
     if (!studentEmail) {
-      setPageError(
-        "The student does not have an email address on record.",
-      );
+      setPageError("The student does not have an email address on record.");
       return;
     }
 
@@ -616,28 +485,20 @@ export default function FollowUpsPage() {
   };
 
   const sendFollowUpReminder = async () => {
-    if (
-      !selectedCase ||
-      !followUpForReminder?._id
-    ) {
+    if (!selectedCase || !followUpForReminder?._id) {
       return;
     }
 
-    const studentEmail =
-      selectedCase.student?.email?.trim();
+    const studentEmail = selectedCase.student?.email?.trim();
 
     if (!studentEmail) {
       setReminderConfirmOpen(false);
       setFollowUpForReminder(null);
-      setPageError(
-        "The student does not have an email address on record.",
-      );
+      setPageError("The student does not have an email address on record.");
       return;
     }
 
-    setSendingReminderId(
-      followUpForReminder._id,
-    );
+    setSendingReminderId(followUpForReminder._id);
     setPageError("");
 
     try {
@@ -645,7 +506,7 @@ export default function FollowUpsPage() {
         `/cases/${selectedCase._id}/follow-ups/${followUpForReminder._id}/send-reminder`,
         {
           method: "POST",
-        },
+        }
       );
 
       const updatedCase = data?.case;
@@ -657,20 +518,14 @@ export default function FollowUpsPage() {
       setReminderConfirmOpen(false);
       setFollowUpForReminder(null);
 
-      setSuccessMessage(
-        data?.message ||
-          `Follow-up reminder sent to ${studentEmail}.`,
-      );
+      setSuccessMessage(data?.message || `Follow-up reminder sent to ${studentEmail}.`);
     } catch (error) {
       if (error.status === 401) {
         handleUnauthorized();
         return;
       }
 
-      setPageError(
-        error.message ||
-          "Unable to send the follow-up reminder.",
-      );
+      setPageError(error.message || "Unable to send the follow-up reminder.");
     } finally {
       setSendingReminderId("");
     }
@@ -681,11 +536,8 @@ export default function FollowUpsPage() {
 
     setCases((current) =>
       current.map((caseRecord) =>
-        (caseRecord._id || caseRecord.id) ===
-        updatedCase._id
-          ? updatedCase
-          : caseRecord,
-      ),
+        (caseRecord._id || caseRecord.id) === updatedCase._id ? updatedCase : caseRecord
+      )
     );
   };
 
@@ -693,11 +545,7 @@ export default function FollowUpsPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#2F2A27]">
-      <AppSidebar
-        user={user}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-      />
+      <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex min-h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-7">
@@ -715,25 +563,16 @@ export default function FollowUpsPage() {
               {isFocusedCaseMode && (
                 <button
                   type="button"
-                  onClick={() =>
-                    navigate(
-                      `/cases/${requestedCaseId}`,
-                    )
-                  }
+                  onClick={() => navigate(`/cases/${requestedCaseId}`)}
                   className="grid h-8 w-8 place-items-center rounded-lg text-[#817A76] hover:bg-[#F5F2F0] hover:text-[#8C1518]"
                   aria-label="Back to case details"
                 >
-                  <Icon
-                    name="arrowLeft"
-                    className="h-3.5 w-3.5"
-                  />
+                  <Icon name="arrowLeft" className="h-3.5 w-3.5" />
                 </button>
               )}
 
               <div>
-                <h1 className="text-[20px] font-semibold">
-                  Follow-ups
-                </h1>
+                <h1 className="text-[20px] font-semibold">Follow-ups</h1>
                 <p className="hidden text-[14px] text-[#99918C] sm:block">
                   Track required next actions and upcoming case reviews
                 </p>
@@ -747,50 +586,30 @@ export default function FollowUpsPage() {
               className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#8C1518] px-3 font-semibold text-white hover:bg-[#701013] disabled:cursor-not-allowed disabled:opacity-40"
               style={{ fontSize: "15px" }}
             >
-              <Icon
-                name="plus"
-                className="h-3 w-3"
-              />
+              <Icon name="plus" className="h-3 w-3" />
               Add follow-up
             </button>
           </div>
         </header>
 
         <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
-          {successMessage && (
-            <Alert
-              tone="success"
-              message={successMessage}
-            />
-          )}
+          {successMessage && <Alert tone="success" message={successMessage} />}
 
-          {pageError && (
-            <Alert
-              tone="error"
-              message={pageError}
-            />
-          )}
+          {pageError && <Alert tone="error" message={pageError} />}
 
           {!isFocusedCaseMode && (
             <>
               <section>
-                <h2 className="text-[27px] font-semibold tracking-[-0.03em]">
-                  Follow-up tracker
-                </h2>
+                <h2 className="text-[27px] font-semibold tracking-[-0.03em]">Follow-up tracker</h2>
 
                 <p className="mt-1 max-w-[780px] text-[14px] leading-4 text-[#89817D]">
-                  Monitor upcoming, due, overdue, completed,
-                  and cancelled follow-up actions across
+                  Monitor upcoming, due, overdue, completed, and cancelled follow-up actions across
                   accessible cases.
                 </p>
               </section>
 
               <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <SummaryCard
-                  label="Pending"
-                  value={summary.pending}
-                  helper="Upcoming actions"
-                />
+                <SummaryCard label="Pending" value={summary.pending} helper="Upcoming actions" />
                 <SummaryCard
                   label="Due today"
                   value={summary.dueToday}
@@ -813,24 +632,17 @@ export default function FollowUpsPage() {
 
           <div
             className={`grid gap-5 ${
-              isFocusedCaseMode
-                ? "mt-0 grid-cols-1"
-                : "mt-5 xl:grid-cols-[390px_minmax(0,1fr)]"
+              isFocusedCaseMode ? "mt-0 grid-cols-1" : "mt-5 xl:grid-cols-[390px_minmax(0,1fr)]"
             }`}
           >
             {!isFocusedCaseMode && (
               <section className="overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white">
                 <div className="border-b border-[#ECE8E5] p-4">
-                  <h3 className="text-[17px] font-semibold">
-                    Accessible cases
-                  </h3>
+                  <h3 className="text-[17px] font-semibold">Accessible cases</h3>
 
                   <p className="mt-1 text-[13px] text-[#938B86]">
                     {filteredCases.length} case
-                    {filteredCases.length === 1
-                      ? ""
-                      : "s"}{" "}
-                    displayed
+                    {filteredCases.length === 1 ? "" : "s"} displayed
                   </p>
 
                   <div className="mt-4 space-y-2">
@@ -843,11 +655,7 @@ export default function FollowUpsPage() {
                       <input
                         type="search"
                         value={searchInput}
-                        onChange={(event) =>
-                          setSearchInput(
-                            event.target.value,
-                          )
-                        }
+                        onChange={(event) => setSearchInput(event.target.value)}
                         placeholder="Search case or student..."
                         className="h-8 w-full rounded-lg border border-[#E1DCD8] bg-[#FAF9F8] pl-8 pr-2.5 outline-none focus:border-[#8C1518]"
                         style={{
@@ -859,85 +667,49 @@ export default function FollowUpsPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <select
                         value={statusFilter}
-                        onChange={(event) =>
-                          setStatusFilter(
-                            event.target.value,
-                          )
-                        }
+                        onChange={(event) => setStatusFilter(event.target.value)}
                         className={filterClass}
                         style={{
                           fontSize: "15px",
                         }}
                       >
-                        <option value="All">
-                          All follow-ups
-                        </option>
-                        <option value="Pending">
-                          Pending
-                        </option>
-                        <option value="Due Today">
-                          Due Today
-                        </option>
-                        <option value="Overdue">
-                          Overdue
-                        </option>
-                        <option value="Completed">
-                          Completed
-                        </option>
-                        <option value="Cancelled">
-                          Cancelled
-                        </option>
+                        <option value="All">All follow-ups</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Due Today">Due Today</option>
+                        <option value="Overdue">Overdue</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
                       </select>
 
                       <select
                         value={priorityFilter}
-                        onChange={(event) =>
-                          setPriorityFilter(
-                            event.target.value,
-                          )
-                        }
+                        onChange={(event) => setPriorityFilter(event.target.value)}
                         className={filterClass}
                         style={{
                           fontSize: "15px",
                         }}
                       >
-                        <option value="">
-                          All priorities
-                        </option>
-                        {FOLLOW_UP_PRIORITIES.map(
-                          (priority) => (
-                            <option
-                              key={priority}
-                              value={priority}
-                            >
-                              {priority}
-                            </option>
-                          ),
-                        )}
+                        <option value="">All priorities</option>
+                        {FOLLOW_UP_PRIORITIES.map((priority) => (
+                          <option key={priority} value={priority}>
+                            {priority}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
                     <select
                       value={typeFilter}
-                      onChange={(event) =>
-                        setTypeFilter(
-                          event.target.value,
-                        )
-                      }
+                      onChange={(event) => setTypeFilter(event.target.value)}
                       className={filterClass}
                       style={{
                         fontSize: "15px",
                       }}
                     >
-                      <option value="">
-                        All follow-up types
-                      </option>
+                      <option value="">All follow-up types</option>
 
                       {FOLLOW_UP_TYPES.map((type) => (
-                        <option
-                          key={type}
-                          value={type}
-                        >
+                        <option key={type} value={type}>
                           {type}
                         </option>
                       ))}
@@ -972,34 +744,13 @@ export default function FollowUpsPage() {
 
                   <div className="border-b border-[#ECE8E5] p-4">
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                      <InfoCard
-                        label="Case status"
-                        value={
-                          selectedCase.caseStatus ||
-                          "—"
-                        }
-                      />
-                      <InfoCard
-                        label="Priority"
-                        value={
-                          selectedCase.priorityLevel ||
-                          "—"
-                        }
-                      />
+                      <InfoCard label="Case status" value={selectedCase.caseStatus || "—"} />
+                      <InfoCard label="Priority" value={selectedCase.priorityLevel || "—"} />
                       <InfoCard
                         label="Main domain"
-                        value={
-                          selectedCase
-                            .problemAssessment
-                            ?.mainDomain || "—"
-                        }
+                        value={selectedCase.problemAssessment?.mainDomain || "—"}
                       />
-                      <InfoCard
-                        label="Follow-ups"
-                        value={String(
-                          selectedFollowUps.length,
-                        )}
-                      />
+                      <InfoCard label="Follow-ups" value={String(selectedFollowUps.length)} />
                     </div>
                   </div>
 
@@ -1009,16 +760,8 @@ export default function FollowUpsPage() {
                     onEdit={openEditModal}
                     onComplete={openCompleteModal}
                     onCancel={cancelFollowUp}
-                    onGoToCase={() =>
-                      navigate(
-                        `/cases/${selectedCase._id}`,
-                      )
-                    }
-                    onAddProgressNote={() =>
-                      navigate(
-                        `/progress-notes?caseId=${selectedCase._id}`,
-                      )
-                    }
+                    onGoToCase={() => navigate(`/cases/${selectedCase._id}`)}
+                    onAddProgressNote={() => navigate(`/progress-notes?caseId=${selectedCase._id}`)}
                     onSendReminder={openReminderConfirmation}
                     sendingReminderId={sendingReminderId}
                   />
@@ -1042,9 +785,7 @@ export default function FollowUpsPage() {
         setForm={setFollowUpForm}
         error={modalError}
         saving={isSaving}
-        onClose={() =>
-          setFollowUpModalOpen(false)
-        }
+        onClose={() => setFollowUpModalOpen(false)}
         onSubmit={saveFollowUp}
       />
 
@@ -1060,20 +801,13 @@ export default function FollowUpsPage() {
   );
 }
 
-function CaseList({
-  cases,
-  selectedCaseId,
-  isLoading,
-  onSelect,
-}) {
+function CaseList({ cases, selectedCaseId, isLoading, onSelect }) {
   if (isLoading) {
     return (
       <div className="grid min-h-[420px] place-items-center">
         <div className="text-center">
           <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-2 border-[#8C1518]/20 border-t-[#8C1518]" />
-          <p className="mt-3 text-[14px] text-[#827B77]">
-            Loading cases...
-          </p>
+          <p className="mt-3 text-[14px] text-[#827B77]">Loading cases...</p>
         </div>
       </div>
     );
@@ -1092,14 +826,10 @@ function CaseList({
   return (
     <div className="max-h-[680px] divide-y divide-[#EEEAE7] overflow-y-auto">
       {cases.map((caseRecord) => {
-        const caseId =
-          caseRecord._id || caseRecord.id;
-        const selected =
-          selectedCaseId === caseId;
-        const followUps =
-          caseRecord.followUps || [];
-        const nextFollowUp =
-          getNextFollowUp(followUps);
+        const caseId = caseRecord._id || caseRecord.id;
+        const selected = selectedCaseId === caseId;
+        const followUps = caseRecord.followUps || [];
+        const nextFollowUp = getNextFollowUp(followUps);
 
         return (
           <button
@@ -1107,49 +837,32 @@ function CaseList({
             type="button"
             onClick={() => onSelect(caseId)}
             className={`block w-full px-4 py-3.5 text-left transition ${
-              selected
-                ? "bg-[#F6ECEC]"
-                : "bg-white hover:bg-[#FCFBFA]"
+              selected ? "bg-[#F6ECEC]" : "bg-white hover:bg-[#FCFBFA]"
             }`}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-[15px] font-semibold">
-                  {formatStudentName(
-                    caseRecord.student,
-                  )}
+                  {formatStudentName(caseRecord.student)}
                 </p>
 
                 <p className="mt-1 text-[13px] text-[#938B86]">
-                  {caseRecord.caseNumber ||
-                    "No case number"}{" "}
-                  ·{" "}
-                  {caseRecord.student
-                    ?.studentIdNumber ||
-                    "No student ID"}
+                  {caseRecord.caseNumber || "No case number"} ·{" "}
+                  {caseRecord.student?.studentIdNumber || "No student ID"}
                 </p>
               </div>
 
-              <CaseStatusBadge
-                status={caseRecord.caseStatus}
-              />
+              <CaseStatusBadge status={caseRecord.caseStatus} />
             </div>
 
             <div className="mt-3 flex items-center justify-between gap-2">
               <span className="truncate text-[13px] text-[#9A928D]">
-                {nextFollowUp
-                  ? formatDateTime(
-                      nextFollowUp.followUpDate,
-                    )
-                  : "No pending follow-up"}
+                {nextFollowUp ? formatDateTime(nextFollowUp.followUpDate) : "No pending follow-up"}
               </span>
 
               {nextFollowUp && (
                 <FollowUpStatusBadge
-                  status={getComputedFollowUpStatus(
-                    nextFollowUp.followUpDate,
-                    nextFollowUp.status,
-                  )}
+                  status={getComputedFollowUpStatus(nextFollowUp.followUpDate, nextFollowUp.status)}
                 />
               )}
             </div>
@@ -1160,37 +873,22 @@ function CaseList({
   );
 }
 
-function CaseHeader({
-  caseRecord,
-  canCreate,
-  onCreate,
-}) {
+function CaseHeader({ caseRecord, canCreate, onCreate }) {
   return (
     <header className="flex flex-col gap-3 border-b border-[#ECE8E5] p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-[17px] font-semibold">
-            {formatStudentName(
-              caseRecord.student,
-            )}
-          </h3>
+          <h3 className="text-[17px] font-semibold">{formatStudentName(caseRecord.student)}</h3>
 
-          <CaseStatusBadge
-            status={caseRecord.caseStatus}
-          />
+          <CaseStatusBadge status={caseRecord.caseStatus} />
         </div>
 
         <p className="mt-1 text-[14px] text-[#938B86]">
-          {caseRecord.caseNumber} ·{" "}
-          {caseRecord.student?.studentIdNumber ||
-            "No student ID"}
+          {caseRecord.caseNumber} · {caseRecord.student?.studentIdNumber || "No student ID"}
         </p>
 
         <p className="mt-1 text-[13px] text-[#AAA19C]">
-          Assigned to{" "}
-          {formatCounselorName(
-            caseRecord.assignedCounselor,
-          )}
+          Assigned to {formatCounselorName(caseRecord.assignedCounselor)}
         </p>
       </div>
 
@@ -1201,10 +899,7 @@ function CaseHeader({
         className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[#8C1518] px-3 font-semibold text-white hover:bg-[#701013] disabled:cursor-not-allowed disabled:opacity-40"
         style={{ fontSize: "15px" }}
       >
-        <Icon
-          name="plus"
-          className="h-3 w-3"
-        />
+        <Icon name="plus" className="h-3 w-3" />
         Add follow-up
       </button>
     </header>
@@ -1232,23 +927,14 @@ function FollowUpList({
   }
 
   const caseIsActive =
-    !caseRecord.isArchived &&
-    !["Closed", "Terminated"].includes(
-      caseRecord.caseStatus,
-    );
+    !caseRecord.isArchived && !["Closed", "Terminated"].includes(caseRecord.caseStatus);
 
   return (
     <div className="max-h-[680px] space-y-3 overflow-y-auto p-4">
       {followUps.map((followUp) => {
-        const computedStatus =
-          getComputedFollowUpStatus(
-            followUp.followUpDate,
-            followUp.status,
-          );
+        const computedStatus = getComputedFollowUpStatus(followUp.followUpDate, followUp.status);
 
-        const canModify =
-          caseIsActive &&
-          followUp.status === "Pending";
+        const canModify = caseIsActive && followUp.status === "Pending";
 
         return (
           <article
@@ -1258,58 +944,33 @@ function FollowUpList({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <FollowUpStatusBadge
-                    status={computedStatus}
-                  />
-                  <PriorityBadge
-                    priority={followUp.priority}
-                  />
+                  <FollowUpStatusBadge status={computedStatus} />
+                  <PriorityBadge priority={followUp.priority} />
                 </div>
 
-                <h4 className="mt-3 text-[15px] font-semibold">
-                  {followUp.followUpType}
-                </h4>
+                <h4 className="mt-3 text-[15px] font-semibold">{followUp.followUpType}</h4>
 
                 <p className="mt-1 text-[13px] text-[#9A928D]">
-                  Scheduled for{" "}
-                  {formatDateTime(
-                    followUp.followUpDate,
-                  )}
+                  Scheduled for {formatDateTime(followUp.followUpDate)}
                 </p>
 
                 <p className="mt-1 text-[13px] text-[#9A928D]">
-                  Reminder recipient:{" "}
-                  {caseRecord.student?.email ||
-                    "No student email recorded"}
+                  Reminder recipient: {caseRecord.student?.email || "No student email recorded"}
                 </p>
               </div>
             </div>
 
-            <FollowUpSection
-              label="Purpose"
-              value={followUp.purpose}
-              required
-            />
+            <FollowUpSection label="Purpose" value={followUp.purpose} required />
 
             <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <FollowUpSection
-                label="Remarks"
-                value={followUp.remarks}
-              />
+              <FollowUpSection label="Remarks" value={followUp.remarks} />
 
-              <FollowUpSection
-                label="Created by"
-                value={formatCounselorName(
-                  followUp.createdBy,
-                )}
-              />
+              <FollowUpSection label="Created by" value={formatCounselorName(followUp.createdBy)} />
             </div>
 
             {followUp.completionRemarks && (
               <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-                <p className="text-[13px] font-semibold text-emerald-700">
-                  Completion remarks
-                </p>
+                <p className="text-[13px] font-semibold text-emerald-700">Completion remarks</p>
 
                 <p className="mt-1 whitespace-pre-wrap text-[14px] leading-4 text-emerald-700">
                   {followUp.completionRemarks}
@@ -1319,9 +980,7 @@ function FollowUpList({
 
             {followUp.cancellationReason && (
               <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-                <p className="text-[13px] font-semibold text-red-700">
-                  Cancellation reason
-                </p>
+                <p className="text-[13px] font-semibold text-red-700">Cancellation reason</p>
 
                 <p className="mt-1 whitespace-pre-wrap text-[14px] leading-4 text-red-700">
                   {followUp.cancellationReason}
@@ -1331,9 +990,7 @@ function FollowUpList({
 
             {followUp.reminderSentAt && (
               <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
-                <p className="text-[13px] font-semibold text-blue-700">
-                  Student reminder sent
-                </p>
+                <p className="text-[13px] font-semibold text-blue-700">Student reminder sent</p>
 
                 <p className="mt-1 text-[14px] leading-4 text-blue-700">
                   Sent to {caseRecord.student?.email || "the student"} on{" "}
@@ -1343,23 +1000,14 @@ function FollowUpList({
             )}
 
             <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-[#ECE8E5] pt-3">
-              <ActionButton
-                onClick={onGoToCase}
-              >
-                Go to case
-              </ActionButton>
+              <ActionButton onClick={onGoToCase}>Go to case</ActionButton>
 
               {canModify && (
                 <>
                   <ActionButton
                     primary
-                    disabled={
-                      !caseRecord.student?.email ||
-                      sendingReminderId === followUp._id
-                    }
-                    onClick={() =>
-                      onSendReminder(followUp)
-                    }
+                    disabled={!caseRecord.student?.email || sendingReminderId === followUp._id}
+                    onClick={() => onSendReminder(followUp)}
                   >
                     {sendingReminderId === followUp._id
                       ? "Sending reminder..."
@@ -1368,39 +1016,20 @@ function FollowUpList({
                         : "Send student reminder"}
                   </ActionButton>
 
-                  <ActionButton
-                    onClick={() =>
-                      onEdit(followUp)
-                    }
-                  >
-                    Edit
-                  </ActionButton>
+                  <ActionButton onClick={() => onEdit(followUp)}>Edit</ActionButton>
 
-                  <ActionButton
-                    danger
-                    onClick={() =>
-                      onCancel(followUp)
-                    }
-                  >
+                  <ActionButton danger onClick={() => onCancel(followUp)}>
                     Cancel
                   </ActionButton>
 
-                  <ActionButton
-                    primary
-                    onClick={() =>
-                      onComplete(followUp)
-                    }
-                  >
+                  <ActionButton primary onClick={() => onComplete(followUp)}>
                     Mark completed
                   </ActionButton>
                 </>
               )}
 
               {followUp.status === "Completed" && (
-                <ActionButton
-                  primary
-                  onClick={onAddProgressNote}
-                >
+                <ActionButton primary onClick={onAddProgressNote}>
                   Add progress note
                 </ActionButton>
               )}
@@ -1412,45 +1041,26 @@ function FollowUpList({
   );
 }
 
-function ReminderConfirmationModal({
-  open,
-  caseRecord,
-  followUp,
-  sending,
-  onClose,
-  onConfirm,
-}) {
+function ReminderConfirmationModal({ open, caseRecord, followUp, sending, onClose, onConfirm }) {
   useEffect(() => {
     if (!open) return undefined;
 
-    const previousOverflow =
-      document.body.style.overflow;
+    const previousOverflow = document.body.style.overflow;
 
-    document.body.style.overflow =
-      "hidden";
+    document.body.style.overflow = "hidden";
 
     const closeOnEscape = (event) => {
-      if (
-        event.key === "Escape" &&
-        !sending
-      ) {
+      if (event.key === "Escape" && !sending) {
         onClose();
       }
     };
 
-    window.addEventListener(
-      "keydown",
-      closeOnEscape,
-    );
+    window.addEventListener("keydown", closeOnEscape);
 
     return () => {
-      document.body.style.overflow =
-        previousOverflow;
+      document.body.style.overflow = previousOverflow;
 
-      window.removeEventListener(
-        "keydown",
-        closeOnEscape,
-      );
+      window.removeEventListener("keydown", closeOnEscape);
     };
   }, [open, sending, onClose]);
 
@@ -1458,12 +1068,9 @@ function ReminderConfirmationModal({
     return null;
   }
 
-  const studentName =
-    formatStudentName(caseRecord.student);
+  const studentName = formatStudentName(caseRecord.student);
 
-  const studentEmail =
-    caseRecord.student?.email ||
-    "No student email";
+  const studentEmail = caseRecord.student?.email || "No student email";
 
   return (
     <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/40 px-4 py-6 backdrop-blur-sm">
@@ -1489,10 +1096,7 @@ function ReminderConfirmationModal({
             </div>
 
             <div>
-              <h2
-                id="reminder-confirmation-title"
-                className="text-[20px] font-semibold"
-              >
+              <h2 id="reminder-confirmation-title" className="text-[20px] font-semibold">
                 Send student reminder?
               </h2>
 
@@ -1518,12 +1122,20 @@ function ReminderConfirmationModal({
             <div className="grid gap-3 sm:grid-cols-2">
               <ConfirmationItem label="Student" value={studentName} />
               <ConfirmationItem label="Email recipient" value={studentEmail} />
-              <ConfirmationItem label="Follow-up type" value={followUp.followUpType || "Follow-up"} />
-              <ConfirmationItem label="Date and time" value={formatDateTime(followUp.followUpDate)} />
+              <ConfirmationItem
+                label="Follow-up type"
+                value={followUp.followUpType || "Follow-up"}
+              />
+              <ConfirmationItem
+                label="Date and time"
+                value={formatDateTime(followUp.followUpDate)}
+              />
             </div>
 
             <div className="mt-3 border-t border-[#ECE8E5] pt-3">
-              <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[#958D88]">Purpose</p>
+              <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[#958D88]">
+                Purpose
+              </p>
               <p className="mt-1 whitespace-pre-wrap text-[14px] leading-4 text-[#4F4945]">
                 {followUp.purpose || "No purpose recorded."}
               </p>
@@ -1533,7 +1145,8 @@ function ReminderConfirmationModal({
           <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
             <p className="text-[14px] font-semibold text-blue-700">Email privacy reminder</p>
             <p className="mt-1 text-[14px] leading-4 text-blue-700">
-              Only the follow-up type, schedule, and general purpose will be sent. Detailed counseling notes are not included.
+              Only the follow-up type, schedule, and general purpose will be sent. Detailed
+              counseling notes are not included.
             </p>
           </div>
         </div>
@@ -1594,33 +1207,22 @@ function FollowUpModal({
   useEffect(() => {
     if (!open) return undefined;
 
-    const previousOverflow =
-      document.body.style.overflow;
+    const previousOverflow = document.body.style.overflow;
 
     document.body.style.overflow = "hidden";
 
     const closeOnEscape = (event) => {
-      if (
-        event.key === "Escape" &&
-        !saving
-      ) {
+      if (event.key === "Escape" && !saving) {
         onClose();
       }
     };
 
-    window.addEventListener(
-      "keydown",
-      closeOnEscape,
-    );
+    window.addEventListener("keydown", closeOnEscape);
 
     return () => {
-      document.body.style.overflow =
-        previousOverflow;
+      document.body.style.overflow = previousOverflow;
 
-      window.removeEventListener(
-        "keydown",
-        closeOnEscape,
-      );
+      window.removeEventListener("keydown", closeOnEscape);
     };
   }, [open, saving, onClose]);
 
@@ -1634,18 +1236,10 @@ function FollowUpModal({
   };
 
   const title =
-    mode === "create"
-      ? "Add follow-up"
-      : mode === "edit"
-        ? "Edit follow-up"
-        : "Complete follow-up";
+    mode === "create" ? "Add follow-up" : mode === "edit" ? "Edit follow-up" : "Complete follow-up";
 
   const submitLabel =
-    mode === "create"
-      ? "Save follow-up"
-      : mode === "edit"
-        ? "Save changes"
-        : "Mark completed";
+    mode === "create" ? "Save follow-up" : mode === "edit" ? "Save changes" : "Mark completed";
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/35 px-4 py-6 backdrop-blur-sm">
@@ -1665,15 +1259,10 @@ function FollowUpModal({
       >
         <header className="flex items-start justify-between gap-4 border-b border-[#ECE8E5] px-5 py-4">
           <div>
-            <h2 className="text-[20px] font-semibold">
-              {title}
-            </h2>
+            <h2 className="text-[20px] font-semibold">{title}</h2>
 
             <p className="mt-1 text-[14px] text-[#938B86]">
-              {caseRecord.caseNumber} ·{" "}
-              {formatStudentName(
-                caseRecord.student,
-              )}
+              {caseRecord.caseNumber} · {formatStudentName(caseRecord.student)}
             </p>
           </div>
 
@@ -1684,23 +1273,12 @@ function FollowUpModal({
             className="grid h-8 w-8 place-items-center rounded-lg text-[#8C847F] hover:bg-[#F4F1EF] disabled:opacity-40"
             aria-label="Close"
           >
-            <Icon
-              name="close"
-              className="h-3.5 w-3.5"
-            />
+            <Icon name="close" className="h-3.5 w-3.5" />
           </button>
         </header>
 
-        <form
-          onSubmit={onSubmit}
-          className="overflow-y-auto p-5"
-        >
-          {error && (
-            <Alert
-              tone="error"
-              message={error}
-            />
-          )}
+        <form onSubmit={onSubmit} className="overflow-y-auto p-5">
+          {error && <Alert tone="error" message={error} />}
 
           {mode === "complete" ? (
             <>
@@ -1709,40 +1287,22 @@ function FollowUpModal({
                   Follow-up
                 </p>
 
-                <p className="mt-1 text-[15px] font-semibold">
-                  {form.followUpType}
-                </p>
+                <p className="mt-1 text-[15px] font-semibold">{form.followUpType}</p>
 
                 <p className="mt-2 whitespace-pre-wrap text-[14px] leading-4 text-[#5A534F]">
                   {form.purpose}
                 </p>
 
                 <p className="mt-2 text-[13px] text-[#938B86]">
-                  {formatDateTime(
-                    combineDateAndTime(
-                      form.followUpDate,
-                      form.followUpTime,
-                    ),
-                  )}
+                  {formatDateTime(combineDateAndTime(form.followUpDate, form.followUpTime))}
                 </p>
               </div>
 
-              <Field
-                label="Completion remarks"
-                required
-                className="mt-4"
-              >
+              <Field label="Completion remarks" required className="mt-4">
                 <textarea
                   required
-                  value={
-                    form.completionRemarks
-                  }
-                  onChange={(event) =>
-                    update(
-                      "completionRemarks",
-                      event.target.value,
-                    )
-                  }
+                  value={form.completionRemarks}
+                  onChange={(event) => update("completionRemarks", event.target.value)}
                   placeholder="Record the outcome of the follow-up and any next action."
                   rows={5}
                   className={textareaClass}
@@ -1754,21 +1314,13 @@ function FollowUpModal({
             </>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field
-                label="Follow-up date"
-                required
-              >
+              <Field label="Follow-up date" required>
                 <input
                   type="date"
                   required
                   min={getTodayInputValue()}
                   value={form.followUpDate}
-                  onChange={(event) =>
-                    update(
-                      "followUpDate",
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => update("followUpDate", event.target.value)}
                   className={inputClass}
                   style={{
                     fontSize: "15px",
@@ -1776,106 +1328,63 @@ function FollowUpModal({
                 />
               </Field>
 
-              <Field
-                label="Follow-up time"
-                required
-              >
+              <Field label="Follow-up time" required>
                 <select
                   required
                   value={form.followUpTime}
-                  onChange={(event) =>
-                    update(
-                      "followUpTime",
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => update("followUpTime", event.target.value)}
                   className={inputClass}
                   style={{
                     fontSize: "15px",
                   }}
                 >
-                  {FOLLOW_UP_TIME_OPTIONS.map(
-                    (option) => (
-                      <option
-                        key={option.value}
-                        value={option.value}
-                      >
-                        {option.label}
-                      </option>
-                    ),
-                  )}
+                  {FOLLOW_UP_TIME_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </Field>
 
-              <Field
-                label="Follow-up type"
-                required
-              >
+              <Field label="Follow-up type" required>
                 <select
                   required
                   value={form.followUpType}
-                  onChange={(event) =>
-                    update(
-                      "followUpType",
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => update("followUpType", event.target.value)}
                   className={inputClass}
                   style={{
                     fontSize: "15px",
                   }}
                 >
-                  {FOLLOW_UP_TYPES.map(
-                    (type) => (
-                      <option
-                        key={type}
-                        value={type}
-                      >
-                        {type}
-                      </option>
-                    ),
-                  )}
+                  {FOLLOW_UP_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
                 </select>
               </Field>
 
-              <Field
-                label="Priority"
-                required
-              >
+              <Field label="Priority" required>
                 <select
                   required
                   value={form.priority}
-                  onChange={(event) =>
-                    update(
-                      "priority",
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => update("priority", event.target.value)}
                   className={inputClass}
                   style={{
                     fontSize: "15px",
                   }}
                 >
-                  {FOLLOW_UP_PRIORITIES.map(
-                    (priority) => (
-                      <option
-                        key={priority}
-                        value={priority}
-                      >
-                        {priority}
-                      </option>
-                    ),
-                  )}
+                  {FOLLOW_UP_PRIORITIES.map((priority) => (
+                    <option key={priority} value={priority}>
+                      {priority}
+                    </option>
+                  ))}
                 </select>
               </Field>
 
-              <Field
-                label="Current status"
-              >
+              <Field label="Current status">
                 <input
-                  value={
-                    form.status || "Pending"
-                  }
+                  value={form.status || "Pending"}
                   readOnly
                   className={`${inputClass} bg-[#F5F2F0] text-[#817A76]`}
                   style={{
@@ -1884,20 +1393,11 @@ function FollowUpModal({
                 />
               </Field>
 
-              <Field
-                label="Purpose"
-                required
-                className="sm:col-span-2"
-              >
+              <Field label="Purpose" required className="sm:col-span-2">
                 <textarea
                   required
                   value={form.purpose}
-                  onChange={(event) =>
-                    update(
-                      "purpose",
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => update("purpose", event.target.value)}
                   placeholder="State what must be reviewed, checked, discussed, or completed during the follow-up."
                   rows={5}
                   className={textareaClass}
@@ -1907,18 +1407,10 @@ function FollowUpModal({
                 />
               </Field>
 
-              <Field
-                label="Remarks"
-                className="sm:col-span-2"
-              >
+              <Field label="Remarks" className="sm:col-span-2">
                 <textarea
                   value={form.remarks}
-                  onChange={(event) =>
-                    update(
-                      "remarks",
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => update("remarks", event.target.value)}
                   placeholder="Add reminders, preparation notes, or other relevant details."
                   rows={3}
                   className={textareaClass}
@@ -1955,9 +1447,7 @@ function FollowUpModal({
                 <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
               )}
 
-              {saving
-                ? "Saving..."
-                : submitLabel}
+              {saving ? "Saving..." : submitLabel}
             </button>
           </div>
         </form>
@@ -1966,37 +1456,20 @@ function FollowUpModal({
   );
 }
 
-function SummaryCard({
-  label,
-  value,
-  helper,
-  urgent = false,
-}) {
+function SummaryCard({ label, value, helper, urgent = false }) {
   return (
     <article
       className={`rounded-2xl border bg-white p-4 ${
-        urgent
-          ? "border-red-200"
-          : "border-[#E4DFDC]"
+        urgent ? "border-red-200" : "border-[#E4DFDC]"
       }`}
     >
-      <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-[#958D88]">
-        {label}
-      </p>
+      <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-[#958D88]">{label}</p>
 
-      <p
-        className={`mt-2 text-[20px] font-semibold ${
-          urgent
-            ? "text-red-600"
-            : "text-[#342F2C]"
-        }`}
-      >
+      <p className={`mt-2 text-[20px] font-semibold ${urgent ? "text-red-600" : "text-[#342F2C]"}`}>
         {value}
       </p>
 
-      <p className="mt-1 text-[13px] text-[#9A928D]">
-        {helper}
-      </p>
+      <p className="mt-1 text-[13px] text-[#9A928D]">{helper}</p>
     </article>
   );
 }
@@ -2004,22 +1477,14 @@ function SummaryCard({
 function InfoCard({ label, value }) {
   return (
     <article className="rounded-xl border border-[#E8E3E0] bg-[#FCFBFA] p-3">
-      <p className="text-[13px] text-[#958D88]">
-        {label}
-      </p>
+      <p className="text-[13px] text-[#958D88]">{label}</p>
 
-      <p className="mt-1 break-words text-[14px] font-semibold text-[#4E4844]">
-        {value}
-      </p>
+      <p className="mt-1 break-words text-[14px] font-semibold text-[#4E4844]">{value}</p>
     </article>
   );
 }
 
-function FollowUpSection({
-  label,
-  value,
-  required = false,
-}) {
+function FollowUpSection({ label, value, required = false }) {
   return (
     <section className="mt-3">
       <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[#958D88]">
@@ -2027,47 +1492,27 @@ function FollowUpSection({
       </p>
 
       <p className="mt-1 whitespace-pre-wrap text-[14px] leading-4 text-[#4F4945]">
-        {value ||
-          (required
-            ? "No information recorded."
-            : "—")}
+        {value || (required ? "No information recorded." : "—")}
       </p>
     </section>
   );
 }
 
-function Field({
-  label,
-  required = false,
-  className = "",
-  children,
-}) {
+function Field({ label, required = false, className = "", children }) {
   return (
     <label className={`block ${className}`}>
       <span className="text-[14px] font-semibold text-[#4B4541]">
         {label}
 
-        {required && (
-          <span className="ml-1 text-red-600">
-            *
-          </span>
-        )}
+        {required && <span className="ml-1 text-red-600">*</span>}
       </span>
 
-      <div className="mt-1.5">
-        {children}
-      </div>
+      <div className="mt-1.5">{children}</div>
     </label>
   );
 }
 
-function ActionButton({
-  onClick,
-  children,
-  primary = false,
-  danger = false,
-  disabled = false,
-}) {
+function ActionButton({ onClick, children, primary = false, danger = false, disabled = false }) {
   return (
     <button
       type="button"
@@ -2092,20 +1537,16 @@ function ActionButton({
 function CaseStatusBadge({ status }) {
   const styles = {
     Open: "bg-blue-50 text-blue-700",
-    "In Progress":
-      "bg-amber-50 text-amber-700",
-    "For Follow-up":
-      "bg-violet-50 text-violet-700",
-    Closed:
-      "bg-emerald-50 text-emerald-700",
+    "In Progress": "bg-amber-50 text-amber-700",
+    "For Follow-up": "bg-violet-50 text-violet-700",
+    Closed: "bg-emerald-50 text-emerald-700",
     Terminated: "bg-red-50 text-red-700",
   };
 
   return (
     <span
       className={`inline-flex shrink-0 rounded-full px-2 py-1 text-[13px] font-medium ${
-        styles[status] ||
-        "bg-[#F1EEEC] text-[#6E6763]"
+        styles[status] || "bg-[#F1EEEC] text-[#6E6763]"
       }`}
     >
       {status || "Unknown"}
@@ -2116,20 +1557,16 @@ function CaseStatusBadge({ status }) {
 function FollowUpStatusBadge({ status }) {
   const styles = {
     Pending: "bg-blue-50 text-blue-700",
-    "Due Today":
-      "bg-amber-50 text-amber-700",
+    "Due Today": "bg-amber-50 text-amber-700",
     Overdue: "bg-red-50 text-red-700",
-    Completed:
-      "bg-emerald-50 text-emerald-700",
-    Cancelled:
-      "bg-slate-100 text-slate-700",
+    Completed: "bg-emerald-50 text-emerald-700",
+    Cancelled: "bg-slate-100 text-slate-700",
   };
 
   return (
     <span
       className={`inline-flex rounded-full px-2 py-1 text-[13px] font-medium ${
-        styles[status] ||
-        "bg-[#F1EEEC] text-[#6E6763]"
+        styles[status] || "bg-[#F1EEEC] text-[#6E6763]"
       }`}
     >
       {status}
@@ -2148,8 +1585,7 @@ function PriorityBadge({ priority }) {
   return (
     <span
       className={`inline-flex rounded-full px-2 py-1 text-[13px] font-medium ${
-        styles[priority] ||
-        "bg-[#F1EEEC] text-[#6E6763]"
+        styles[priority] || "bg-[#F1EEEC] text-[#6E6763]"
       }`}
     >
       {priority || "Moderate"}
@@ -2157,34 +1593,21 @@ function PriorityBadge({ priority }) {
   );
 }
 
-function EmptyState({
-  title,
-  message,
-  compact = false,
-}) {
+function EmptyState({ title, message, compact = false }) {
   return (
     <div
       className={`grid place-items-center px-6 text-center ${
-        compact
-          ? "min-h-[420px]"
-          : "min-h-[620px]"
+        compact ? "min-h-[420px]" : "min-h-[620px]"
       }`}
     >
       <div>
         <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-[#F4EAEA] text-[#8C1518]">
-          <Icon
-            name="calendar"
-            className="h-5 w-5"
-          />
+          <Icon name="calendar" className="h-5 w-5" />
         </div>
 
-        <p className="mt-4 text-[16px] font-semibold">
-          {title}
-        </p>
+        <p className="mt-4 text-[16px] font-semibold">{title}</p>
 
-        <p className="mt-1 text-[14px] text-[#938C87]">
-          {message}
-        </p>
+        <p className="mt-1 text-[14px] text-[#938C87]">{message}</p>
       </div>
     </div>
   );
@@ -2196,9 +1619,7 @@ function LoadingState() {
       <div className="text-center">
         <span className="mx-auto block h-7 w-7 animate-spin rounded-full border-2 border-[#8C1518]/20 border-t-[#8C1518]" />
 
-        <p className="mt-3 text-[14px] text-[#827B77]">
-          Loading case details...
-        </p>
+        <p className="mt-3 text-[14px] text-[#827B77]">Loading case details...</p>
       </div>
     </div>
   );
@@ -2220,14 +1641,8 @@ function Alert({ tone, message }) {
   );
 }
 
-function getComputedFollowUpStatus(
-  followUpDate,
-  storedStatus,
-) {
-  if (
-    storedStatus === "Completed" ||
-    storedStatus === "Cancelled"
-  ) {
+function getComputedFollowUpStatus(followUpDate, storedStatus) {
+  if (storedStatus === "Completed" || storedStatus === "Cancelled") {
     return storedStatus;
   }
 
@@ -2242,22 +1657,11 @@ function getComputedFollowUpStatus(
     return "Pending";
   }
 
-  const nowDateOnly = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-  );
+  const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const dueDateOnly = new Date(
-    dueDate.getFullYear(),
-    dueDate.getMonth(),
-    dueDate.getDate(),
-  );
+  const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
 
-  if (
-    dueDateOnly.getTime() ===
-    nowDateOnly.getTime()
-  ) {
+  if (dueDateOnly.getTime() === nowDateOnly.getTime()) {
     return "Due Today";
   }
 
@@ -2270,15 +1674,8 @@ function getComputedFollowUpStatus(
 
 function getNextFollowUp(followUps) {
   return [...(followUps || [])]
-    .filter(
-      (followUp) =>
-        followUp.status === "Pending",
-    )
-    .sort(
-      (a, b) =>
-        new Date(a.followUpDate) -
-        new Date(b.followUpDate),
-    )[0];
+    .filter((followUp) => followUp.status === "Pending")
+    .sort((a, b) => new Date(a.followUpDate) - new Date(b.followUpDate))[0];
 }
 
 function createTimeOptions() {
@@ -2288,9 +1685,7 @@ function createTimeOptions() {
     for (const minute of [0, 30]) {
       if (hour === 18 && minute === 30) continue;
 
-      const value = `${String(hour).padStart(2, "0")}:${String(
-        minute,
-      ).padStart(2, "0")}`;
+      const value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 
       const date = new Date();
       date.setHours(hour, minute, 0, 0);
@@ -2315,9 +1710,7 @@ function combineDateAndTime(dateValue, timeValue) {
   if (!dateValue) return "";
 
   const safeTime = timeValue || "09:00";
-  const combinedDate = new Date(
-    `${dateValue}T${safeTime}:00`,
-  );
+  const combinedDate = new Date(`${dateValue}T${safeTime}:00`);
 
   if (Number.isNaN(combinedDate.getTime())) {
     return "";
@@ -2335,12 +1728,9 @@ function toDateInput(value) {
     return "";
   }
 
-  const pad = (number) =>
-    String(number).padStart(2, "0");
+  const pad = (number) => String(number).padStart(2, "0");
 
-  return `${date.getFullYear()}-${pad(
-    date.getMonth() + 1,
-  )}-${pad(date.getDate())}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 function toTimeInput(value) {
@@ -2352,36 +1742,23 @@ function toTimeInput(value) {
     return "09:00";
   }
 
-  const minutes =
-    date.getMinutes() < 30 ? "00" : "30";
+  const minutes = date.getMinutes() < 30 ? "00" : "30";
 
-  return `${String(date.getHours()).padStart(
-    2,
-    "0",
-  )}:${minutes}`;
+  return `${String(date.getHours()).padStart(2, "0")}:${minutes}`;
 }
 
 function getTodayInputValue() {
   const today = new Date();
 
-  const pad = (number) =>
-    String(number).padStart(2, "0");
+  const pad = (number) => String(number).padStart(2, "0");
 
-  return `${today.getFullYear()}-${pad(
-    today.getMonth() + 1,
-  )}-${pad(today.getDate())}`;
+  return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 }
 
 function formatStudentName(student) {
   if (!student) return "Unknown student";
 
-  return [
-    student.firstName,
-    student.middleName,
-    student.lastName,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  return [student.firstName, student.middleName, student.lastName].filter(Boolean).join(" ");
 }
 
 function formatCounselorName(counselor) {
@@ -2391,13 +1768,7 @@ function formatCounselorName(counselor) {
     return "Assigned counselor";
   }
 
-  return [
-    counselor.firstName,
-    counselor.middleName,
-    counselor.lastName,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  return [counselor.firstName, counselor.middleName, counselor.lastName].filter(Boolean).join(" ");
 }
 
 function formatDateTime(value) {

@@ -1,10 +1,5 @@
 import KnowledgeMaterialSelector from "../components/KnowledgeMaterialSelector";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -118,9 +113,7 @@ export default function InterventionPlansPage() {
         });
 
         if (!Array.isArray(adminCases)) {
-          throw new Error(
-            "The backend returned an invalid cases response.",
-          );
+          throw new Error("The backend returned an invalid cases response.");
         }
 
         retrievedCases = adminCases.map((caseRecord) => ({
@@ -128,55 +121,41 @@ export default function InterventionPlansPage() {
           accessType: "Admin",
         }));
       } else {
-        const [assignedResult, temporaryResult] =
-          await Promise.allSettled([
-            apiRequest("/cases/my-cases", {
-              method: "GET",
-            }),
-            apiRequest(TEMPORARY_CASES_ENDPOINT, {
-              method: "GET",
-            }),
-          ]);
+        const [assignedResult, temporaryResult] = await Promise.allSettled([
+          apiRequest("/cases/my-cases", {
+            method: "GET",
+          }),
+          apiRequest(TEMPORARY_CASES_ENDPOINT, {
+            method: "GET",
+          }),
+        ]);
 
-        if (
-          assignedResult.status === "rejected" &&
-          assignedResult.reason?.status === 401
-        ) {
+        if (assignedResult.status === "rejected" && assignedResult.reason?.status === 401) {
           handleUnauthorized();
           return;
         }
 
-        if (
-          temporaryResult.status === "rejected" &&
-          temporaryResult.reason?.status === 401
-        ) {
+        if (temporaryResult.status === "rejected" && temporaryResult.reason?.status === 401) {
           handleUnauthorized();
           return;
         }
 
         const assignedCases =
-          assignedResult.status === "fulfilled" &&
-          Array.isArray(assignedResult.value)
+          assignedResult.status === "fulfilled" && Array.isArray(assignedResult.value)
             ? assignedResult.value
             : [];
 
         const temporaryCases =
-          temporaryResult.status === "fulfilled" &&
-          Array.isArray(temporaryResult.value)
+          temporaryResult.status === "fulfilled" && Array.isArray(temporaryResult.value)
             ? temporaryResult.value
             : [];
 
         const assignedIds = new Set(
-          assignedCases.map((caseRecord) =>
-            String(caseRecord._id || caseRecord.id),
-          ),
+          assignedCases.map((caseRecord) => String(caseRecord._id || caseRecord.id))
         );
 
         const uniqueTemporaryCases = temporaryCases.filter(
-          (caseRecord) =>
-            !assignedIds.has(
-              String(caseRecord._id || caseRecord.id),
-            ),
+          (caseRecord) => !assignedIds.has(String(caseRecord._id || caseRecord.id))
         );
 
         retrievedCases = [
@@ -190,13 +169,8 @@ export default function InterventionPlansPage() {
           })),
         ];
 
-        if (
-          assignedResult.status === "rejected" &&
-          temporaryResult.status === "rejected"
-        ) {
-          throw new Error(
-            "Unable to retrieve assigned or temporary-access cases.",
-          );
+        if (assignedResult.status === "rejected" && temporaryResult.status === "rejected") {
+          throw new Error("Unable to retrieve assigned or temporary-access cases.");
         }
       }
 
@@ -209,9 +183,7 @@ export default function InterventionPlansPage() {
         !isFocusedCaseMode &&
         selectedCaseId &&
         !retrievedCases.some(
-          (caseRecord) =>
-            String(caseRecord._id || caseRecord.id) ===
-            String(selectedCaseId),
+          (caseRecord) => String(caseRecord._id || caseRecord.id) === String(selectedCaseId)
         )
       ) {
         setSelectedCaseId("");
@@ -225,19 +197,11 @@ export default function InterventionPlansPage() {
         return;
       }
 
-      setPageError(
-        error.message || "Unable to retrieve cases.",
-      );
+      setPageError(error.message || "Unable to retrieve cases.");
     } finally {
       setIsLoadingCases(false);
     }
-  }, [
-    user,
-    isAdmin,
-    selectedCaseId,
-    isFocusedCaseMode,
-    handleUnauthorized,
-  ]);
+  }, [user, isAdmin, selectedCaseId, isFocusedCaseMode, handleUnauthorized]);
 
   useEffect(() => {
     fetchCases();
@@ -280,14 +244,12 @@ export default function InterventionPlansPage() {
         }
 
         setSelectedCase(null);
-        setPageError(
-          error.message || "Unable to retrieve the selected case.",
-        );
+        setPageError(error.message || "Unable to retrieve the selected case.");
       } finally {
         setIsLoadingCase(false);
       }
     },
-    [handleUnauthorized],
+    [handleUnauthorized]
   );
 
   useEffect(() => {
@@ -313,87 +275,63 @@ export default function InterventionPlansPage() {
           caseRecord.problemAssessment?.mainDomain,
         ]
           .filter(Boolean)
-          .some((value) =>
-            String(value).toLowerCase().includes(normalizedSearch),
-          );
+          .some((value) => String(value).toLowerCase().includes(normalizedSearch));
 
-      const matchesCaseStatus =
-        !caseStatusFilter || caseRecord.caseStatus === caseStatusFilter;
+      const matchesCaseStatus = !caseStatusFilter || caseRecord.caseStatus === caseStatusFilter;
 
       const plans = caseRecord.interventionPlans || [];
       const matchesPlanStatus =
         !planStatusFilter ||
         plans.some(
-          (plan) =>
-            plan.approvalStatus === planStatusFilter ||
-            plan.status === planStatusFilter,
+          (plan) => plan.approvalStatus === planStatusFilter || plan.status === planStatusFilter
         );
 
       return matchesSearch && matchesCaseStatus && matchesPlanStatus;
     });
-  }, [
-    cases,
-    searchQuery,
-    caseStatusFilter,
-    planStatusFilter,
-  ]);
+  }, [cases, searchQuery, caseStatusFilter, planStatusFilter]);
 
   const interventionPlans = useMemo(() => {
     return [...(selectedCase?.interventionPlans || [])].sort(
-      (a, b) =>
-        new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+      (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
     );
   }, [selectedCase]);
 
   const assignedCounselorId =
-    selectedCase?.assignedCounselor?._id ||
-    selectedCase?.assignedCounselor;
+    selectedCase?.assignedCounselor?._id || selectedCase?.assignedCounselor;
 
   const isAssignedCounselor =
-    Boolean(selectedCase && user?._id) &&
-    assignedCounselorId?.toString() ===
-      user._id.toString();
+    Boolean(selectedCase && user?._id) && assignedCounselorId?.toString() === user._id.toString();
 
   const currentTemporaryAccess = useMemo(() => {
     if (!selectedCase || !user?._id) return null;
 
     return (
-      selectedCase.temporaryCounselor || []
-    ).find((access) => {
-      const counselorId =
-        access.counselor?._id ||
-        access.counselor;
+      (selectedCase.temporaryCounselor || []).find((access) => {
+        const counselorId = access.counselor?._id || access.counselor;
 
-      const accessUntil =
-        new Date(access.accessUntil);
+        const accessUntil = new Date(access.accessUntil);
 
-      return (
-        counselorId?.toString() ===
-          user._id.toString() &&
-        access.isActive === true &&
-        !access.revokedAt &&
-        !Number.isNaN(accessUntil.getTime()) &&
-        accessUntil > new Date()
-      );
-    }) || null;
+        return (
+          counselorId?.toString() === user._id.toString() &&
+          access.isActive === true &&
+          !access.revokedAt &&
+          !Number.isNaN(accessUntil.getTime()) &&
+          accessUntil > new Date()
+        );
+      }) || null
+    );
   }, [selectedCase, user]);
 
-  const isTemporaryReadOnly =
-    Boolean(currentTemporaryAccess) &&
-    !isAssignedCounselor;
+  const isTemporaryReadOnly = Boolean(currentTemporaryAccess) && !isAssignedCounselor;
 
   const caseAllowsPlanChanges =
     Boolean(selectedCase) &&
     !selectedCase.isArchived &&
-    !["Closed", "Terminated"].includes(
-      selectedCase.caseStatus,
-    );
+    !["Closed", "Terminated"].includes(selectedCase.caseStatus);
 
   // The backend's plan review/send routes are restricted to the
   // permanently assigned counselor. Temporary access is read-only.
-  const canManagePlans =
-    caseAllowsPlanChanges &&
-    isAssignedCounselor;
+  const canManagePlans = caseAllowsPlanChanges && isAssignedCounselor;
 
   const readOnlyReason = isTemporaryReadOnly
     ? "You have read-only temporary access. Only the assigned counselor can create, revise, approve, reject, upload, remove, or send intervention-plan content."
@@ -411,10 +349,7 @@ export default function InterventionPlansPage() {
 
   const openCreateModal = () => {
     if (!canManagePlans) {
-      setPageError(
-        readOnlyReason ||
-          "You are not authorized to create intervention plans.",
-      );
+      setPageError(readOnlyReason || "You are not authorized to create intervention plans.");
       return;
     }
 
@@ -429,15 +364,12 @@ export default function InterventionPlansPage() {
 
     if (!canManagePlans) {
       setPageError(
-        readOnlyReason ||
-          "You are not authorized to manage recommendations for this case.",
+        readOnlyReason || "You are not authorized to manage recommendations for this case."
       );
       return;
     }
 
-    navigate(
-      `/llm-recommendations?caseId=${selectedCase._id}`,
-    );
+    navigate(`/llm-recommendations?caseId=${selectedCase._id}`);
   };
 
   const uploadPlanResources = async (caseId, planId) => {
@@ -452,13 +384,10 @@ export default function InterventionPlansPage() {
     formData.append("title", resourceTitle.trim());
     formData.append("description", resourceDescription.trim());
 
-    return apiRequest(
-      `/cases/${caseId}/intervention-plans/${planId}/resources`,
-      {
-        method: "POST",
-        body: formData,
-      },
-    );
+    return apiRequest(`/cases/${caseId}/intervention-plans/${planId}/resources`, {
+      method: "POST",
+      body: formData,
+    });
   };
 
   const saveManualPlan = async (event) => {
@@ -467,10 +396,7 @@ export default function InterventionPlansPage() {
     if (!selectedCase) return;
 
     if (!canManagePlans) {
-      setModalError(
-        readOnlyReason ||
-          "You are not authorized to create intervention plans.",
-      );
+      setModalError(readOnlyReason || "You are not authorized to create intervention plans.");
       return;
     }
 
@@ -506,9 +432,7 @@ export default function InterventionPlansPage() {
       }
 
       if (resourceFiles.length > 0) {
-        const previousPlanIds = new Set(
-          existingPlans.map((plan) => String(plan._id)),
-        );
+        const previousPlanIds = new Set(existingPlans.map((plan) => String(plan._id)));
 
         const createdPlan = [...(updatedCase.interventionPlans || [])]
           .reverse()
@@ -516,14 +440,11 @@ export default function InterventionPlansPage() {
 
         if (!createdPlan?._id) {
           throw new Error(
-            "The plan was created, but its ID could not be identified for the file upload.",
+            "The plan was created, but its ID could not be identified for the file upload."
           );
         }
 
-        const uploadData = await uploadPlanResources(
-          updatedCase._id,
-          createdPlan._id,
-        );
+        const uploadData = await uploadPlanResources(updatedCase._id, createdPlan._id);
 
         updatedCase = uploadData?.case || updatedCase;
       }
@@ -531,26 +452,20 @@ export default function InterventionPlansPage() {
       setSelectedCase(updatedCase);
       setCases((current) =>
         current.map((caseRecord) =>
-          (caseRecord._id || caseRecord.id) === updatedCase._id
-            ? updatedCase
-            : caseRecord,
-        ),
+          (caseRecord._id || caseRecord.id) === updatedCase._id ? updatedCase : caseRecord
+        )
       );
 
       setPlanModalOpen(false);
       resetResourceForm();
-      setSuccessMessage(
-        data?.message || "Manual intervention plan created.",
-      );
+      setSuccessMessage(data?.message || "Manual intervention plan created.");
     } catch (error) {
       if (error.status === 401) {
         handleUnauthorized();
         return;
       }
 
-      setModalError(
-        error.message || "Unable to create the intervention plan.",
-      );
+      setModalError(error.message || "Unable to create the intervention plan.");
     } finally {
       setIsSaving(false);
     }
@@ -558,10 +473,7 @@ export default function InterventionPlansPage() {
 
   const openReviewModal = (mode, plan) => {
     if (!canManagePlans) {
-      setPageError(
-        readOnlyReason ||
-          "You are not authorized to modify this intervention plan.",
-      );
+      setPageError(readOnlyReason || "You are not authorized to modify this intervention plan.");
       return;
     }
 
@@ -590,10 +502,7 @@ export default function InterventionPlansPage() {
     if (!selectedCase || !selectedPlan) return;
 
     if (!canManagePlans) {
-      setModalError(
-        readOnlyReason ||
-          "You are not authorized to modify this intervention plan.",
-      );
+      setModalError(readOnlyReason || "You are not authorized to modify this intervention plan.");
       return;
     }
 
@@ -640,10 +549,7 @@ export default function InterventionPlansPage() {
       }
 
       if (reviewMode === "revise" && resourceFiles.length > 0) {
-        const uploadData = await uploadPlanResources(
-          selectedCase._id,
-          selectedPlan._id,
-        );
+        const uploadData = await uploadPlanResources(selectedCase._id, selectedPlan._id);
 
         updatedCase = uploadData?.case || updatedCase;
       }
@@ -651,25 +557,19 @@ export default function InterventionPlansPage() {
       setSelectedCase(updatedCase);
       setCases((current) =>
         current.map((caseRecord) =>
-          (caseRecord._id || caseRecord.id) === updatedCase._id
-            ? updatedCase
-            : caseRecord,
-        ),
+          (caseRecord._id || caseRecord.id) === updatedCase._id ? updatedCase : caseRecord
+        )
       );
 
       setReviewModalOpen(false);
-      setSuccessMessage(
-        data?.message || "Intervention plan updated successfully.",
-      );
+      setSuccessMessage(data?.message || "Intervention plan updated successfully.");
     } catch (error) {
       if (error.status === 401) {
         handleUnauthorized();
         return;
       }
 
-      setModalError(
-        error.message || "Unable to process the intervention plan.",
-      );
+      setModalError(error.message || "Unable to process the intervention plan.");
     } finally {
       setIsSaving(false);
     }
@@ -679,11 +579,7 @@ export default function InterventionPlansPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#2F2A27]">
-      <AppSidebar
-        user={user}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-      />
+      <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex min-h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-7">
@@ -710,9 +606,7 @@ export default function InterventionPlansPage() {
               )}
 
               <div>
-                <h1 className="text-[20px] font-semibold">
-                  Intervention Plans
-                </h1>
+                <h1 className="text-[20px] font-semibold">Intervention Plans</h1>
                 <p className="hidden text-[14px] text-[#99918C] sm:block">
                   Review intervention plans and manage them according to your case permissions
                 </p>
@@ -720,10 +614,7 @@ export default function InterventionPlansPage() {
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <PermissionTooltip
-                disabled={!canManagePlans}
-                message={readOnlyReason}
-              >
+              <PermissionTooltip disabled={!canManagePlans} message={readOnlyReason}>
                 <button
                   type="button"
                   onClick={openRecommendationWorkspace}
@@ -736,10 +627,7 @@ export default function InterventionPlansPage() {
                 </button>
               </PermissionTooltip>
 
-              <PermissionTooltip
-                disabled={!canManagePlans}
-                message={readOnlyReason}
-              >
+              <PermissionTooltip disabled={!canManagePlans} message={readOnlyReason}>
                 <button
                   type="button"
                   onClick={openCreateModal}
@@ -756,108 +644,96 @@ export default function InterventionPlansPage() {
         </header>
 
         <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
-          {successMessage && (
-            <Alert tone="success" message={successMessage} />
-          )}
+          {successMessage && <Alert tone="success" message={successMessage} />}
 
           {pageError && <Alert tone="error" message={pageError} />}
 
           {!isFocusedCaseMode && (
             <section>
               <h2 className="text-[27px] font-semibold tracking-[-0.03em]">
-              Intervention planning workspace
-            </h2>
+                Intervention planning workspace
+              </h2>
 
-            <p className="mt-1 max-w-[820px] text-[14px] leading-4 text-[#89817D]">
-              Counselors can create intervention plans manually or open the
-              LLM Recommendations workspace to generate a counselor-reviewed
-              recommendation draft for the selected case.
+              <p className="mt-1 max-w-[820px] text-[14px] leading-4 text-[#89817D] text-justify">
+                Counselors can create intervention plans manually or open the LLM Recommendations
+                workspace to generate a counselor-reviewed recommendation draft for the selected
+                case.
               </p>
             </section>
           )}
 
           <div
             className={`grid gap-5 ${
-              isFocusedCaseMode
-                ? "mt-0 grid-cols-1"
-                : "mt-5 xl:grid-cols-[390px_minmax(0,1fr)]"
+              isFocusedCaseMode ? "mt-0 grid-cols-1" : "mt-5 xl:grid-cols-[390px_minmax(0,1fr)]"
             }`}
           >
             {!isFocusedCaseMode && (
               <section className="overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white">
-              <div className="border-b border-[#ECE8E5] p-4">
-                <h3 className="text-[17px] font-semibold">
-                  Accessible cases
-                </h3>
+                <div className="border-b border-[#ECE8E5] p-4">
+                  <h3 className="text-[17px] font-semibold">Accessible cases</h3>
 
-                <p className="mt-1 text-[13px] text-[#938B86]">
-                  {filteredCases.length} case
-                  {filteredCases.length === 1 ? "" : "s"} displayed
-                </p>
+                  <p className="mt-1 text-[13px] text-[#938B86]">
+                    {filteredCases.length} case
+                    {filteredCases.length === 1 ? "" : "s"} displayed
+                  </p>
 
-                <div className="mt-4 space-y-2">
-                  <div className="relative">
-                    <Icon
-                      name="search"
-                      className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[#AAA29D]"
-                    />
+                  <div className="mt-4 space-y-2">
+                    <div className="relative">
+                      <Icon
+                        name="search"
+                        className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[#AAA29D]"
+                      />
 
-                    <input
-                      type="search"
-                      value={searchInput}
-                      onChange={(event) =>
-                        setSearchInput(event.target.value)
-                      }
-                      placeholder="Search case or student..."
-                      className="h-8 w-full rounded-lg border border-[#E1DCD8] bg-[#FAF9F8] pl-8 pr-2.5 outline-none focus:border-[#8C1518]"
-                      style={{ fontSize: "15px" }}
-                    />
-                  </div>
+                      <input
+                        type="search"
+                        value={searchInput}
+                        onChange={(event) => setSearchInput(event.target.value)}
+                        placeholder="Search case or student..."
+                        className="h-8 w-full rounded-lg border border-[#E1DCD8] bg-[#FAF9F8] pl-8 pr-2.5 outline-none focus:border-[#8C1518]"
+                        style={{ fontSize: "15px" }}
+                      />
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <select
-                      value={caseStatusFilter}
-                      onChange={(event) =>
-                        setCaseStatusFilter(event.target.value)
-                      }
-                      className={filterClass}
-                      style={{ fontSize: "15px" }}
-                    >
-                      <option value="">All case statuses</option>
-                      <option value="Open">Open</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="For Follow-up">For Follow-up</option>
-                      <option value="Closed">Closed</option>
-                      <option value="Terminated">Terminated</option>
-                    </select>
+                    <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={caseStatusFilter}
+                        onChange={(event) => setCaseStatusFilter(event.target.value)}
+                        className={filterClass}
+                        style={{ fontSize: "15px" }}
+                      >
+                        <option value="">All case statuses</option>
+                        <option value="Open">Open</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="For Follow-up">For Follow-up</option>
+                        <option value="Closed">Closed</option>
+                        <option value="Terminated">Terminated</option>
+                      </select>
 
-                    <select
-                      value={planStatusFilter}
-                      onChange={(event) =>
-                        setPlanStatusFilter(event.target.value)
-                      }
-                      className={filterClass}
-                      style={{ fontSize: "15px" }}
-                    >
-                      <option value="">All plan statuses</option>
-                      <option value="Pending Review">Pending Review</option>
-                      <option value="Approved">Approved</option>
-                      <option value="Revised">Revised</option>
-                      <option value="Rejected">Rejected</option>
-                      <option value="Planned">Planned</option>
-                      <option value="Ongoing">Ongoing</option>
-                      <option value="Completed">Completed</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
+                      <select
+                        value={planStatusFilter}
+                        onChange={(event) => setPlanStatusFilter(event.target.value)}
+                        className={filterClass}
+                        style={{ fontSize: "15px" }}
+                      >
+                        <option value="">All plan statuses</option>
+                        <option value="Pending Review">Pending Review</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Revised">Revised</option>
+                        <option value="Rejected">Rejected</option>
+                        <option value="Planned">Planned</option>
+                        <option value="Ongoing">Ongoing</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <CaseList
-                cases={filteredCases}
-                selectedCaseId={selectedCaseId}
-                isLoading={isLoadingCases}
-                onSelect={setSelectedCaseId}
+                <CaseList
+                  cases={filteredCases}
+                  selectedCaseId={selectedCaseId}
+                  isLoading={isLoadingCases}
+                  onSelect={setSelectedCaseId}
                 />
               </section>
             )}
@@ -882,77 +758,22 @@ export default function InterventionPlansPage() {
                   />
 
                   {isTemporaryReadOnly && (
-                    <ReadOnlyAccessNotice
-                      accessUntil={
-                        currentTemporaryAccess?.accessUntil
-                      }
-                    />
+                    <ReadOnlyAccessNotice accessUntil={currentTemporaryAccess?.accessUntil} />
                   )}
 
                   <div className="border-b border-[#ECE8E5] p-4">
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                      <InfoCard
-                        label="Case status"
-                        value={selectedCase.caseStatus || "—"}
-                      />
-                      <InfoCard
-                        label="Priority"
-                        value={selectedCase.priorityLevel || "—"}
-                      />
+                      <InfoCard label="Case status" value={selectedCase.caseStatus || "—"} />
+                      <InfoCard label="Priority" value={selectedCase.priorityLevel || "—"} />
                       <InfoCard
                         label="Main domain"
-                        value={
-                          selectedCase.problemAssessment?.mainDomain ||
-                          "—"
-                        }
+                        value={selectedCase.problemAssessment?.mainDomain || "—"}
                       />
-                      <InfoCard
-                        label="Plans"
-                        value={String(interventionPlans.length)}
-                      />
+                      <InfoCard label="Plans" value={String(interventionPlans.length)} />
                     </div>
                   </div>
-
-                  <div className="border-b border-[#ECE8E5] px-4 py-3">
-                    <div className="grid gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-violet-100 text-violet-700">
-                          <Icon name="sparkle" className="h-3.5 w-3.5" />
-                        </div>
-
-                        <div className="min-w-0">
-                          <p className="text-[14px] font-semibold text-violet-800">
-                            Need a recommendation draft?
-                          </p>
-
-                          <p className="mt-1 max-w-[620px] text-[13px] leading-4 text-violet-700">
-                            Open the LLM Recommendations workspace for this case.
-                            You can revise, accept, or reject the draft
-                            before it becomes an intervention plan.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex shrink-0 justify-start sm:justify-end">
-                        <PermissionTooltip
-                          disabled={!canManagePlans}
-                          message={readOnlyReason}
-                        >
-                          <button
-                            type="button"
-                            onClick={openRecommendationWorkspace}
-                            disabled={!canManagePlans}
-                            className="inline-flex h-8 min-w-[148px] items-center justify-center whitespace-nowrap rounded-lg bg-violet-700 px-3 font-semibold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:bg-violet-200 disabled:text-violet-700 disabled:opacity-100"
-                            style={{ fontSize: "15px" }}
-                          >
-                            Open recommendations
-                          </button>
-                        </PermissionTooltip>
-                      </div>
-                    </div>
-                  </div>
-
                   <PlanList
+                    onOpenRecommendations={openRecommendationWorkspace}
                     plans={interventionPlans}
                     caseRecord={selectedCase}
                     canManage={canManagePlans}
@@ -976,9 +797,7 @@ export default function InterventionPlansPage() {
         title="Create manual intervention plan"
         description={
           selectedCase
-            ? `${selectedCase.caseNumber} · ${formatStudentName(
-                selectedCase.student,
-              )}`
+            ? `${selectedCase.caseNumber} · ${formatStudentName(selectedCase.student)}`
             : ""
         }
         form={planForm}
@@ -1023,20 +842,13 @@ export default function InterventionPlansPage() {
   );
 }
 
-function CaseList({
-  cases,
-  selectedCaseId,
-  isLoading,
-  onSelect,
-}) {
+function CaseList({ cases, selectedCaseId, isLoading, onSelect }) {
   if (isLoading) {
     return (
       <div className="grid min-h-[420px] place-items-center">
         <div className="text-center">
           <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-2 border-[#8C1518]/20 border-t-[#8C1518]" />
-          <p className="mt-3 text-[14px] text-[#827B77]">
-            Loading cases...
-          </p>
+          <p className="mt-3 text-[14px] text-[#827B77]">Loading cases...</p>
         </div>
       </div>
     );
@@ -1065,9 +877,7 @@ function CaseList({
             type="button"
             onClick={() => onSelect(caseId)}
             className={`block w-full px-4 py-3.5 text-left transition ${
-              selected
-                ? "bg-[#F6ECEC]"
-                : "bg-white hover:bg-[#FCFBFA]"
+              selected ? "bg-[#F6ECEC]" : "bg-white hover:bg-[#FCFBFA]"
             }`}
           >
             <div className="flex items-start justify-between gap-3">
@@ -1109,21 +919,12 @@ function CaseList({
   );
 }
 
-function CaseHeader({
-  caseRecord,
-  canCreate,
-  isReadOnly,
-  readOnlyReason,
-  onCreate,
-  onGenerate,
-}) {
+function CaseHeader({ caseRecord, canCreate, isReadOnly, readOnlyReason, onCreate, onGenerate }) {
   return (
     <header className="flex flex-col gap-3 border-b border-[#ECE8E5] p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-[17px] font-semibold">
-            {formatStudentName(caseRecord.student)}
-          </h3>
+          <h3 className="text-[17px] font-semibold">{formatStudentName(caseRecord.student)}</h3>
 
           <CaseStatusBadge status={caseRecord.caseStatus} />
 
@@ -1135,8 +936,7 @@ function CaseHeader({
         </div>
 
         <p className="mt-1 text-[14px] text-[#938B86]">
-          {caseRecord.caseNumber} ·{" "}
-          {caseRecord.student?.studentIdNumber || "No student ID"}
+          {caseRecord.caseNumber} · {caseRecord.student?.studentIdNumber || "No student ID"}
         </p>
 
         <p className="mt-1 text-[13px] text-[#AAA19C]">
@@ -1145,10 +945,7 @@ function CaseHeader({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <PermissionTooltip
-          disabled={!canCreate}
-          message={readOnlyReason}
-        >
+        <PermissionTooltip disabled={!canCreate} message={readOnlyReason}>
           <button
             type="button"
             onClick={onGenerate}
@@ -1161,10 +958,7 @@ function CaseHeader({
           </button>
         </PermissionTooltip>
 
-        <PermissionTooltip
-          disabled={!canCreate}
-          message={readOnlyReason}
-        >
+        <PermissionTooltip disabled={!canCreate} message={readOnlyReason}>
           <button
             type="button"
             onClick={onCreate}
@@ -1181,13 +975,7 @@ function CaseHeader({
   );
 }
 
-function PlanList({
-  plans,
-  caseRecord,
-  canManage,
-  readOnlyReason,
-  onAction,
-}) {
+function PlanList({ plans, caseRecord, canManage, readOnlyReason, onAction, onOpenRecommendations }) {
   if (plans.length === 0) {
     return (
       <EmptyState
@@ -1202,12 +990,9 @@ function PlanList({
   }
 
   return (
-    <div className="max-h-[680px] space-y-3 overflow-y-auto p-4">
+    <div className="space-y-3 p-4">
       {plans.map((plan) => (
-        <article
-          key={plan._id}
-          className="rounded-xl border border-[#E7E2DF] bg-[#FCFBFA] p-4"
-        >
+        <article key={plan._id} className="rounded-xl border border-[#E7E2DF] bg-[#FCFBFA] p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -1232,27 +1017,28 @@ function PlanList({
               </h4>
 
               <p className="mt-1 text-[13px] text-[#9A928D]">
-                Created {formatDateTime(plan.createdAt)}
+                {plan.recommendationType === "updated" ? "Updated intervention" : "Initial intervention"} · Created {formatDateTime(plan.createdAt)}
+                {plan.sourceProgressNoteId && <span className="block">Based on a saved progress note{plan.previousPlanId ? " · Linked to previous intervention" : " · No linked previous intervention"}</span>}
               </p>
             </div>
           </div>
 
+          {pendingUpdatedRecommendation(caseRecord, plan) && (
+            <div className="mt-3 rounded-lg border border-violet-200 bg-violet-50 p-3 text-[14px] text-violet-900">
+              <p>An updated recommendation is awaiting review. This saved intervention plan retains its original goal and follow-up information. The updated recommendation is a separate draft and does not change this plan.</p>
+              {canManage && <button type="button" onClick={onOpenRecommendations} className="mt-2 font-semibold text-violet-800 hover:underline">Review updated recommendation</button>}
+            </div>
+          )}
+
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <PlanSection label="Goal" value={plan.goal} />
-            <PlanSection label="Time span" value={plan.timeSpan} />
+            <PlanSection label={plan.scheduleSource === "progress-note" ? "Time span (counselor-documented schedule)" : "Time span"} value={plan.timeSpan} />
           </div>
 
-          <PlanSection
-            label="Plan of action"
-            value={plan.planOfAction}
-            required
-          />
+          <PlanSection label="Plan of action" value={plan.planOfAction} required />
 
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <PlanSection
-              label="Follow-up plan"
-              value={plan.followUpPlan}
-            />
+            <PlanSection label="Follow-up plan" value={plan.followUpPlan} />
             <PlanSection label="Remarks" value={plan.remarks} />
           </div>
 
@@ -1260,21 +1046,14 @@ function PlanList({
 
           {plan.rejectionReason && (
             <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-              <p className="text-[13px] font-semibold text-red-700">
-                Rejection reason
-              </p>
-              <p className="mt-1 text-[14px] leading-4 text-red-700">
-                {plan.rejectionReason}
-              </p>
+              <p className="text-[13px] font-semibold text-red-700">Rejection reason</p>
+              <p className="mt-1 text-[14px] leading-4 text-red-700 text-justify">{plan.rejectionReason}</p>
             </div>
           )}
 
           <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-[#ECE8E5] pt-3">
             {plan.approvalStatus !== "Rejected" && (
-              <PermissionTooltip
-                disabled={!canManage}
-                message={readOnlyReason}
-              >
+              <PermissionTooltip disabled={!canManage} message={readOnlyReason}>
                 <ActionButton
                   disabled={!canManage}
                   disabledMessage={readOnlyReason}
@@ -1285,48 +1064,35 @@ function PlanList({
               </PermissionTooltip>
             )}
 
-            {plan.approvalStatus !== "Approved" &&
-              plan.approvalStatus !== "Rejected" && (
-                <PermissionTooltip
+            {plan.approvalStatus !== "Approved" && plan.approvalStatus !== "Rejected" && (
+              <PermissionTooltip disabled={!canManage} message={readOnlyReason}>
+                <ActionButton
                   disabled={!canManage}
-                  message={readOnlyReason}
+                  disabledMessage={readOnlyReason}
+                  onClick={() => onAction("approve", plan)}
                 >
-                  <ActionButton
-                    disabled={!canManage}
-                    disabledMessage={readOnlyReason}
-                    onClick={() => onAction("approve", plan)}
-                  >
-                    Approve
-                  </ActionButton>
-                </PermissionTooltip>
-              )}
+                  Approve
+                </ActionButton>
+              </PermissionTooltip>
+            )}
 
-            {plan.approvalStatus !== "Rejected" &&
-              !plan.isSentToStudent && (
-                <PermissionTooltip
+            {plan.approvalStatus !== "Rejected" && !plan.isSentToStudent && (
+              <PermissionTooltip disabled={!canManage} message={readOnlyReason}>
+                <ActionButton
+                  danger
                   disabled={!canManage}
-                  message={readOnlyReason}
+                  disabledMessage={readOnlyReason}
+                  onClick={() => onAction("reject", plan)}
                 >
-                  <ActionButton
-                    danger
-                    disabled={!canManage}
-                    disabledMessage={readOnlyReason}
-                    onClick={() => onAction("reject", plan)}
-                  >
-                    Reject
-                  </ActionButton>
-                </PermissionTooltip>
-              )}
+                  Reject
+                </ActionButton>
+              </PermissionTooltip>
+            )}
 
             {plan.approvalStatus === "Approved" &&
               !plan.isSentToStudent &&
-              !["Closed", "Terminated"].includes(
-                caseRecord.caseStatus,
-              ) && (
-                <PermissionTooltip
-                  disabled={!canManage}
-                  message={readOnlyReason}
-                >
+              !["Closed", "Terminated"].includes(caseRecord.caseStatus) && (
+                <PermissionTooltip disabled={!canManage} message={readOnlyReason}>
                   <ActionButton
                     primary
                     disabled={!canManage}
@@ -1355,11 +1121,7 @@ function PlanResources({ resources }) {
         <div className="mt-2 space-y-2">
           {resources.map((resource, index) => (
             <div
-              key={
-                resource._id ||
-                resource.url ||
-                `${resource.title}-${index}`
-              }
+              key={resource._id || resource.url || `${resource.title}-${index}`}
               className="flex items-center justify-between gap-3 rounded-lg border border-[#E4DFDC] bg-white px-3 py-2.5"
             >
               <div className="flex min-w-0 items-center gap-3">
@@ -1372,12 +1134,10 @@ function PlanResources({ resources }) {
                     {resource.title || "Untitled resource"}
                   </p>
 
-                  <p className="mt-0.5 text-[13px] text-[#958D88]">
-                    {resource.type || "File"}
-                  </p>
+                  <p className="mt-0.5 text-[13px] text-[#958D88]">{resource.type || "File"}</p>
 
                   {resource.description && (
-                    <p className="mt-1 line-clamp-2 text-[13px] leading-4 text-[#716A66]">
+                    <p className="mt-1 line-clamp-2 text-[13px] leading-4 text-[#716A66] text-justify">
                       {resource.description}
                     </p>
                   )}
@@ -1466,9 +1226,7 @@ function PlanEditorModal({
             <textarea
               required
               value={form.planOfAction}
-              onChange={(event) =>
-                update("planOfAction", event.target.value)
-              }
+              onChange={(event) => update("planOfAction", event.target.value)}
               placeholder="Describe the intervention activities, techniques, and responsibilities."
               rows={5}
               className={textareaClass}
@@ -1489,9 +1247,7 @@ function PlanEditorModal({
           <Field label="Follow-up plan">
             <input
               value={form.followUpPlan}
-              onChange={(event) =>
-                update("followUpPlan", event.target.value)
-              }
+              onChange={(event) => update("followUpPlan", event.target.value)}
               placeholder="e.g., Review after 2 weeks"
               className={inputClass}
               style={{ fontSize: "15px" }}
@@ -1505,27 +1261,27 @@ function PlanEditorModal({
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-semibold">
-                  Supporting files
-                </p>
-                <p className="mt-1 text-[13px] leading-4 text-[#8D8580]">
-                  Attach one or more worksheets, guides, forms, or other resources to this intervention plan.
+                <p className="text-[14px] font-semibold">Supporting files</p>
+                <p className="mt-1 text-[13px] leading-4 text-[#8D8580] text-justify">
+                  Attach one or more worksheets, guides, forms, or other resources to this
+                  intervention plan.
                 </p>
               </div>
             </div>
 
-            <KnowledgeMaterialSelector resources={form.resources || []} onChange={resources => update('resources', resources)} disabled={saving} />
+            <KnowledgeMaterialSelector
+              resources={form.resources || []}
+              onChange={(resources) => update("resources", resources)}
+              disabled={saving}
+            />
 
             {form.resources?.length > 0 && (
               <div className="mt-4">
-                <p className="text-[14px] font-semibold text-[#4B4541]">
-                  Existing attached files
-                </p>
+                <p className="text-[14px] font-semibold text-[#4B4541]">Existing attached files</p>
 
-                <p className="mt-1 text-[13px] leading-4 text-[#8D8580]">
-                  These files are already saved with the intervention plan.
-                  Remove only the files that should no longer belong to this
-                  plan.
+                <p className="mt-1 text-[13px] leading-4 text-[#8D8580] text-justify">
+                  These files are already saved with the intervention plan. Remove only the files
+                  that should no longer belong to this plan.
                 </p>
 
                 <div className="mt-2 space-y-2">
@@ -1536,10 +1292,7 @@ function PlanEditorModal({
                     >
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#F4EAEA] text-[#8C1518]">
-                          <Icon
-                            name="file"
-                            className="h-3.5 w-3.5"
-                          />
+                          <Icon name="file" className="h-3.5 w-3.5" />
                         </div>
 
                         <div className="min-w-0">
@@ -1552,7 +1305,7 @@ function PlanEditorModal({
                           </p>
 
                           {resource.description && (
-                            <p className="mt-1 line-clamp-2 text-[13px] leading-4 text-[#716A66]">
+                            <p className="mt-1 line-clamp-2 text-[13px] leading-4 text-[#716A66] text-justify">
                               {resource.description}
                             </p>
                           )}
@@ -1577,8 +1330,7 @@ function PlanEditorModal({
                             setForm((current) => ({
                               ...current,
                               resources: (current.resources || []).filter(
-                                (_, resourceIndex) =>
-                                  resourceIndex !== index,
+                                (_, resourceIndex) => resourceIndex !== index
                               ),
                             }))
                           }
@@ -1597,9 +1349,7 @@ function PlanEditorModal({
               <Field label="Resource title">
                 <input
                   value={resourceTitle}
-                  onChange={(event) =>
-                    setResourceTitle(event.target.value)
-                  }
+                  onChange={(event) => setResourceTitle(event.target.value)}
                   placeholder="Optional title (used when one file is selected)"
                   className={inputClass}
                   style={{ fontSize: "15px" }}
@@ -1610,22 +1360,15 @@ function PlanEditorModal({
                 <input
                   type="file"
                   multiple
-                  onChange={(event) =>
-                    setResourceFiles(Array.from(event.target.files || []))
-                  }
+                  onChange={(event) => setResourceFiles(Array.from(event.target.files || []))}
                   className="block w-full rounded-lg border border-[#DDD8D4] bg-white px-3 py-2 !text-[15px] text-[#5E5753] file:mr-3 file:rounded-md file:border-0 file:bg-[#F4EAEA] file:px-3 file:py-1.5 file:text-[13px] file:font-semibold file:text-[#8C1518]"
                 />
               </Field>
 
-              <Field
-                label="Resource description"
-                className="sm:col-span-2"
-              >
+              <Field label="Resource description" className="sm:col-span-2">
                 <textarea
                   value={resourceDescription}
-                  onChange={(event) =>
-                    setResourceDescription(event.target.value)
-                  }
+                  onChange={(event) => setResourceDescription(event.target.value)}
                   placeholder="Briefly explain how the student should use this resource."
                   rows={2}
                   className={textareaClass}
@@ -1667,7 +1410,7 @@ function PlanEditorModal({
                         type="button"
                         onClick={() =>
                           setResourceFiles((current) =>
-                            current.filter((_, fileIndex) => fileIndex !== index),
+                            current.filter((_, fileIndex) => fileIndex !== index)
                           )
                         }
                         className="shrink-0 !text-[15px] font-semibold text-red-600"
@@ -1693,11 +1436,7 @@ function PlanEditorModal({
           </Field>
         </div>
 
-        <ModalActions
-          saving={saving}
-          submitLabel={submitLabel}
-          onClose={onClose}
-        />
+        <ModalActions saving={saving} submitLabel={submitLabel} onClose={onClose} />
       </form>
     </Modal>
   );
@@ -1755,54 +1494,37 @@ function ReviewModal({
   };
 
   const descriptions = {
-    approve:
-      "Confirm that the plan is complete and ready for implementation.",
-    reject:
-      "Provide the reason the intervention plan should not be used.",
-    send:
-      student?.email
-        ? `The approved plan will be sent to ${student.email}.`
-        : "The student does not have a registered email address.",
+    approve: "Confirm that the plan is complete and ready for implementation.",
+    reject: "Provide the reason the intervention plan should not be used.",
+    send: student?.email
+      ? `The approved plan will be sent to ${student.email}.`
+      : "The student does not have a registered email address.",
   };
 
   return (
-    <Modal
-      title={titles[mode]}
-      description={descriptions[mode]}
-      onClose={onClose}
-      narrow
-    >
+    <Modal title={titles[mode]} description={descriptions[mode]} onClose={onClose} narrow>
       <form onSubmit={onSubmit}>
         {error && <Alert tone="error" message={error} />}
 
         {mode === "send" && (
           <div
             className={`mb-4 rounded-xl border px-4 py-3 ${
-              student?.email
-                ? "border-blue-200 bg-blue-50"
-                : "border-red-200 bg-red-50"
+              student?.email ? "border-blue-200 bg-blue-50" : "border-red-200 bg-red-50"
             }`}
           >
             <div className="flex items-start gap-3">
               <div
                 className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${
-                  student?.email
-                    ? "bg-blue-100 text-blue-700"
-                    : "bg-red-100 text-red-700"
+                  student?.email ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"
                 }`}
               >
-                <Icon
-                  name="mail"
-                  className="h-3.5 w-3.5"
-                />
+                <Icon name="mail" className="h-3.5 w-3.5" />
               </div>
 
               <div className="min-w-0">
                 <p
                   className={`text-[13px] font-semibold uppercase tracking-[0.08em] ${
-                    student?.email
-                      ? "text-blue-700"
-                      : "text-red-700"
+                    student?.email ? "text-blue-700" : "text-red-700"
                   }`}
                 >
                   Email recipient
@@ -1810,25 +1532,20 @@ function ReviewModal({
 
                 <p
                   className={`mt-1 break-all text-[15px] font-semibold ${
-                    student?.email
-                      ? "text-blue-900"
-                      : "text-red-700"
+                    student?.email ? "text-blue-900" : "text-red-700"
                   }`}
                 >
-                  {student?.email ||
-                    "No registered student email"}
+                  {student?.email || "No registered student email"}
                 </p>
 
                 <p
                   className={`mt-1 text-[13px] leading-4 ${
-                    student?.email
-                      ? "text-blue-700"
-                      : "text-red-600"
+                    student?.email ? "text-blue-700" : "text-red-600"
                   }`}
                 >
                   {student?.email
                     ? `Please confirm that this is the correct email for ${formatStudentName(
-                        student,
+                        student
                       )} before sending.`
                     : "Update the student record with a valid email address before sending this intervention plan."}
                 </p>
@@ -1838,80 +1555,70 @@ function ReviewModal({
         )}
 
         <div className="rounded-xl border border-[#E7E2DF] bg-[#FCFBFA] p-4">
-
           <p className="mt-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-[#958D88]">
             Plan of action
           </p>
-          <p className="mt-1 whitespace-pre-wrap text-[14px] leading-4">
-            {plan.planOfAction}
-          </p>
+          <p className="mt-1 whitespace-pre-wrap text-[14px] leading-4 text-justify">{plan.planOfAction}</p>
         </div>
 
         <div className="mt-5">
-            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[#958D88]">
-                Attached resources
-            </p>
+          <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[#958D88]">
+            Attached resources
+          </p>
 
-            {plan?.resources?.length > 0 ? (
-                <div className="mt-2 space-y-2">
-                {plan.resources.map((resource) => (
-                    <div
-                    key={resource._id || resource.url}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-[#E4DFDC] bg-[#FAF9F8] px-3 py-2.5"
+          {plan?.resources?.length > 0 ? (
+            <div className="mt-2 space-y-2">
+              {plan.resources.map((resource) => (
+                <div
+                  key={resource._id || resource.url}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-[#E4DFDC] bg-[#FAF9F8] px-3 py-2.5"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#F4EAEA] text-[#8C1518]">
+                      <Icon name="file" className="h-3.5 w-3.5" />
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="truncate text-[14px] font-semibold text-[#403A37]">
+                        {resource.title || "Untitled resource"}
+                      </p>
+
+                      <p className="mt-0.5 text-[13px] text-[#958D88]">{resource.type || "File"}</p>
+
+                      {resource.description && (
+                        <p className="mt-1 text-[13px] leading-4 text-[#716A66] text-justify">
+                          {resource.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {resource.url && (
+                    <a
+                      href={getResourceUrl(resource.url)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="shrink-0 rounded-lg border border-[#D9D2CE] bg-white px-2.5 py-1.5 text-[13px] font-semibold text-[#8C1518] hover:border-[#8C1518]"
                     >
-                    <div className="flex min-w-0 items-center gap-3">
-                        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#F4EAEA] text-[#8C1518]">
-                        <Icon
-                            name="file"
-                            className="h-3.5 w-3.5"
-                        />
-                        </div>
-
-                        <div className="min-w-0">
-                        <p className="truncate text-[14px] font-semibold text-[#403A37]">
-                            {resource.title || "Untitled resource"}
-                        </p>
-
-                        <p className="mt-0.5 text-[13px] text-[#958D88]">
-                            {resource.type || "File"}
-                        </p>
-
-                        {resource.description && (
-                            <p className="mt-1 text-[13px] leading-4 text-[#716A66]">
-                            {resource.description}
-                            </p>
-                        )}
-                        </div>
-                    </div>
-
-                    {resource.url && (
-                        <a
-                        href={getResourceUrl(resource.url)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="shrink-0 rounded-lg border border-[#D9D2CE] bg-white px-2.5 py-1.5 text-[13px] font-semibold text-[#8C1518] hover:border-[#8C1518]"
-                        >
-                        Open
-                        </a>
-                    )}
-                    </div>
-                ))}
+                      Open
+                    </a>
+                  )}
                 </div>
-            ) : (
-                <p className="mt-2 text-[14px] text-[#958D88]">
-                No files are attached to this intervention plan.
-                </p>
-            )}
+              ))}
             </div>
+          ) : (
+            <p className="mt-2 text-[14px] text-[#958D88]">
+              No files are attached to this intervention plan.
+            </p>
+          )}
+        </div>
 
         {mode === "reject" && (
           <Field label="Rejection reason" required className="mt-4">
             <textarea
               required
               value={rejectionReason}
-              onChange={(event) =>
-                setRejectionReason(event.target.value)
-              }
+              onChange={(event) => setRejectionReason(event.target.value)}
               placeholder="Explain why this intervention plan is rejected."
               rows={4}
               className={textareaClass}
@@ -1922,10 +1629,7 @@ function ReviewModal({
 
         <ModalActions
           saving={saving}
-          disabled={
-            mode === "send" &&
-            !student?.email
-          }
+          disabled={mode === "send" && !student?.email}
           submitLabel={
             mode === "approve"
               ? "Approve plan"
@@ -1943,13 +1647,7 @@ function ReviewModal({
   );
 }
 
-function Modal({
-  title,
-  description,
-  onClose,
-  narrow = false,
-  children,
-}) {
+function Modal({ title, description, onClose, narrow = false, children }) {
   useEffect(() => {
     const oldOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -1985,9 +1683,7 @@ function Modal({
         <header className="flex items-start justify-between gap-4 border-b border-[#ECE8E5] px-5 py-4">
           <div>
             <h2 className="text-[20px] font-semibold">{title}</h2>
-            <p className="mt-1 text-[14px] text-[#938B86]">
-              {description}
-            </p>
+            <p className="mt-1 text-[14px] text-[#938B86]">{description}</p>
           </div>
 
           <button
@@ -2006,13 +1702,7 @@ function Modal({
   );
 }
 
-function ModalActions({
-  saving,
-  submitLabel,
-  onClose,
-  danger = false,
-  disabled = false,
-}) {
+function ModalActions({ saving, submitLabel, onClose, danger = false, disabled = false }) {
   return (
     <div className="mt-5 flex justify-end gap-2 border-t border-[#ECE8E5] pt-4">
       <button
@@ -2029,9 +1719,7 @@ function ModalActions({
         type="submit"
         disabled={saving || disabled}
         className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 font-semibold text-white disabled:opacity-60 ${
-          danger
-            ? "bg-red-600 hover:bg-red-700"
-            : "bg-[#8C1518] hover:bg-[#701013]"
+          danger ? "bg-red-600 hover:bg-red-700" : "bg-[#8C1518] hover:bg-[#701013]"
         }`}
         style={{ fontSize: "15px" }}
       >
@@ -2075,11 +1763,7 @@ function ActionButton({
   );
 }
 
-function PermissionTooltip({
-  disabled,
-  message,
-  children,
-}) {
+function PermissionTooltip({ disabled, message, children }) {
   if (!disabled) {
     return children;
   }
@@ -2112,8 +1796,7 @@ function PermissionTooltip({
           group-focus-within:block
         "
       >
-        {message ||
-          "You are not allowed to perform this action."}
+        {message || "You are not allowed to perform this action."}
 
         <span
           className="
@@ -2140,14 +1823,11 @@ function ReadOnlyAccessNotice({ accessUntil }) {
           </div>
 
           <div>
-            <p className="text-[14px] font-semibold text-blue-800">
-              Read-only temporary access
-            </p>
+            <p className="text-[14px] font-semibold text-blue-800">Read-only temporary access</p>
 
-            <p className="mt-1 text-[13px] leading-4 text-blue-700">
-              You may review the intervention plans and open their
-              attached resources. Only the assigned counselor can
-              create, revise, approve, reject, upload, remove, or send
+            <p className="mt-1 text-[13px] leading-4 text-blue-700 text-justify">
+              You may review the intervention plans and open their attached resources. Only the
+              assigned counselor can create, revise, approve, reject, upload, remove, or send
               intervention-plan content.
             </p>
 
@@ -2165,9 +1845,7 @@ function InfoCard({ label, value }) {
   return (
     <article className="rounded-xl border border-[#E8E3E0] bg-[#FCFBFA] p-3">
       <p className="text-[13px] text-[#958D88]">{label}</p>
-      <p className="mt-1 break-words text-[14px] font-semibold text-[#4E4844]">
-        {value}
-      </p>
+      <p className="mt-1 break-words text-[14px] font-semibold text-[#4E4844]">{value}</p>
     </article>
   );
 }
@@ -2179,7 +1857,7 @@ function PlanSection({ label, value, required = false }) {
         {label}
       </p>
 
-      <p className="mt-1 whitespace-pre-wrap text-[14px] leading-4 text-[#4F4945]">
+      <p className="mt-1 whitespace-pre-wrap text-[14px] leading-4 text-[#4F4945] text-justify">
         {value || (required ? "No information recorded." : "—")}
       </p>
     </section>
@@ -2210,9 +1888,7 @@ function LoadingState() {
     <div className="grid min-h-[620px] place-items-center">
       <div className="text-center">
         <span className="mx-auto block h-7 w-7 animate-spin rounded-full border-2 border-[#8C1518]/20 border-t-[#8C1518]" />
-        <p className="mt-3 text-[14px] text-[#827B77]">
-          Loading case details...
-        </p>
+        <p className="mt-3 text-[14px] text-[#827B77]">Loading case details...</p>
       </div>
     </div>
   );
@@ -2310,16 +1986,11 @@ function getResourceUrl(resourceUrl) {
     return "#";
   }
 
-  if (
-    resourceUrl.startsWith("http://") ||
-    resourceUrl.startsWith("https://")
-  ) {
+  if (resourceUrl.startsWith("http://") || resourceUrl.startsWith("https://")) {
     return resourceUrl;
   }
 
-  const backendOrigin =
-    import.meta.env.VITE_API_ORIGIN ||
-    "http://localhost:5000";
+  const backendOrigin = import.meta.env.VITE_API_ORIGIN || "http://localhost:5000";
 
   return `${backendOrigin}${resourceUrl}`;
 }
@@ -2328,10 +1999,7 @@ function formatFileSize(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
 
   const units = ["B", "KB", "MB", "GB"];
-  const unitIndex = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(1024)),
-    units.length - 1,
-  );
+  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
   const value = bytes / 1024 ** unitIndex;
 
   return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
@@ -2340,9 +2008,7 @@ function formatFileSize(bytes) {
 function formatStudentName(student) {
   if (!student) return "Unknown student";
 
-  return [student.firstName, student.lastName]
-    .filter(Boolean)
-    .join(" ");
+  return [student.firstName, student.lastName].filter(Boolean).join(" ");
 }
 
 function formatCounselorName(counselor) {
@@ -2352,9 +2018,7 @@ function formatCounselorName(counselor) {
     return "Assigned counselor";
   }
 
-  return [counselor.firstName, counselor.middleName, counselor.lastName]
-    .filter(Boolean)
-    .join(" ");
+  return [counselor.firstName, counselor.middleName, counselor.lastName].filter(Boolean).join(" ");
 }
 
 function formatDateTime(value) {
@@ -2378,3 +2042,12 @@ const textareaClass =
 
 const filterClass =
   "h-8 w-full min-w-0 rounded-lg border border-[#E1DCD8] bg-white px-2.5 outline-none focus:border-[#8C1518]";
+
+
+function pendingUpdatedRecommendation(caseRecord, plan) {
+  return (caseRecord?.llmRecommendations || [])
+    .filter((item) => item.recommendationType === "updated" &&
+      String(item.previousPlanId || "") === String(plan._id) &&
+      ["Draft", "Revised"].includes(item.status))
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))[0] || null;
+}

@@ -1,42 +1,17 @@
-const { RESOURCE_TYPES } = require('../resourceEligibility');
-const fs = require(
-    "fs"
-);
+const { RESOURCE_TYPES } = require("../resourceEligibility");
+const fs = require("fs");
 
-const path = require(
-    "path"
-);
+const path = require("path");
 
-const {
-    readPdfByPage,
-} = require(
-    "./pdfReaderService"
-);
+const { readPdfByPage } = require("./pdfReaderService");
 
-const {
-    chunkDocuments,
-} = require(
-    "./chunkingService"
-);
+const { chunkDocuments } = require("./chunkingService");
 
-const {
-    filterKnowledgeChunks,
-} = require(
-    "./knowledgeFilterService"
-);
+const { filterKnowledgeChunks } = require("./knowledgeFilterService");
 
-const {
-    embedChunks,
-} = require(
-    "./chunkEmbeddingService"
-);
+const { embedChunks } = require("./chunkEmbeddingService");
 
-const {
-    storeEmbeddedChunks,
-} = require(
-    "./vectorStoreService"
-);
-
+const { storeEmbeddedChunks } = require("./vectorStoreService");
 
 /**
  * Validates metadata supplied for
@@ -44,63 +19,36 @@ const {
  *
  * @param {object} metadata
  */
-const validateMetadata = (
-    metadata
-) => {
-    if (metadata && typeof metadata.resourceType === 'string' && !RESOURCE_TYPES.includes(metadata.resourceType.trim().toLowerCase())) {
-        throw new Error('Select Reference (RAG), Worksheet, or Handout. Legacy resource types require content review.');
-    }
-    if (
-        !metadata ||
-        typeof metadata !==
-            "object"
-    ) {
-        throw new Error(
-            "Resource metadata is required."
-        );
-    }
+const validateMetadata = (metadata) => {
+  if (
+    metadata &&
+    typeof metadata.resourceType === "string" &&
+    !RESOURCE_TYPES.includes(metadata.resourceType.trim().toLowerCase())
+  ) {
+    throw new Error(
+      "Select Reference (RAG), Worksheet, or Handout. Legacy resource types require content review."
+    );
+  }
+  if (!metadata || typeof metadata !== "object") {
+    throw new Error("Resource metadata is required.");
+  }
 
-    if (
-        !metadata.title ||
-        typeof metadata.title !==
-            "string"
-    ) {
-        throw new Error(
-            "Resource title is required."
-        );
-    }
+  if (!metadata.title || typeof metadata.title !== "string") {
+    throw new Error("Resource title is required.");
+  }
 
-    if (
-        !metadata.source ||
-        typeof metadata.source !==
-            "string"
-    ) {
-        throw new Error(
-            "Resource source is required."
-        );
-    }
+  if (!metadata.source || typeof metadata.source !== "string") {
+    throw new Error("Resource source is required.");
+  }
 
-    if (
-        !metadata.resourceType ||
-        typeof metadata.resourceType !==
-            "string"
-    ) {
-        throw new Error(
-            "Resource type is required."
-        );
-    }
+  if (!metadata.resourceType || typeof metadata.resourceType !== "string") {
+    throw new Error("Resource type is required.");
+  }
 
-    if (
-        !metadata.topic ||
-        typeof metadata.topic !==
-            "string"
-    ) {
-        throw new Error(
-            "Resource topic is required."
-        );
-    }
+  if (!metadata.topic || typeof metadata.topic !== "string") {
+    throw new Error("Resource topic is required.");
+  }
 };
-
 
 /**
  * Normalizes metadata before attaching
@@ -111,63 +59,36 @@ const validateMetadata = (
  *
  * @returns {object}
  */
-const normalizeMetadata = (
-    metadata,
-    resolvedPath
-) => {
-    /*
-     * Convert absolute local path into a
-     * backend-relative path.
-     *
-     * Example:
-     *
-     * test-files/worksheets/
-     * calm-down-skills-practice.pdf
-     */
-    const relativeFilePath =
-        path.relative(
-            process.cwd(),
-            resolvedPath
-        );
+const normalizeMetadata = (metadata, resolvedPath) => {
+  /*
+   * Convert absolute local path into a
+   * backend-relative path.
+   *
+   * Example:
+   *
+   * test-files/worksheets/
+   * calm-down-skills-practice.pdf
+   */
+  const relativeFilePath = path.relative(process.cwd(), resolvedPath);
 
+  return {
+    source: metadata.source.trim(),
 
-    return {
-        source:
-            metadata.source.trim(),
+    title: metadata.title.trim(),
 
-        title:
-            metadata.title.trim(),
+    resourceType: metadata.resourceType.trim().toLowerCase(),
 
-        resourceType:
-            metadata.resourceType
-                .trim()
-                .toLowerCase(),
+    topic: metadata.topic.trim(),
 
-        topic:
-            metadata.topic.trim(),
+    approvalStatus: metadata.approvalStatus?.trim().toLowerCase() || "unspecified",
 
-        approvalStatus:
-            metadata.approvalStatus
-                ?.trim()
-                .toLowerCase() ||
-            "unspecified",
+    resourceId: metadata.resourceId?.trim() || null,
 
-        resourceId:
-            metadata.resourceId
-                ?.trim() ||
-            null,
+    originalFilename: metadata.originalFilename?.trim() || path.basename(resolvedPath),
 
-        originalFilename:
-            metadata.originalFilename
-                ?.trim() ||
-            path.basename(
-                resolvedPath
-            ),
-
-        relativeFilePath,
-    };
+    relativeFilePath,
+  };
 };
-
 
 /**
  * Ingests one PDF knowledge resource.
@@ -193,326 +114,170 @@ const normalizeMetadata = (
  *
  * @returns {Promise<object>}
  */
-const ingestKnowledgeResource =
-    async ({
-        filePath,
-        metadata,
-        store = true,
-    }) => {
-        /*
-         * ---------------------------------------------
-         * 1. VALIDATE FILE
-         * ---------------------------------------------
-         */
-
-        if (
-            !filePath ||
-            typeof filePath !==
-                "string"
-        ) {
-            throw new Error(
-                "A PDF file path is required."
-            );
-        }
-
-
-        const resolvedPath =
-            path.resolve(
-                filePath
-            );
-
-
-        if (
-            !fs.existsSync(
-                resolvedPath
-            )
-        ) {
-            throw new Error(
-                `PDF file not found: ${resolvedPath}`
-            );
-        }
-
-
-        if (
-            path.extname(
-                resolvedPath
-            ).toLowerCase() !==
-            ".pdf"
-        ) {
-            throw new Error(
-                "Knowledge resource must be a PDF file."
-            );
-        }
-
-
-        /*
-         * ---------------------------------------------
-         * 2. VALIDATE METADATA
-         * ---------------------------------------------
-         */
-
-        validateMetadata(
-            metadata
-        );
-
-
-        /*
-         * ---------------------------------------------
-         * 3. NORMALIZE METADATA
-         * ---------------------------------------------
-         */
-
-        const normalizedMetadata =
-            normalizeMetadata(
-                metadata,
-                resolvedPath
-            );
-
-
-        console.log(
-            "\n=========================================="
-        );
-
-        console.log(
-            `Ingesting: ${normalizedMetadata.title}`
-        );
-
-        console.log(
-            `Resource Type: ${normalizedMetadata.resourceType}`
-        );
-
-        console.log(
-            `Topic: ${normalizedMetadata.topic}`
-        );
-
-        console.log(
-            `Approval Status: ${normalizedMetadata.approvalStatus}`
-        );
-
-        console.log(
-            `Resource ID: ${
-                normalizedMetadata.resourceId ||
-                "None"
-            }`
-        );
+const ingestKnowledgeResource = async ({ filePath, metadata, store = true }) => {
+  /*
+   * ---------------------------------------------
+   * 1. VALIDATE FILE
+   * ---------------------------------------------
+   */
 
-        console.log(
-            `Original Filename: ${normalizedMetadata.originalFilename}`
-        );
+  if (!filePath || typeof filePath !== "string") {
+    throw new Error("A PDF file path is required.");
+  }
 
-        console.log(
-            `Relative File Path: ${normalizedMetadata.relativeFilePath}`
-        );
+  const resolvedPath = path.resolve(filePath);
 
-        console.log(
-            "=========================================="
-        );
+  if (!fs.existsSync(resolvedPath)) {
+    throw new Error(`PDF file not found: ${resolvedPath}`);
+  }
 
+  if (path.extname(resolvedPath).toLowerCase() !== ".pdf") {
+    throw new Error("Knowledge resource must be a PDF file.");
+  }
 
-        /*
-         * ---------------------------------------------
-         * 4. READ + CLEAN PDF
-         * ---------------------------------------------
-         */
+  /*
+   * ---------------------------------------------
+   * 2. VALIDATE METADATA
+   * ---------------------------------------------
+   */
 
-        console.log(
-            "\nReading PDF..."
-        );
+  validateMetadata(metadata);
 
+  /*
+   * ---------------------------------------------
+   * 3. NORMALIZE METADATA
+   * ---------------------------------------------
+   */
 
-        const pageDocuments =
-            await readPdfByPage(
-                resolvedPath,
-                normalizedMetadata
-            );
+  const normalizedMetadata = normalizeMetadata(metadata, resolvedPath);
 
+  console.log("\n==========================================");
 
-        console.log(
-            `Readable pages: ${pageDocuments.length}`
-        );
+  console.log(`Ingesting: ${normalizedMetadata.title}`);
 
+  console.log(`Resource Type: ${normalizedMetadata.resourceType}`);
 
-        if (
-            pageDocuments.length ===
-            0
-        ) {
-            throw new Error(
-                "No readable content was extracted from the PDF."
-            );
-        }
+  console.log(`Topic: ${normalizedMetadata.topic}`);
 
+  console.log(`Approval Status: ${normalizedMetadata.approvalStatus}`);
 
-        /*
-         * ---------------------------------------------
-         * 5. CREATE CHUNKS
-         * ---------------------------------------------
-         */
+  console.log(`Resource ID: ${normalizedMetadata.resourceId || "None"}`);
 
-        console.log(
-            "\nCreating chunks..."
-        );
+  console.log(`Original Filename: ${normalizedMetadata.originalFilename}`);
 
+  console.log(`Relative File Path: ${normalizedMetadata.relativeFilePath}`);
 
-        const chunks =
-            chunkDocuments(
-                pageDocuments
-            );
+  console.log("==========================================");
 
+  /*
+   * ---------------------------------------------
+   * 4. READ + CLEAN PDF
+   * ---------------------------------------------
+   */
 
-        console.log(
-            `Chunks created: ${chunks.length}`
-        );
+  console.log("\nReading PDF...");
 
+  const pageDocuments = await readPdfByPage(resolvedPath, normalizedMetadata);
 
-        if (
-            chunks.length ===
-            0
-        ) {
-            throw new Error(
-                "No chunks were created from the PDF."
-            );
-        }
+  console.log(`Readable pages: ${pageDocuments.length}`);
 
+  if (pageDocuments.length === 0) {
+    throw new Error("No readable content was extracted from the PDF.");
+  }
 
-        /*
-         * ---------------------------------------------
-         * 6. FILTER CHUNKS
-         * ---------------------------------------------
-         */
+  /*
+   * ---------------------------------------------
+   * 5. CREATE CHUNKS
+   * ---------------------------------------------
+   */
 
-        console.log(
-            "\nFiltering chunks..."
-        );
+  console.log("\nCreating chunks...");
 
+  const chunks = chunkDocuments(pageDocuments);
 
-        const filteredChunks =
-            filterKnowledgeChunks(
-                chunks
-            );
+  console.log(`Chunks created: ${chunks.length}`);
 
+  if (chunks.length === 0) {
+    throw new Error("No chunks were created from the PDF.");
+  }
 
-        console.log(
-            `Chunks after filtering: ${filteredChunks.length}`
-        );
+  /*
+   * ---------------------------------------------
+   * 6. FILTER CHUNKS
+   * ---------------------------------------------
+   */
 
-        console.log(
-            `Chunks removed: ${
-                chunks.length -
-                filteredChunks.length
-            }`
-        );
+  console.log("\nFiltering chunks...");
 
+  const filteredChunks = filterKnowledgeChunks(chunks);
 
-        if (
-            filteredChunks.length ===
-            0
-        ) {
-            throw new Error(
-                "All chunks were removed during knowledge filtering."
-            );
-        }
+  console.log(`Chunks after filtering: ${filteredChunks.length}`);
 
+  console.log(`Chunks removed: ${chunks.length - filteredChunks.length}`);
 
-        /*
-         * ---------------------------------------------
-         * 7. EMBED CHUNKS
-         * ---------------------------------------------
-         */
+  if (filteredChunks.length === 0) {
+    throw new Error("All chunks were removed during knowledge filtering.");
+  }
 
-        console.log(
-            "\nGenerating embeddings..."
-        );
+  /*
+   * ---------------------------------------------
+   * 7. EMBED CHUNKS
+   * ---------------------------------------------
+   */
 
+  console.log("\nGenerating embeddings...");
 
-        const embeddedChunks =
-            await embedChunks(
-                filteredChunks
-            );
+  const embeddedChunks = await embedChunks(filteredChunks);
 
+  console.log(`Embedded chunks: ${embeddedChunks.length}`);
 
-        console.log(
-            `Embedded chunks: ${embeddedChunks.length}`
-        );
+  if (embeddedChunks.length === 0) {
+    throw new Error("No embeddings were generated.");
+  }
 
+  /*
+   * ---------------------------------------------
+   * 8. STORE CHUNKS
+   * ---------------------------------------------
+   */
 
-        if (
-            embeddedChunks.length ===
-            0
-        ) {
-            throw new Error(
-                "No embeddings were generated."
-            );
-        }
+  if (store) {
+    console.log("\nStoring embedded chunks in MongoDB...");
 
+    await storeEmbeddedChunks(embeddedChunks);
 
-        /*
-         * ---------------------------------------------
-         * 8. STORE CHUNKS
-         * ---------------------------------------------
-         */
+    console.log(`Stored ${embeddedChunks.length} chunks in MongoDB.`);
+  } else {
+    console.log("\nStore disabled.");
 
-        if (
-            store
-        ) {
-            console.log(
-                "\nStoring embedded chunks in MongoDB..."
-            );
+    console.log("Nothing was written to MongoDB.");
+  }
 
+  /*
+   * ---------------------------------------------
+   * 9. RETURN SUMMARY
+   * ---------------------------------------------
+   */
 
-            await storeEmbeddedChunks(
-                embeddedChunks
-            );
+  return {
+    filePath: resolvedPath,
 
+    metadata: normalizedMetadata,
 
-            console.log(
-                `Stored ${embeddedChunks.length} chunks in MongoDB.`
-            );
-        } else {
-            console.log(
-                "\nStore disabled."
-            );
+    pagesRead: pageDocuments.length,
 
-            console.log(
-                "Nothing was written to MongoDB."
-            );
-        }
+    chunksCreated: chunks.length,
 
+    chunksKept: filteredChunks.length,
 
-        /*
-         * ---------------------------------------------
-         * 9. RETURN SUMMARY
-         * ---------------------------------------------
-         */
+    chunksRemoved: chunks.length - filteredChunks.length,
 
-        return {
-            filePath:
-                resolvedPath,
+    chunksEmbedded: embeddedChunks.length,
 
-            metadata:
-                normalizedMetadata,
-
-            pagesRead:
-                pageDocuments.length,
-
-            chunksCreated:
-                chunks.length,
-
-            chunksKept:
-                filteredChunks.length,
-
-            chunksRemoved:
-                chunks.length -
-                filteredChunks.length,
-
-            chunksEmbedded:
-                embeddedChunks.length,
-
-            stored:
-                store,
-        };
-    };
-
+    stored: store,
+  };
+};
 
 module.exports = {
-    ingestKnowledgeResource,
+  ingestKnowledgeResource,
 };

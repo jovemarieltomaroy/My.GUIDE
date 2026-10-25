@@ -1,8 +1,6 @@
-const OLLAMA_BASE_URL =
-  process.env.OLLAMA_BASE_URL || "http://localhost:11434";
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 
-const OLLAMA_MODEL =
-  process.env.OLLAMA_MODEL || "gemma3:4b";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "gemma3:4b";
 
 /**
  * Sends a prompt to Ollama and returns Gemma's response.
@@ -28,6 +26,7 @@ const generateResponse = async (prompt, options = {}) => {
         model: OLLAMA_MODEL,
         prompt: prompt.trim(),
         stream: false,
+        ...(options.json ? { format: "json" } : {}),
 
         options: {
           temperature: options.temperature ?? 0.2,
@@ -40,13 +39,11 @@ const generateResponse = async (prompt, options = {}) => {
     if (!response.ok) {
       const errorText = await response.text();
 
-      throw new Error(
-        `Ollama request failed with status ${response.status}: ${errorText}`
-      );
+      throw new Error(`Ollama request failed with status ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
- 
+
     if (!data.response) {
       throw new Error("Ollama returned an empty response.");
     }
@@ -55,9 +52,7 @@ const generateResponse = async (prompt, options = {}) => {
   } catch (error) {
     console.error("Ollama Service Error:", error.message);
 
-    throw new Error(
-      `Failed to generate response using ${OLLAMA_MODEL}: ${error.message}`
-    );
+    throw new Error(`Failed to generate response using ${OLLAMA_MODEL}: ${error.message}`);
   }
 };
 

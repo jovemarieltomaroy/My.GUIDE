@@ -1,7 +1,4 @@
-export default function Icon({
-  name,
-  className = "h-6 w-6",
-}) {
+export default function Icon({ name, className = "h-6 w-6" }) {
   const icons = {
     menu: (
       <>

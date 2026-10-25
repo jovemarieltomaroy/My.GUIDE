@@ -1,13 +1,8 @@
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 
-import {
-  useParams,
-} from "react-router-dom";
+import { useParams } from "react-router-dom";
 
-import myGuideLogo from "../assets/myguide-logo.png";
+import myGuideLogo from "../assets/myguide-brand-logo.svg";
 import ConsentFormModal from "../components/ConsentFormModal";
 
 import { apiRequest } from "../config/api";
@@ -36,9 +31,7 @@ const INITIAL_FORM = {
   backgroundAndPsychosocialHistory: {
     familyContext: "",
 
-    familyConstellation: [
-      { ...EMPTY_MEMBER },
-    ],
+    familyConstellation: [{ ...EMPTY_MEMBER }],
 
     familyConstellationComments: "",
 
@@ -77,34 +70,13 @@ const INITIAL_FORM = {
 };
 
 const HISTORY_FIELDS = [
-  [
-    "psychiatricCareHistory",
-    "Psychiatric care history",
-  ],
-  [
-    "psychologicalTherapyHistory",
-    "Psychological therapy history",
-  ],
-  [
-    "previousCounselingHistory",
-    "Previous counseling history",
-  ],
-  [
-    "medicalHistory",
-    "Medical history",
-  ],
-  [
-    "familyMentalHealthHistory",
-    "Family mental-health history",
-  ],
-  [
-    "substanceUseHistory",
-    "Substance-use history",
-  ],
-  [
-    "legalHistory",
-    "Legal history",
-  ],
+  ["psychiatricCareHistory", "Psychiatric care history"],
+  ["psychologicalTherapyHistory", "Psychological therapy history"],
+  ["previousCounselingHistory", "Previous counseling history"],
+  ["medicalHistory", "Medical history"],
+  ["familyMentalHealthHistory", "Family mental-health history"],
+  ["substanceUseHistory", "Substance-use history"],
+  ["legalHistory", "Legal history"],
 ];
 
 const PARENT_TYPES = [
@@ -120,29 +92,21 @@ export default function PreCounselingFormPage() {
   const { token } = useParams();
   const [consentModalOpen, setConsentModalOpen] = useState(false);
 
-  const [student, setStudent] =
-    useState(null);
+  const [student, setStudent] = useState(null);
 
-  const [formData, setFormData] =
-    useState(INITIAL_FORM);
+  const [formData, setFormData] = useState(INITIAL_FORM);
 
-  const [isLoading, setIsLoading] =
-    useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [loadError, setLoadError] =
-    useState("");
+  const [loadError, setLoadError] = useState("");
 
-  const [submitError, setSubmitError] =
-    useState("");
+  const [submitError, setSubmitError] = useState("");
 
-  const [submitted, setSubmitted] =
-    useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-  const [expiresAt, setExpiresAt] =
-    useState(null);
+  const [expiresAt, setExpiresAt] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -152,12 +116,9 @@ export default function PreCounselingFormPage() {
       setLoadError("");
 
       try {
-        const data = await apiRequest(
-          `/pre-counseling/public/${token}`,
-          {
-            method: "GET",
-          },
-        );
+        const data = await apiRequest(`/pre-counseling/public/${token}`, {
+          method: "GET",
+        });
 
         if (cancelled) {
           return;
@@ -165,21 +126,13 @@ export default function PreCounselingFormPage() {
 
         setStudent(data?.form?.student || data?.student || null);
 
-        setExpiresAt(
-          data?.form?.tokenExpiresAt ||
-            data?.tokenExpiresAt ||
-            data?.expiresAt ||
-            null,
-        );
+        setExpiresAt(data?.form?.tokenExpiresAt || data?.tokenExpiresAt || data?.expiresAt || null);
       } catch (error) {
         if (cancelled) {
           return;
         }
 
-        setLoadError(
-          error.message ||
-            "Unable to open this pre-counseling form.",
-        );
+        setLoadError(error.message || "Unable to open this pre-counseling form.");
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -190,9 +143,7 @@ export default function PreCounselingFormPage() {
     if (token) {
       loadForm();
     } else {
-      setLoadError(
-        "The pre-counseling link is invalid.",
-      );
+      setLoadError("The pre-counseling link is invalid.");
 
       setIsLoading(false);
     }
@@ -202,10 +153,7 @@ export default function PreCounselingFormPage() {
     };
   }, [token]);
 
-  const updateConsent = (
-    field,
-    value,
-  ) => {
+  const updateConsent = (field, value) => {
     setFormData((current) => ({
       ...current,
 
@@ -216,10 +164,7 @@ export default function PreCounselingFormPage() {
     }));
   };
 
-  const updateBackground = (
-    field,
-    value,
-  ) => {
+  const updateBackground = (field, value) => {
     setFormData((current) => ({
       ...current,
 
@@ -230,10 +175,7 @@ export default function PreCounselingFormPage() {
     }));
   };
 
-  const updateHistory = (
-    field,
-    value,
-  ) => {
+  const updateHistory = (field, value) => {
     setFormData((current) => ({
       ...current,
 
@@ -241,10 +183,7 @@ export default function PreCounselingFormPage() {
         ...current.backgroundAndPsychosocialHistory,
 
         [field]: {
-          ...current
-            .backgroundAndPsychosocialHistory[
-              field
-            ],
+          ...current.backgroundAndPsychosocialHistory[field],
 
           ...value,
         },
@@ -252,28 +191,22 @@ export default function PreCounselingFormPage() {
     }));
   };
 
-  const updateFamilyMember = (
-    index,
-    field,
-    value,
-  ) => {
+  const updateFamilyMember = (index, field, value) => {
     setFormData((current) => ({
       ...current,
 
       backgroundAndPsychosocialHistory: {
         ...current.backgroundAndPsychosocialHistory,
 
-        familyConstellation:
-          current.backgroundAndPsychosocialHistory
-            .familyConstellation.map(
-              (member, memberIndex) =>
-                memberIndex === index
-                  ? {
-                      ...member,
-                      [field]: value,
-                    }
-                  : member,
-            ),
+        familyConstellation: current.backgroundAndPsychosocialHistory.familyConstellation.map(
+          (member, memberIndex) =>
+            memberIndex === index
+              ? {
+                  ...member,
+                  [field]: value,
+                }
+              : member
+        ),
       },
     }));
   };
@@ -286,9 +219,7 @@ export default function PreCounselingFormPage() {
         ...current.backgroundAndPsychosocialHistory,
 
         familyConstellation: [
-          ...current
-            .backgroundAndPsychosocialHistory
-            .familyConstellation,
+          ...current.backgroundAndPsychosocialHistory.familyConstellation,
 
           { ...EMPTY_MEMBER },
         ],
@@ -296,20 +227,11 @@ export default function PreCounselingFormPage() {
     }));
   };
 
-  const removeFamilyMember = (
-    index,
-  ) => {
+  const removeFamilyMember = (index) => {
     setFormData((current) => {
-      const currentMembers =
-        current
-          .backgroundAndPsychosocialHistory
-          .familyConstellation;
+      const currentMembers = current.backgroundAndPsychosocialHistory.familyConstellation;
 
-      const nextMembers =
-        currentMembers.filter(
-          (_, memberIndex) =>
-            memberIndex !== index,
-        );
+      const nextMembers = currentMembers.filter((_, memberIndex) => memberIndex !== index);
 
       return {
         ...current,
@@ -317,18 +239,13 @@ export default function PreCounselingFormPage() {
         backgroundAndPsychosocialHistory: {
           ...current.backgroundAndPsychosocialHistory,
 
-          familyConstellation:
-            nextMembers.length
-              ? nextMembers
-              : [{ ...EMPTY_MEMBER }],
+          familyConstellation: nextMembers.length ? nextMembers : [{ ...EMPTY_MEMBER }],
         },
       };
     });
   };
 
-  const handleSubmit = async (
-    event,
-  ) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     setSubmitError("");
@@ -341,7 +258,7 @@ export default function PreCounselingFormPage() {
       !consent.dataPrivacyNoticeAccepted
     ) {
       setSubmitError(
-        "Please review and accept all consent, confidentiality, and data privacy items before submitting.",
+        "Please review and accept all consent, confidentiality, and data privacy items before submitting."
       );
 
       window.scrollTo({
@@ -352,34 +269,19 @@ export default function PreCounselingFormPage() {
       return;
     }
 
-    const familyMembers =
-      formData
-        .backgroundAndPsychosocialHistory
-        .familyConstellation.filter(
-          (member) =>
-            member.name.trim() ||
-            member.relationship.trim(),
-        );
+    const familyMembers = formData.backgroundAndPsychosocialHistory.familyConstellation.filter(
+      (member) => member.name.trim() || member.relationship.trim()
+    );
 
     for (const member of familyMembers) {
-      if (
-        !member.name.trim() ||
-        !member.relationship.trim()
-      ) {
-        setSubmitError(
-          "Each family member must have both a name and relationship.",
-        );
+      if (!member.name.trim() || !member.relationship.trim()) {
+        setSubmitError("Each family member must have both a name and relationship.");
 
         return;
       }
 
-      if (
-        member.age !== "" &&
-        Number(member.age) < 0
-      ) {
-        setSubmitError(
-          "Family member age cannot be negative.",
-        );
+      if (member.age !== "" && Number(member.age) < 0) {
+        setSubmitError("Family member age cannot be negative.");
 
         return;
       }
@@ -388,39 +290,27 @@ export default function PreCounselingFormPage() {
     setIsSubmitting(true);
 
     try {
-      const background =
-        formData.backgroundAndPsychosocialHistory;
+      const background = formData.backgroundAndPsychosocialHistory;
 
-      await apiRequest(
-        `/pre-counseling/public/${token}/submit`,
-        {
-          method: "POST",
+      await apiRequest(`/pre-counseling/public/${token}/submit`, {
+        method: "POST",
 
-          body: JSON.stringify({
-            consent: {
-              ...formData.consent,
-            },
+        body: JSON.stringify({
+          consent: {
+            ...formData.consent,
+          },
 
-            backgroundAndPsychosocialHistory: {
-              ...background,
+          backgroundAndPsychosocialHistory: {
+            ...background,
 
-              familyConstellation:
-                familyMembers.map(
-                  (member) => ({
-                    ...member,
+            familyConstellation: familyMembers.map((member) => ({
+              ...member,
 
-                    age:
-                      member.age === ""
-                        ? undefined
-                        : Number(
-                            member.age,
-                          ),
-                  }),
-                ),
-            },
-          }),
-        },
-      );
+              age: member.age === "" ? undefined : Number(member.age),
+            })),
+          },
+        }),
+      });
 
       setSubmitted(true);
 
@@ -429,10 +319,7 @@ export default function PreCounselingFormPage() {
         behavior: "smooth",
       });
     } catch (error) {
-      setSubmitError(
-        error.message ||
-          "Unable to submit the pre-counseling form.",
-      );
+      setSubmitError(error.message || "Unable to submit the pre-counseling form.");
 
       window.scrollTo({
         top: 0,
@@ -449,9 +336,7 @@ export default function PreCounselingFormPage() {
         <div className="py-20 text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#E6D5D5] border-t-[#8C1518]" />
 
-          <p className="mt-4 text-[15px] text-[#756D69]">
-            Opening your pre-counseling form...
-          </p>
+          <p className="mt-4 text-[15px] text-[#756D69]">Opening your pre-counseling form...</p>
         </div>
       </PageShell>
     );
@@ -460,10 +345,7 @@ export default function PreCounselingFormPage() {
   if (loadError) {
     return (
       <PageShell>
-        <StatusCard
-          title="Unable to open form"
-          description={loadError}
-        />
+        <StatusCard title="Unable to open form" description={loadError} />
       </PageShell>
     );
   }
@@ -477,21 +359,14 @@ export default function PreCounselingFormPage() {
               ✓
             </div>
 
-            <h1 className="mt-5 text-[24px] font-semibold text-[#302B28]">
-              Form submitted
-            </h1>
+            <h1 className="mt-5 text-[24px] font-semibold text-[#302B28]">Form submitted</h1>
 
             <p className="mx-auto mt-3 max-w-lg text-[15px] leading-6 text-[#756D69]">
-              Your pre-counseling information
-              has been submitted successfully.
-              Your counselor will review the
-              information before or during your
-              counseling session.
+              Your pre-counseling information has been submitted successfully. Your counselor will
+              review the information before or during your counseling session.
             </p>
 
-            <p className="mt-5 text-[14px] text-[#918984]">
-              You may now close this page.
-            </p>
+            <p className="mt-5 text-[14px] text-[#918984]">You may now close this page.</p>
           </div>
         </div>
       </PageShell>
@@ -503,8 +378,7 @@ export default function PreCounselingFormPage() {
       <div className="mx-auto max-w-5xl py-7">
         <header className="mb-5 rounded-2xl border border-[#E5DFDB] bg-white p-5 shadow-sm sm:p-6">
           <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#8C1518]">
-            MSU-IIT Office of Guidance and
-            Counseling
+            MSU-IIT Office of Guidance and Counseling
           </p>
 
           <h1 className="mt-2 text-[25px] font-semibold tracking-[-0.02em] text-[#302B28]">
@@ -512,45 +386,25 @@ export default function PreCounselingFormPage() {
           </h1>
 
           <p className="mt-2 max-w-3xl text-[15px] leading-6 text-[#756D69]">
-            Please provide the information below
-            before your counseling session. Your
-            responses will help your counselor
-            understand relevant background
-            information before meeting with you.
+            Please provide the information below before your counseling session. Your responses will
+            help your counselor understand relevant background information before meeting with you.
           </p>
 
           {student && (
             <div className="mt-5 grid gap-3 rounded-xl border border-[#E8E2DE] bg-[#FAF9F8] p-4 sm:grid-cols-2">
-              <StudentDetail
-                label="Student"
-                value={formatStudentName(
-                  student,
-                )}
-              />
+              <StudentDetail label="Student" value={formatStudentName(student)} />
 
-              <StudentDetail
-                label="Student ID"
-                value={
-                  student.studentIdNumber
-                }
-              />
+              <StudentDetail label="Student ID" value={student.studentIdNumber} />
 
-              <StudentDetail
-                label="College"
-                value={student.college}
-              />
+              <StudentDetail label="College" value={student.college} />
 
-              <StudentDetail
-                label="Program"
-                value={student.program}
-              />
+              <StudentDetail label="Program" value={student.program} />
             </div>
           )}
 
           {expiresAt && (
             <p className="mt-3 text-[12px] text-[#9A928D]">
-              This secure form link expires on{" "}
-              {formatDateTime(expiresAt)}.
+              This secure form link expires on {formatDateTime(expiresAt)}.
             </p>
           )}
         </header>
@@ -561,63 +415,42 @@ export default function PreCounselingFormPage() {
           </div>
         )}
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-5"
-        >
+        <form onSubmit={handleSubmit} className="space-y-5">
           <FormSection
             number="1"
             title="Consent and privacy"
             description="Please review and confirm each item before continuing."
           >
             <div className="mb-4">
-              <button type="button" onClick={() => setConsentModalOpen(true)} className="text-[14px] font-semibold text-[#8C1518] underline underline-offset-4">
+              <button
+                type="button"
+                onClick={() => setConsentModalOpen(true)}
+                className="text-[14px] font-semibold text-[#8C1518] underline underline-offset-4"
+              >
                 View consent form
               </button>
-              <p className="mt-2 text-[13px] text-[#817A76]">Read the full consent form before confirming the acknowledgments below.</p>
+              <p className="mt-2 text-[13px] text-[#817A76]">
+                Read the full consent form before confirming the acknowledgments below.
+              </p>
             </div>
             <div className="space-y-3">
               <ConsentItem
-                checked={
-                  formData.consent
-                    .hasConsent
-                }
-                onChange={(value) =>
-                  updateConsent(
-                    "hasConsent",
-                    value,
-                  )
-                }
+                checked={formData.consent.hasConsent}
+                onChange={(value) => updateConsent("hasConsent", value)}
                 title="Counseling consent"
                 description="I voluntarily agree to participate in counseling services provided by the Office of Guidance and Counseling."
               />
 
               <ConsentItem
-                checked={
-                  formData.consent
-                    .confidentialityAgreementAccepted
-                }
-                onChange={(value) =>
-                  updateConsent(
-                    "confidentialityAgreementAccepted",
-                    value,
-                  )
-                }
+                checked={formData.consent.confidentialityAgreementAccepted}
+                onChange={(value) => updateConsent("confidentialityAgreementAccepted", value)}
                 title="Confidentiality agreement"
                 description="I understand that information shared during counseling is treated confidentially, subject to applicable professional, legal, and safety limitations."
               />
 
               <ConsentItem
-                checked={
-                  formData.consent
-                    .dataPrivacyNoticeAccepted
-                }
-                onChange={(value) =>
-                  updateConsent(
-                    "dataPrivacyNoticeAccepted",
-                    value,
-                  )
-                }
+                checked={formData.consent.dataPrivacyNoticeAccepted}
+                onChange={(value) => updateConsent("dataPrivacyNoticeAccepted", value)}
                 title="Data privacy notice"
                 description="I acknowledge that the information I provide will be recorded and used by the Office of Guidance and Counseling for counseling and case-management purposes."
               />
@@ -635,17 +468,8 @@ export default function PreCounselingFormPage() {
             >
               <textarea
                 rows={4}
-                value={
-                  formData
-                    .backgroundAndPsychosocialHistory
-                    .familyContext
-                }
-                onChange={(event) =>
-                  updateBackground(
-                    "familyContext",
-                    event.target.value,
-                  )
-                }
+                value={formData.backgroundAndPsychosocialHistory.familyContext}
+                onChange={(event) => updateBackground("familyContext", event.target.value)}
                 className={textareaClass}
               />
             </Field>
@@ -653,14 +477,10 @@ export default function PreCounselingFormPage() {
             <div className="mt-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-[16px] font-semibold text-[#403A36]">
-                    Family constellation
-                  </h3>
+                  <h3 className="text-[16px] font-semibold text-[#403A36]">Family constellation</h3>
 
                   <p className="mt-1 text-[13px] text-[#8B837E]">
-                    Add family members or other
-                    significant people relevant to
-                    your situation.
+                    Add family members or other significant people relevant to your situation.
                   </p>
                 </div>
 
@@ -674,38 +494,20 @@ export default function PreCounselingFormPage() {
               </div>
 
               <div className="mt-4 space-y-4">
-                {formData
-                  .backgroundAndPsychosocialHistory
-                  .familyConstellation.map(
-                    (member, index) => (
-                      <FamilyMemberCard
-                        key={index}
-                        index={index}
-                        member={member}
-                        canRemove={
-                          formData
-                            .backgroundAndPsychosocialHistory
-                            .familyConstellation
-                            .length > 1
-                        }
-                        onChange={(
-                          field,
-                          value,
-                        ) =>
-                          updateFamilyMember(
-                            index,
-                            field,
-                            value,
-                          )
-                        }
-                        onRemove={() =>
-                          removeFamilyMember(
-                            index,
-                          )
-                        }
-                      />
-                    ),
-                  )}
+                {formData.backgroundAndPsychosocialHistory.familyConstellation.map(
+                  (member, index) => (
+                    <FamilyMemberCard
+                      key={index}
+                      index={index}
+                      member={member}
+                      canRemove={
+                        formData.backgroundAndPsychosocialHistory.familyConstellation.length > 1
+                      }
+                      onChange={(field, value) => updateFamilyMember(index, field, value)}
+                      onRemove={() => removeFamilyMember(index)}
+                    />
+                  )
+                )}
               </div>
             </div>
 
@@ -716,16 +518,9 @@ export default function PreCounselingFormPage() {
               >
                 <textarea
                   rows={3}
-                  value={
-                    formData
-                      .backgroundAndPsychosocialHistory
-                      .familyConstellationComments
-                  }
+                  value={formData.backgroundAndPsychosocialHistory.familyConstellationComments}
                   onChange={(event) =>
-                    updateBackground(
-                      "familyConstellationComments",
-                      event.target.value,
-                    )
+                    updateBackground("familyConstellationComments", event.target.value)
                   }
                   className={textareaClass}
                 />
@@ -745,17 +540,8 @@ export default function PreCounselingFormPage() {
               >
                 <textarea
                   rows={5}
-                  value={
-                    formData
-                      .backgroundAndPsychosocialHistory
-                      .academicContext
-                  }
-                  onChange={(event) =>
-                    updateBackground(
-                      "academicContext",
-                      event.target.value,
-                    )
-                  }
+                  value={formData.backgroundAndPsychosocialHistory.academicContext}
+                  onChange={(event) => updateBackground("academicContext", event.target.value)}
                   className={textareaClass}
                 />
               </Field>
@@ -766,17 +552,8 @@ export default function PreCounselingFormPage() {
               >
                 <textarea
                   rows={5}
-                  value={
-                    formData
-                      .backgroundAndPsychosocialHistory
-                      .peerSocialContext
-                  }
-                  onChange={(event) =>
-                    updateBackground(
-                      "peerSocialContext",
-                      event.target.value,
-                    )
-                  }
+                  value={formData.backgroundAndPsychosocialHistory.peerSocialContext}
+                  onChange={(event) => updateBackground("peerSocialContext", event.target.value)}
                   className={textareaClass}
                 />
               </Field>
@@ -789,41 +566,25 @@ export default function PreCounselingFormPage() {
             description="Indicate whether any of the following apply to you. If yes, you may provide a brief description."
           >
             <div className="grid gap-4 sm:grid-cols-2">
-              {HISTORY_FIELDS.map(
-                ([field, label]) => (
-                  <HistoryField
-                    key={field}
-                    label={label}
-                    value={
-                      formData
-                        .backgroundAndPsychosocialHistory[
-                        field
-                      ]
-                    }
-                    onChange={(value) =>
-                      updateHistory(
-                        field,
-                        value,
-                      )
-                    }
-                  />
-                ),
-              )}
+              {HISTORY_FIELDS.map(([field, label]) => (
+                <HistoryField
+                  key={field}
+                  label={label}
+                  value={formData.backgroundAndPsychosocialHistory[field]}
+                  onChange={(value) => updateHistory(field, value)}
+                />
+              ))}
             </div>
           </FormSection>
 
           <section className="rounded-2xl border border-[#E5DFDB] bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[15px] font-semibold text-[#403A36]">
-                  Ready to submit?
-                </p>
+                <p className="text-[15px] font-semibold text-[#403A36]">Ready to submit?</p>
 
                 <p className="mt-1 text-[13px] leading-5 text-[#8A827D]">
-                  Please review your answers before
-                  submitting. The information will
-                  be made available to your
-                  counselor.
+                  Please review your answers before submitting. The information will be made
+                  available to your counselor.
                 </p>
               </div>
 
@@ -832,9 +593,7 @@ export default function PreCounselingFormPage() {
                 disabled={isSubmitting}
                 className="h-10 shrink-0 rounded-xl bg-[#8C1518] px-6 text-[15px] font-semibold text-white transition hover:bg-[#701013] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting
-                  ? "Submitting..."
-                  : "Submit form"}
+                {isSubmitting ? "Submitting..." : "Submit form"}
               </button>
             </div>
           </section>
@@ -843,49 +602,34 @@ export default function PreCounselingFormPage() {
         <ConsentFormModal open={consentModalOpen} onClose={() => setConsentModalOpen(false)} />
 
         <footer className="py-8 text-center text-[12px] leading-5 text-[#9A928D]">
-          My.GUIDE · Office of Guidance and
-          Counseling
+          My.GUIDE · Office of Guidance and Counseling
         </footer>
       </div>
     </PageShell>
   );
 }
 
-function PageShell({
-  children,
-}) {
+function PageShell({ children }) {
   return (
     <main className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#302B28]">
       <div className="border-b border-[#E6E0DC] bg-white">
         <div className="mx-auto flex min-h-[64px] max-w-5xl items-center px-4 py-3 sm:px-6">
           <div>
-            <img
-              src={myGuideLogo}
-              alt="My.GUIDE"
-              className="h-14 w-auto object-contain sm:h-16"
-            />
+            <img src={myGuideLogo} alt="My.GUIDE" className="h-14 w-auto object-contain sm:h-16" />
 
             <p className="text-left text-[11px] leading-4 text-[#918984]">
-              Guidance, Unified Intervention,
-              Documentation, and Evaluation
+              Guidance, Unified Intervention, Documentation, and Evaluation
             </p>
           </div>
         </div>
       </div>
 
-      <div className="px-4 sm:px-6">
-        {children}
-      </div>
+      <div className="px-4 sm:px-6">{children}</div>
     </main>
   );
 }
 
-function FormSection({
-  number,
-  title,
-  description,
-  children,
-}) {
+function FormSection({ number, title, description, children }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-[#E5DFDB] bg-white shadow-sm">
       <header className="border-b border-[#EEE9E6] px-5 py-4 sm:px-6">
@@ -895,67 +639,42 @@ function FormSection({
           </span>
 
           <div>
-            <h2 className="text-[18px] font-semibold text-[#3B3532]">
-              {title}
-            </h2>
+            <h2 className="text-[18px] font-semibold text-[#3B3532]">{title}</h2>
 
-            <p className="mt-1 text-[13px] leading-5 text-[#8A827D]">
-              {description}
-            </p>
+            <p className="mt-1 text-[13px] leading-5 text-[#8A827D]">{description}</p>
           </div>
         </div>
       </header>
 
-      <div className="p-5 sm:p-6">
-        {children}
-      </div>
+      <div className="p-5 sm:p-6">{children}</div>
     </section>
   );
 }
 
-function ConsentItem({
-  checked,
-  onChange,
-  title,
-  description,
-}) {
+function ConsentItem({ checked, onChange, title, description }) {
   return (
     <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#E5DFDB] bg-[#FCFBFA] p-4 transition hover:border-[#CDBFBA]">
       <input
         type="checkbox"
         checked={checked}
-        onChange={(event) =>
-          onChange(event.target.checked)
-        }
+        onChange={(event) => onChange(event.target.checked)}
         className="mt-1 h-4 w-4 shrink-0 accent-[#8C1518]"
       />
 
       <span>
-        <span className="block text-[14px] font-semibold text-[#403A36]">
-          {title}
-        </span>
+        <span className="block text-[14px] font-semibold text-[#403A36]">{title}</span>
 
-        <span className="mt-1 block text-[13px] leading-5 text-[#817A76]">
-          {description}
-        </span>
+        <span className="mt-1 block text-[13px] leading-5 text-[#817A76]">{description}</span>
       </span>
     </label>
   );
 }
 
-function FamilyMemberCard({
-  index,
-  member,
-  canRemove,
-  onChange,
-  onRemove,
-}) {
+function FamilyMemberCard({ index, member, canRemove, onChange, onRemove }) {
   return (
     <div className="rounded-xl border border-[#E5DFDB] bg-[#FCFBFA] p-4">
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-[14px] font-semibold text-[#514B47]">
-          Family member {index + 1}
-        </p>
+        <p className="text-[14px] font-semibold text-[#514B47]">Family member {index + 1}</p>
 
         {canRemove && (
           <button
@@ -972,12 +691,7 @@ function FamilyMemberCard({
         <Field label="Name">
           <input
             value={member.name}
-            onChange={(event) =>
-              onChange(
-                "name",
-                event.target.value,
-              )
-            }
+            onChange={(event) => onChange("name", event.target.value)}
             className={inputClass}
           />
         </Field>
@@ -985,12 +699,7 @@ function FamilyMemberCard({
         <Field label="Relationship">
           <input
             value={member.relationship}
-            onChange={(event) =>
-              onChange(
-                "relationship",
-                event.target.value,
-              )
-            }
+            onChange={(event) => onChange("relationship", event.target.value)}
             placeholder="e.g. Mother"
             className={inputClass}
           />
@@ -1001,12 +710,7 @@ function FamilyMemberCard({
             type="number"
             min="0"
             value={member.age}
-            onChange={(event) =>
-              onChange(
-                "age",
-                event.target.value,
-              )
-            }
+            onChange={(event) => onChange("age", event.target.value)}
             className={inputClass}
           />
         </Field>
@@ -1014,24 +718,14 @@ function FamilyMemberCard({
         <Field label="Parent type">
           <select
             value={member.parentType}
-            onChange={(event) =>
-              onChange(
-                "parentType",
-                event.target.value,
-              )
-            }
+            onChange={(event) => onChange("parentType", event.target.value)}
             className={inputClass}
           >
-            {PARENT_TYPES.map(
-              (type) => (
-                <option
-                  key={type}
-                  value={type}
-                >
-                  {type}
-                </option>
-              ),
-            )}
+            {PARENT_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
           </select>
         </Field>
 
@@ -1039,33 +733,19 @@ function FamilyMemberCard({
           <label className="flex h-10 items-center gap-2 rounded-lg border border-[#DDD8D4] bg-white px-3">
             <input
               type="checkbox"
-              checked={
-                member.isSignificantPerson
-              }
-              onChange={(event) =>
-                onChange(
-                  "isSignificantPerson",
-                  event.target.checked,
-                )
-              }
+              checked={member.isSignificantPerson}
+              onChange={(event) => onChange("isSignificantPerson", event.target.checked)}
               className="h-4 w-4 accent-[#8C1518]"
             />
 
-            <span className="text-[13px] text-[#514B47]">
-              Mark as significant
-            </span>
+            <span className="text-[13px] text-[#514B47]">Mark as significant</span>
           </label>
         </Field>
 
         <Field label="Remarks">
           <input
             value={member.remarks}
-            onChange={(event) =>
-              onChange(
-                "remarks",
-                event.target.value,
-              )
-            }
+            onChange={(event) => onChange("remarks", event.target.value)}
             className={inputClass}
           />
         </Field>
@@ -1074,11 +754,7 @@ function FamilyMemberCard({
   );
 }
 
-function HistoryField({
-  label,
-  value,
-  onChange,
-}) {
+function HistoryField({ label, value, onChange }) {
   return (
     <div className="rounded-xl border border-[#E5DFDB] bg-[#FCFBFA] p-4">
       <label className="flex cursor-pointer items-center gap-2.5">
@@ -1088,16 +764,13 @@ function HistoryField({
           onChange={(event) =>
             onChange({
               ...value,
-              hasHistory:
-                event.target.checked,
+              hasHistory: event.target.checked,
             })
           }
           className="h-4 w-4 accent-[#8C1518]"
         />
 
-        <span className="text-[14px] font-semibold text-[#4B4541]">
-          {label}
-        </span>
+        <span className="text-[14px] font-semibold text-[#4B4541]">{label}</span>
       </label>
 
       {value.hasHistory && (
@@ -1107,8 +780,7 @@ function HistoryField({
           onChange={(event) =>
             onChange({
               ...value,
-              description:
-                event.target.value,
+              description: event.target.value,
             })
           }
           placeholder="Provide a brief description."
@@ -1119,51 +791,31 @@ function HistoryField({
   );
 }
 
-function Field({
-  label,
-  hint,
-  children,
-}) {
+function Field({ label, hint, children }) {
   return (
     <label className="block">
-      <span className="text-[14px] font-semibold text-[#4B4541]">
-        {label}
-      </span>
+      <span className="text-[14px] font-semibold text-[#4B4541]">{label}</span>
 
-      {hint && (
-        <span className="mt-1 block text-[12px] leading-4 text-[#948C87]">
-          {hint}
-        </span>
-      )}
+      {hint && <span className="mt-1 block text-[12px] leading-4 text-[#948C87]">{hint}</span>}
 
-      <div className="mt-2">
-        {children}
-      </div>
+      <div className="mt-2">{children}</div>
     </label>
   );
 }
 
-function StudentDetail({
-  label,
-  value,
-}) {
+function StudentDetail({ label, value }) {
   return (
     <div>
       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9A928D]">
         {label}
       </p>
 
-      <p className="mt-1 text-[14px] font-medium text-[#403A36]">
-        {value || "Not provided"}
-      </p>
+      <p className="mt-1 text-[14px] font-medium text-[#403A36]">{value || "Not provided"}</p>
     </div>
   );
 }
 
-function StatusCard({
-  title,
-  description,
-}) {
+function StatusCard({ title, description }) {
   return (
     <div className="mx-auto max-w-xl py-16">
       <div className="rounded-2xl border border-[#E5DFDB] bg-white p-7 text-center shadow-sm">
@@ -1171,37 +823,23 @@ function StatusCard({
           !
         </div>
 
-        <h1 className="mt-5 text-[22px] font-semibold text-[#302B28]">
-          {title}
-        </h1>
+        <h1 className="mt-5 text-[22px] font-semibold text-[#302B28]">{title}</h1>
 
-        <p className="mt-3 text-[14px] leading-6 text-[#756D69]">
-          {description}
-        </p>
+        <p className="mt-3 text-[14px] leading-6 text-[#756D69]">{description}</p>
       </div>
     </div>
   );
 }
 
-function formatStudentName(
-  student,
-) {
+function formatStudentName(student) {
   if (!student) {
     return "";
   }
 
-  return [
-    student.firstName,
-    student.middleName,
-    student.lastName,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  return [student.firstName, student.middleName, student.lastName].filter(Boolean).join(" ");
 }
 
-function formatDateTime(
-  value,
-) {
+function formatDateTime(value) {
   if (!value) {
     return "";
   }
@@ -1212,16 +850,13 @@ function formatDateTime(
     return "";
   }
 
-  return date.toLocaleString(
-    "en-PH",
-    {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    },
-  );
+  return date.toLocaleString("en-PH", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 const inputClass =

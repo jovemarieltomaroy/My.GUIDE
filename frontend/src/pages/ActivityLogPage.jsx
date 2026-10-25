@@ -1,10 +1,5 @@
 import { clickableRecordProps } from "../utils/clickableRecord";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -51,61 +46,41 @@ const PERIOD_OPTIONS = [
   },
 ];
 
-const PAGE_SIZE_OPTIONS = [
-  10,
-  20,
-  50,
-  100,
-];
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export default function ActivityLogPage() {
   const navigate = useNavigate();
   const { user, clearUser } = useAuth();
 
-  const [sidebarOpen, setSidebarOpen] =
-    useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [cases, setCases] =
-    useState([]);
+  const [cases, setCases] = useState([]);
 
-  const [isLoading, setIsLoading] =
-    useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [pageError, setPageError] =
-    useState("");
+  const [pageError, setPageError] = useState("");
 
-  const [searchInput, setSearchInput] =
-    useState("");
+  const [searchInput, setSearchInput] = useState("");
 
-  const [searchQuery, setSearchQuery] =
-    useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const [period, setPeriod] =
-    useState("30-days");
+  const [period, setPeriod] = useState("30-days");
 
-  const [actionFilter, setActionFilter] =
-    useState("");
+  const [actionFilter, setActionFilter] = useState("");
 
-  const [actorFilter, setActorFilter] =
-    useState("");
+  const [actorFilter, setActorFilter] = useState("");
 
-  const [caseStatusFilter, setCaseStatusFilter] =
-    useState("");
+  const [caseStatusFilter, setCaseStatusFilter] = useState("");
 
-  const [includeArchived, setIncludeArchived] =
-    useState(true);
+  const [includeArchived, setIncludeArchived] = useState(true);
 
-  const [currentPage, setCurrentPage] =
-    useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const [pageSize, setPageSize] =
-    useState(20);
+  const [pageSize, setPageSize] = useState(20);
 
-  const [selectedLog, setSelectedLog] =
-    useState(null);
+  const [selectedLog, setSelectedLog] = useState(null);
 
-  const isAdmin =
-    user?.role === ADMIN_ROLE;
+  const isAdmin = user?.role === ADMIN_ROLE;
 
   useEffect(() => {
     if (!user) {
@@ -116,9 +91,7 @@ export default function ActivityLogPage() {
       return;
     }
 
-    if (
-      user.mustChangePassword === true
-    ) {
+    if (user.mustChangePassword === true) {
       navigate("/change-password", {
         replace: true,
       });
@@ -126,9 +99,7 @@ export default function ActivityLogPage() {
       return;
     }
 
-    if (
-      user.profileCompleted === false
-    ) {
+    if (user.profileCompleted === false) {
       navigate("/complete-profile", {
         replace: true,
       });
@@ -136,76 +107,52 @@ export default function ActivityLogPage() {
   }, [user, navigate]);
 
   useEffect(() => {
-    const timer =
-      window.setTimeout(() => {
-        setSearchQuery(
-          searchInput
-            .trim()
-            .toLowerCase(),
-        );
-      }, 300);
+    const timer = window.setTimeout(() => {
+      setSearchQuery(searchInput.trim().toLowerCase());
+    }, 300);
 
-    return () =>
-      window.clearTimeout(timer);
+    return () => window.clearTimeout(timer);
   }, [searchInput]);
 
-  const handleUnauthorized =
-    useCallback(() => {
-      clearUser();
+  const handleUnauthorized = useCallback(() => {
+    clearUser();
 
-      navigate("/login", {
-        replace: true,
+    navigate("/login", {
+      replace: true,
+    });
+  }, [clearUser, navigate]);
+
+  const loadActivityLogs = useCallback(async () => {
+    if (!user || !isAdmin) {
+      return;
+    }
+
+    setIsLoading(true);
+    setPageError("");
+
+    try {
+      const data = await apiRequest("/cases", {
+        method: "GET",
       });
-    }, [clearUser, navigate]);
 
-  const loadActivityLogs =
-    useCallback(async () => {
-      if (!user || !isAdmin) {
+      if (!Array.isArray(data)) {
+        throw new Error("The backend returned an invalid cases response.");
+      }
+
+      setCases(data);
+    } catch (error) {
+      console.error("Unable to load activity logs:", error);
+
+      if (error.status === 401) {
+        handleUnauthorized();
         return;
       }
 
-      setIsLoading(true);
-      setPageError("");
-
-      try {
-        const data =
-          await apiRequest(
-            "/cases",
-            {
-              method: "GET",
-            },
-          );
-
-        if (!Array.isArray(data)) {
-          throw new Error(
-            "The backend returned an invalid cases response.",
-          );
-        }
-
-        setCases(data);
-      } catch (error) {
-        console.error(
-          "Unable to load activity logs:",
-          error,
-        );
-
-        if (error.status === 401) {
-          handleUnauthorized();
-          return;
-        }
-
-        setPageError(
-          error.message ||
-            "Unable to load activity logs.",
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    }, [
-      user,
-      isAdmin,
-      handleUnauthorized,
-    ]);
+      setPageError(error.message || "Unable to load activity logs.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, isAdmin, handleUnauthorized]);
 
   useEffect(() => {
     loadActivityLogs();
@@ -213,131 +160,60 @@ export default function ActivityLogPage() {
 
   const allLogs = useMemo(() => {
     return cases
-      .filter(
-        (caseRecord) =>
-          includeArchived ||
-          caseRecord.isArchived !== true,
-      )
+      .filter((caseRecord) => includeArchived || caseRecord.isArchived !== true)
       .flatMap((caseRecord) => {
-        const history =
-          caseRecord.actionHistory ||
-          [];
+        const history = caseRecord.actionHistory || [];
 
-        return history.map(
-          (entry, index) => ({
-            id:
-              entry._id ||
-              `${caseRecord._id}-${index}`,
+        return history.map((entry, index) => ({
+          id: entry._id || `${caseRecord._id}-${index}`,
 
-            action:
-              entry.action ||
-              "Updated",
+          action: entry.action || "Updated",
 
-            remarks:
-              entry.remarks ||
-              "No remarks recorded.",
+          remarks: entry.remarks || "No remarks recorded.",
 
-            actionDate:
-              entry.actionDate ||
-              entry.createdAt ||
-              caseRecord.updatedAt,
+          actionDate: entry.actionDate || entry.createdAt || caseRecord.updatedAt,
 
-            actor:
-              entry.actionBy,
+          actor: entry.actionBy,
 
-            actorId:
-              getRecordId(
-                entry.actionBy,
-              ),
+          actorId: getRecordId(entry.actionBy),
 
-            actorName:
-              formatName(
-                entry.actionBy,
-              ) ||
-              entry.actionBy?.email ||
-              "Unknown user",
+          actorName: formatName(entry.actionBy) || entry.actionBy?.email || "Unknown user",
 
-            actorRole:
-              entry.actionBy?.role ||
-              "Unknown role",
+          actorRole: entry.actionBy?.role || "Unknown role",
 
-            actorEmail:
-              entry.actionBy?.email ||
-              "",
+          actorEmail: entry.actionBy?.email || "",
 
-            caseId:
-              caseRecord._id ||
-              caseRecord.id,
+          caseId: caseRecord._id || caseRecord.id,
 
-            caseNumber:
-              caseRecord.caseNumber ||
-              "No case number",
+          caseNumber: caseRecord.caseNumber || "No case number",
 
-            caseStatus:
-              caseRecord.caseStatus ||
-              "Unknown",
+          caseStatus: caseRecord.caseStatus || "Unknown",
 
-            priority:
-              caseRecord.priorityLevel ||
-              "Not recorded",
+          priority: caseRecord.priorityLevel || "Not recorded",
 
-            isArchived:
-              caseRecord.isArchived === true,
+          isArchived: caseRecord.isArchived === true,
 
-            studentId:
-              getRecordId(
-                caseRecord.student,
-              ),
+          studentId: getRecordId(caseRecord.student),
 
-            studentName:
-              formatName(
-                caseRecord.student,
-              ) ||
-              "Unknown student",
+          studentName: formatName(caseRecord.student) || "Unknown student",
 
-            studentIdNumber:
-              caseRecord.student
-                ?.studentIdNumber ||
-              "Not recorded",
+          studentIdNumber: caseRecord.student?.studentIdNumber || "Not recorded",
 
-            college:
-              caseRecord.student
-                ?.college ||
-              "Not recorded",
+          college: caseRecord.student?.college || "Not recorded",
 
-            program:
-              caseRecord.student
-                ?.program ||
-              "Not recorded",
+          program: caseRecord.student?.program || "Not recorded",
 
-            domain:
-              caseRecord
-                .problemAssessment
-                ?.mainDomain ||
-              "Not recorded",
-          }));
+          domain: caseRecord.problemAssessment?.mainDomain || "Not recorded",
+        }));
       })
-      .sort(
-        (first, second) =>
-          new Date(
-            second.actionDate,
-          ) -
-          new Date(
-            first.actionDate,
-          ),
-      );
-  }, [
-    cases,
-    includeArchived,
-  ]);
+      .sort((first, second) => new Date(second.actionDate) - new Date(first.actionDate));
+  }, [cases, includeArchived]);
 
   const actors = useMemo(() => {
     const map = new Map();
 
     allLogs.forEach((log) => {
-      const key =
-        log.actorId ||
-        log.actorName;
+      const key = log.actorId || log.actorName;
 
       if (!key) return;
 
@@ -350,56 +226,30 @@ export default function ActivityLogPage() {
       }
     });
 
-    return Array.from(
-      map.values(),
-    ).sort((first, second) =>
-      first.name.localeCompare(
-        second.name,
-      ),
-    );
+    return Array.from(map.values()).sort((first, second) => first.name.localeCompare(second.name));
   }, [allLogs]);
 
   const filteredLogs = useMemo(() => {
-    const startDate =
-      getPeriodStart(period);
+    const startDate = getPeriodStart(period);
 
     return allLogs.filter((log) => {
       if (startDate) {
-        const logDate =
-          new Date(log.actionDate);
+        const logDate = new Date(log.actionDate);
 
-        if (
-          !Number.isNaN(
-            logDate.getTime(),
-          ) &&
-          logDate < startDate
-        ) {
+        if (!Number.isNaN(logDate.getTime()) && logDate < startDate) {
           return false;
         }
       }
 
-      if (
-        actionFilter &&
-        log.action !== actionFilter
-      ) {
+      if (actionFilter && log.action !== actionFilter) {
         return false;
       }
 
-      if (
-        actorFilter &&
-        (
-          log.actorId ||
-          log.actorName
-        ) !== actorFilter
-      ) {
+      if (actorFilter && (log.actorId || log.actorName) !== actorFilter) {
         return false;
       }
 
-      if (
-        caseStatusFilter &&
-        log.caseStatus !==
-          caseStatusFilter
-      ) {
+      if (caseStatusFilter && log.caseStatus !== caseStatusFilter) {
         return false;
       }
 
@@ -417,125 +267,58 @@ export default function ActivityLogPage() {
           log.domain,
         ]
           .filter(Boolean)
-          .map((value) =>
-            String(value)
-              .toLowerCase(),
-          );
+          .map((value) => String(value).toLowerCase());
 
-        if (
-          !fields.some((value) =>
-            value.includes(
-              searchQuery,
-            ),
-          )
-        ) {
+        if (!fields.some((value) => value.includes(searchQuery))) {
           return false;
         }
       }
 
       return true;
     });
-  }, [
-    allLogs,
-    period,
-    actionFilter,
-    actorFilter,
-    caseStatusFilter,
-    searchQuery,
-  ]);
+  }, [allLogs, period, actionFilter, actorFilter, caseStatusFilter, searchQuery]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [
-    period,
-    actionFilter,
-    actorFilter,
-    caseStatusFilter,
-    includeArchived,
-    searchQuery,
-    pageSize,
-  ]);
+  }, [period, actionFilter, actorFilter, caseStatusFilter, includeArchived, searchQuery, pageSize]);
 
   const summary = useMemo(() => {
-    const today =
-      startOfDay(new Date());
+    const today = startOfDay(new Date());
 
-    const tomorrow =
-      new Date(today);
+    const tomorrow = new Date(today);
 
-    tomorrow.setDate(
-      tomorrow.getDate() + 1,
-    );
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const todayCount =
-      allLogs.filter((log) => {
-        const date =
-          new Date(log.actionDate);
+    const todayCount = allLogs.filter((log) => {
+      const date = new Date(log.actionDate);
 
-        return (
-          !Number.isNaN(
-            date.getTime(),
-          ) &&
-          date >= today &&
-          date < tomorrow
-        );
-      }).length;
+      return !Number.isNaN(date.getTime()) && date >= today && date < tomorrow;
+    }).length;
 
-    const activeActors =
-      new Set(
-        filteredLogs
-          .map((log) =>
-            log.actorId ||
-            log.actorName,
-          )
-          .filter(Boolean),
-      ).size;
+    const activeActors = new Set(
+      filteredLogs.map((log) => log.actorId || log.actorName).filter(Boolean)
+    ).size;
 
-    const mostCommonAction =
-      getMostCommonAction(
-        filteredLogs,
-      );
+    const mostCommonAction = getMostCommonAction(filteredLogs);
 
     return {
-      total:
-        filteredLogs.length,
+      total: filteredLogs.length,
 
-      today:
-        todayCount,
+      today: todayCount,
 
       activeActors,
 
       mostCommonAction,
     };
-  }, [
-    allLogs,
-    filteredLogs,
-  ]);
+  }, [allLogs, filteredLogs]);
 
-  const totalPages =
-    Math.max(
-      1,
-      Math.ceil(
-        filteredLogs.length /
-          pageSize,
-      ),
-    );
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize));
 
-  const safeCurrentPage =
-    Math.min(
-      currentPage,
-      totalPages,
-    );
+  const safeCurrentPage = Math.min(currentPage, totalPages);
 
-  const pageStart =
-    (safeCurrentPage - 1) *
-    pageSize;
+  const pageStart = (safeCurrentPage - 1) * pageSize;
 
-  const displayedLogs =
-    filteredLogs.slice(
-      pageStart,
-      pageStart + pageSize,
-    );
+  const displayedLogs = filteredLogs.slice(pageStart, pageStart + pageSize);
 
   const hasFilters =
     period !== "30-days" ||
@@ -556,88 +339,54 @@ export default function ActivityLogPage() {
   };
 
   const exportCsv = () => {
-    if (
-      filteredLogs.length === 0
-    ) {
-      setPageError(
-        "There are no activity logs to export.",
-      );
+    if (filteredLogs.length === 0) {
+      setPageError("There are no activity logs to export.");
 
       return;
     }
 
-    const rows =
-      filteredLogs.map(
-        (log) => ({
-          Date:
-            formatDateTime(
-              log.actionDate,
-            ),
+    const rows = filteredLogs.map((log) => ({
+      Date: formatDateTime(log.actionDate),
 
-          Action:
-            log.action,
+      Action: log.action,
 
-          User:
-            log.actorName,
+      User: log.actorName,
 
-          Role:
-            log.actorRole,
+      Role: log.actorRole,
 
-          "Case Number":
-            log.caseNumber,
+      "Case Number": log.caseNumber,
 
-          Student:
-            log.studentName,
+      Student: log.studentName,
 
-          "Student ID":
-            log.studentIdNumber,
+      "Student ID": log.studentIdNumber,
 
-          College:
-            log.college,
+      College: log.college,
 
-          Program:
-            log.program,
+      Program: log.program,
 
-          Domain:
-            log.domain,
+      Domain: log.domain,
 
-          "Case Status":
-            log.caseStatus,
+      "Case Status": log.caseStatus,
 
-          Archived:
-            log.isArchived
-              ? "Yes"
-              : "No",
+      Archived: log.isArchived ? "Yes" : "No",
 
-          Remarks:
-            log.remarks,
-        }),
-      );
+      Remarks: log.remarks,
+    }));
 
-    const csv =
-      convertRowsToCsv(rows);
+    const csv = convertRowsToCsv(rows);
 
-    const blob =
-      new Blob([csv], {
-        type:
-          "text/csv;charset=utf-8;",
-      });
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;",
+    });
 
-    const url =
-      URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
 
-    const anchor =
-      document.createElement("a");
+    const anchor = document.createElement("a");
 
     anchor.href = url;
-    anchor.download =
-      `activity-log-${formatFileDate(
-        new Date(),
-      )}.csv`;
+    anchor.download = `activity-log-${formatFileDate(new Date())}.csv`;
 
-    document.body.appendChild(
-      anchor,
-    );
+    document.body.appendChild(anchor);
 
     anchor.click();
     anchor.remove();
@@ -653,21 +402,15 @@ export default function ActivityLogPage() {
     return (
       <main className="grid min-h-screen place-items-center bg-[#F7F6F4] px-5">
         <section className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center">
-          <h1 className="text-xl font-semibold text-red-700">
-            Activity log unavailable
-          </h1>
+          <h1 className="text-xl font-semibold text-red-700">Activity log unavailable</h1>
 
           <p className="mt-3 text-[15px] text-[#756E69]">
-            Only Counselor-Admin
-            accounts can access
-            system activity logs.
+            Only Counselor-Admin accounts can access system activity logs.
           </p>
 
           <button
             type="button"
-            onClick={() =>
-              navigate("/dashboard")
-            }
+            onClick={() => navigate("/dashboard")}
             className="mt-6 rounded-xl bg-[#8C1518] px-5 py-3 text-[15px] font-semibold text-white"
           >
             Return to dashboard
@@ -679,11 +422,7 @@ export default function ActivityLogPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#292522]">
-      <AppSidebar
-        user={user}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-      />
+      <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex min-h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-7">
@@ -691,27 +430,18 @@ export default function ActivityLogPage() {
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
-                onClick={() =>
-                  setSidebarOpen(true)
-                }
+                onClick={() => setSidebarOpen(true)}
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-[#E4DFDC] text-[#655E59] lg:hidden"
                 aria-label="Open navigation"
               >
-                <Icon
-                  name="menu"
-                  className="h-4 w-4"
-                />
+                <Icon name="menu" className="h-4 w-4" />
               </button>
 
               <div>
-                <h1 className="text-[20px] font-semibold">
-                  Activity Log
-                </h1>
+                <h1 className="text-[20px] font-semibold">Activity Log</h1>
 
                 <p className="hidden text-[14px] text-[#99918C] sm:block">
-                  Review administrator and
-                  counselor activity across
-                  counseling cases
+                  Review administrator and counselor activity across counseling cases
                 </p>
               </div>
             </div>
@@ -720,17 +450,10 @@ export default function ActivityLogPage() {
               <button
                 type="button"
                 onClick={exportCsv}
-                disabled={
-                  isLoading ||
-                  filteredLogs.length === 0
-                }
+                disabled={isLoading || filteredLogs.length === 0}
                 className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#8C1518] bg-white px-3 text-[13px] font-semibold text-[#8C1518] disabled:opacity-40"
               >
-                <Icon
-                  name="file"
-                  className="h-3 w-3"
-                />
-
+                <Icon name="file" className="h-3 w-3" />
                 Export CSV
               </button>
 
@@ -740,15 +463,7 @@ export default function ActivityLogPage() {
                 disabled={isLoading}
                 className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#8C1518] px-3 text-[13px] font-semibold text-white disabled:opacity-50"
               >
-                <Icon
-                  name="history"
-                  className={`h-3 w-3 ${
-                    isLoading
-                      ? "animate-spin"
-                      : ""
-                  }`}
-                />
-
+                <Icon name="history" className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} />
                 Refresh
               </button>
             </div>
@@ -756,12 +471,7 @@ export default function ActivityLogPage() {
         </header>
 
         <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
-          {pageError && (
-            <Alert
-              tone="error"
-              message={pageError}
-            />
-          )}
+          {pageError && <Alert tone="error" message={pageError} />}
 
           <section>
             <h2 className="text-[27px] font-semibold tracking-[-0.03em]">
@@ -769,13 +479,9 @@ export default function ActivityLogPage() {
             </h2>
 
             <p className="mt-1 max-w-[920px] text-[14px] leading-4 text-[#89817D]">
-              This page shows case-related
-              activity currently stored in
-              each case’s action history.
-              Use it to review who performed
-              an action, when it occurred,
-              which case was affected, and
-              what remarks were recorded.
+              This page shows case-related activity currently stored in each case’s action history.
+              Use it to review who performed an action, when it occurred, which case was affected,
+              and what remarks were recorded.
             </p>
           </section>
 
@@ -803,17 +509,8 @@ export default function ActivityLogPage() {
 
             <MetricCard
               label="Most common action"
-              value={
-                summary
-                  .mostCommonAction
-                  ?.value || 0
-              }
-              note={
-                summary
-                  .mostCommonAction
-                  ?.label ||
-                "No activity"
-              }
+              value={summary.mostCommonAction?.value || 0}
+              note={summary.mostCommonAction?.label || "No activity"}
               icon="folder"
             />
           </section>
@@ -830,11 +527,7 @@ export default function ActivityLogPage() {
                   <input
                     type="search"
                     value={searchInput}
-                    onChange={(event) =>
-                      setSearchInput(
-                        event.target.value,
-                      )
-                    }
+                    onChange={(event) => setSearchInput(event.target.value)}
                     placeholder="Case, student, user..."
                     className={`${filterClass} pl-8 !text-[15px]`}
                   />
@@ -844,110 +537,61 @@ export default function ActivityLogPage() {
               <FilterField label="Period">
                 <select
                   value={period}
-                  onChange={(event) =>
-                    setPeriod(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => setPeriod(event.target.value)}
                   className={filterClass}
                 >
-                  {PERIOD_OPTIONS.map(
-                    (option) => (
-                      <option
-                        key={option.value}
-                        value={
-                          option.value
-                        }
-                      >
-                        {option.label}
-                      </option>
-                    ),
-                  )}
+                  {PERIOD_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </FilterField>
 
               <FilterField label="Action">
                 <select
                   value={actionFilter}
-                  onChange={(event) =>
-                    setActionFilter(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => setActionFilter(event.target.value)}
                   className={filterClass}
                 >
-                  <option value="">
-                    All actions
-                  </option>
+                  <option value="">All actions</option>
 
-                  {ACTION_OPTIONS.map(
-                    (action) => (
-                      <option
-                        key={action}
-                        value={action}
-                      >
-                        {action}
-                      </option>
-                    ),
-                  )}
+                  {ACTION_OPTIONS.map((action) => (
+                    <option key={action} value={action}>
+                      {action}
+                    </option>
+                  ))}
                 </select>
               </FilterField>
 
               <FilterField label="Performed by">
                 <select
                   value={actorFilter}
-                  onChange={(event) =>
-                    setActorFilter(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => setActorFilter(event.target.value)}
                   className={filterClass}
                 >
-                  <option value="">
-                    All users
-                  </option>
+                  <option value="">All users</option>
 
-                  {actors.map(
-                    (actor) => (
-                      <option
-                        key={actor.id}
-                        value={actor.id}
-                      >
-                        {actor.name}
-                      </option>
-                    ),
-                  )}
+                  {actors.map((actor) => (
+                    <option key={actor.id} value={actor.id}>
+                      {actor.name}
+                    </option>
+                  ))}
                 </select>
               </FilterField>
 
               <FilterField label="Case status">
                 <select
                   value={caseStatusFilter}
-                  onChange={(event) =>
-                    setCaseStatusFilter(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => setCaseStatusFilter(event.target.value)}
                   className={filterClass}
                 >
-                  <option value="">
-                    All statuses
-                  </option>
-                  <option value="Open">
-                    Open
-                  </option>
-                  <option value="In Progress">
-                    In Progress
-                  </option>
-                  <option value="For Follow-up">
-                    For Follow-up
-                  </option>
-                  <option value="Closed">
-                    Closed
-                  </option>
-                  <option value="Terminated">
-                    Terminated
-                  </option>
+                  <option value="">All statuses</option>
+                  <option value="Open">Open</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="For Follow-up">For Follow-up</option>
+                  <option value="Closed">Closed</option>
+                  <option value="Terminated">Terminated</option>
                 </select>
               </FilterField>
 
@@ -956,17 +600,11 @@ export default function ActivityLogPage() {
                   <input
                     type="checkbox"
                     checked={includeArchived}
-                    onChange={(event) =>
-                      setIncludeArchived(
-                        event.target.checked,
-                      )
-                    }
+                    onChange={(event) => setIncludeArchived(event.target.checked)}
                     className="h-3.5 w-3.5 accent-[#8C1518]"
                   />
 
-                  <span className="text-[13px] font-medium text-[#5D5652]">
-                    Include archived
-                  </span>
+                  <span className="text-[13px] font-medium text-[#5D5652]">Include archived</span>
                 </label>
 
                 {hasFilters && (
@@ -985,48 +623,26 @@ export default function ActivityLogPage() {
           <section className="mt-5 overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white">
             <header className="flex flex-col gap-3 border-b border-[#ECE8E5] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-[17px] font-semibold">
-                  Case activity records
-                </h3>
+                <h3 className="text-[17px] font-semibold">Case activity records</h3>
 
                 <p className="mt-1 text-[15px] text-[#99918C]">
-                  Showing{" "}
-                  {filteredLogs.length === 0
-                    ? 0
-                    : pageStart + 1}
-                  –
-                  {Math.min(
-                    pageStart + pageSize,
-                    filteredLogs.length,
-                  )}{" "}
-                  of {filteredLogs.length}
+                  Showing {filteredLogs.length === 0 ? 0 : pageStart + 1}–
+                  {Math.min(pageStart + pageSize, filteredLogs.length)} of {filteredLogs.length}
                 </p>
               </div>
 
               <label className="flex items-center gap-2 text-[15px] text-[#706965]">
                 Rows per page
-
                 <select
                   value={pageSize}
-                  onChange={(event) =>
-                    setPageSize(
-                      Number(
-                        event.target.value,
-                      ),
-                    )
-                  }
+                  onChange={(event) => setPageSize(Number(event.target.value))}
                   className="h-8 rounded-lg border border-[#DDD8D4] bg-white px-2 text-[14px]"
                 >
-                  {PAGE_SIZE_OPTIONS.map(
-                    (value) => (
-                      <option
-                        key={value}
-                        value={value}
-                      >
-                        {value}
-                      </option>
-                    ),
-                  )}
+                  {PAGE_SIZE_OPTIONS.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
                 </select>
               </label>
             </header>
@@ -1038,39 +654,23 @@ export default function ActivityLogPage() {
             ) : (
               <ActivityTable
                 logs={displayedLogs}
-                onOpenCase={(caseId) =>
-                  navigate(
-                    `/cases/${caseId}`,
-                  )
-                }
-                onViewDetails={
-                  setSelectedLog
-                }
+                onOpenCase={(caseId) => navigate(`/cases/${caseId}`)}
+                onViewDetails={setSelectedLog}
               />
             )}
 
-            {!isLoading &&
-              filteredLogs.length > 0 && (
-                <Pagination
-                  currentPage={
-                    safeCurrentPage
-                  }
-                  totalPages={
-                    totalPages
-                  }
-                  onPageChange={
-                    setCurrentPage
-                  }
-                />
-              )}
+            {!isLoading && filteredLogs.length > 0 && (
+              <Pagination
+                currentPage={safeCurrentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            )}
           </section>
 
           <div className="mt-5 rounded-2xl border border-[#E6D9B7] bg-[#FCF8EB] px-4 py-3">
             <div className="flex items-start gap-3">
-              <Icon
-                name="alertTriangle"
-                className="mt-0.5 h-4 w-4 shrink-0 text-[#A77A00]"
-              />
+              <Icon name="alertTriangle" className="mt-0.5 h-4 w-4 shrink-0 text-[#A77A00]" />
 
               <div>
                 <p className="text-[14px] font-semibold text-[#705A1B]">
@@ -1078,19 +678,10 @@ export default function ActivityLogPage() {
                 </p>
 
                 <p className="mt-1 text-[13px] leading-4 text-[#806E3A]">
-                  This version derives
-                  records from each case’s
-                  actionHistory. It covers
-                  case actions such as
-                  creation, assignment,
-                  updates, follow-ups,
-                  closure, archiving, and
-                  restoration. Login events,
-                  failed authentication,
-                  user-account changes, and
-                  report exports require a
-                  separate system-wide audit
-                  log collection.
+                  This version derives records from each case’s actionHistory. It covers case
+                  actions such as creation, assignment, updates, follow-ups, closure, archiving, and
+                  restoration. Login events, failed authentication, user-account changes, and report
+                  exports require a separate system-wide audit log collection.
                 </p>
               </div>
             </div>
@@ -1100,102 +691,67 @@ export default function ActivityLogPage() {
 
       <ActivityDetailsModal
         log={selectedLog}
-        onClose={() =>
-          setSelectedLog(null)
-        }
+        onClose={() => setSelectedLog(null)}
         onOpenCase={(caseId) => {
           setSelectedLog(null);
-          navigate(
-            `/cases/${caseId}`,
-          );
+          navigate(`/cases/${caseId}`);
         }}
       />
     </div>
   );
 }
 
-function ActivityTable({
-  logs,
-  onOpenCase,
-  onViewDetails,
-}) {
+function ActivityTable({ logs, onOpenCase, onViewDetails }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[1000px] table-fixed border-collapse">
         <thead>
           <tr className="border-b border-[#ECE8E5] bg-[#FCFBFA] text-left">
-            <th className={`${tableHeadClass} w-[13%]`}>
-              Date and time
-            </th>
+            <th className={`${tableHeadClass} w-[13%]`}>Date and time</th>
 
-            <th className={`${tableHeadClass} w-[10%]`}>
-              Action
-            </th>
+            <th className={`${tableHeadClass} w-[10%]`}>Action</th>
 
-            <th className={`${tableHeadClass} w-[13%]`}>
-              Performed by
-            </th>
+            <th className={`${tableHeadClass} w-[13%]`}>Performed by</th>
 
-            <th className={`${tableHeadClass} w-[12%]`}>
-              Case
-            </th>
+            <th className={`${tableHeadClass} w-[12%]`}>Case</th>
 
-            <th className={`${tableHeadClass} w-[17%]`}>
-              Student
-            </th>
+            <th className={`${tableHeadClass} w-[17%]`}>Student</th>
 
-            <th className={`${tableHeadClass} w-[35%]`}>
-              Remarks
-            </th>
-
-
+            <th className={`${tableHeadClass} w-[35%]`}>Remarks</th>
           </tr>
         </thead>
         <tbody>
           {logs.map((log) => (
             <tr
-              {...clickableRecordProps(() => onViewDetails(log), `Open activity details for ${log.caseNumber}`)}
+              {...clickableRecordProps(
+                () => onViewDetails(log),
+                `Open activity details for ${log.caseNumber}`
+              )}
               key={log.id}
               className="clickable-record border-b border-[#F0ECE9] last:border-b-0 hover:bg-[#FCFBFA]"
             >
               <td className={tableCellClass}>
                 <p className="text-[15px] font-medium text-[#4F4945]">
-                  {formatDate(
-                    log.actionDate,
-                  )}
+                  {formatDate(log.actionDate)}
                 </p>
 
-                <p className="mt-0.5 text-[15px] text-[#99918D]">
-                  {formatTime(
-                    log.actionDate,
-                  )}
-                </p>
+                <p className="mt-0.5 text-[15px] text-[#99918D]">{formatTime(log.actionDate)}</p>
               </td>
 
               <td className={tableCellClass}>
-                <ActionBadge
-                  action={log.action}
-                />
+                <ActionBadge action={log.action} />
               </td>
 
               <td className={tableCellClass}>
-                <p className="max-w-[180px] truncate text-[15px] font-semibold">
-                  {log.actorName}
-                </p>
+                <p className="max-w-[180px] truncate text-[15px] font-semibold">{log.actorName}</p>
 
-                <p className="mt-0.5 text-[12px] text-[#99918D]">
-                  {log.actorRole}
-                </p>
+                <p className="mt-0.5 text-[12px] text-[#99918D]">{log.actorRole}</p>
               </td>
 
               <td className={tableCellClass}>
                 <button
                   type="button"
-                  onClick={() =>
-                    onOpenCase(
-                      log.caseId,
-                    )
-                  }
+                  onClick={() => onOpenCase(log.caseId)}
                   className="text-left text-[15px] font-semibold text-[#8C1518] hover:underline"
                 >
                   {log.caseNumber}
@@ -1203,9 +759,7 @@ function ActivityTable({
 
                 <p className="mt-0.5 text-[12px] text-[#99918D]">
                   {log.caseStatus}
-                  {log.isArchived
-                    ? " · Archived"
-                    : ""}
+                  {log.isArchived ? " · Archived" : ""}
                 </p>
               </td>
 
@@ -1214,18 +768,12 @@ function ActivityTable({
                   {log.studentName}
                 </p>
 
-                <p className="mt-0.5 text-[12px] text-[#99918D]">
-                  {log.studentIdNumber}
-                </p>
+                <p className="mt-0.5 text-[12px] text-[#99918D]">{log.studentIdNumber}</p>
               </td>
 
               <td className={`${tableCellClass} w-[35%]`}>
-                <p className="line-clamp-2 text-[15px] leading-4 text-[#68615D]">
-                  {log.remarks}
-                </p>
+                <p className="line-clamp-2 text-[15px] leading-4 text-[#68615D]">{log.remarks}</p>
               </td>
-
-
             </tr>
           ))}
         </tbody>
@@ -1234,19 +782,13 @@ function ActivityTable({
   );
 }
 
-function ActivityDetailsModal({
-  log,
-  onClose,
-  onOpenCase,
-}) {
+function ActivityDetailsModal({ log, onClose, onOpenCase }) {
   useEffect(() => {
     if (!log) return undefined;
 
-    const oldOverflow =
-      document.body.style.overflow;
+    const oldOverflow = document.body.style.overflow;
 
-    document.body.style.overflow =
-      "hidden";
+    document.body.style.overflow = "hidden";
 
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
@@ -1254,19 +796,12 @@ function ActivityDetailsModal({
       }
     };
 
-    window.addEventListener(
-      "keydown",
-      onKeyDown,
-    );
+    window.addEventListener("keydown", onKeyDown);
 
     return () => {
-      document.body.style.overflow =
-        oldOverflow;
+      document.body.style.overflow = oldOverflow;
 
-      window.removeEventListener(
-        "keydown",
-        onKeyDown,
-      );
+      window.removeEventListener("keydown", onKeyDown);
     };
   }, [log, onClose]);
 
@@ -1289,20 +824,12 @@ function ActivityDetailsModal({
         <header className="flex items-start justify-between gap-4 border-b border-[#ECE8E5] px-5 py-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-[20px] font-semibold">
-                Activity details
-              </h2>
+              <h2 className="text-[20px] font-semibold">Activity details</h2>
 
-              <ActionBadge
-                action={log.action}
-              />
+              <ActionBadge action={log.action} />
             </div>
 
-            <p className="mt-1 text-[13px] text-[#938B86]">
-              {formatDateTime(
-                log.actionDate,
-              )}
-            </p>
+            <p className="mt-1 text-[13px] text-[#938B86]">{formatDateTime(log.actionDate)}</p>
           </div>
 
           <button
@@ -1311,10 +838,7 @@ function ActivityDetailsModal({
             className="grid h-8 w-8 place-items-center rounded-lg text-[#8C847F] hover:bg-[#F4F1EF]"
             aria-label="Close"
           >
-            <Icon
-              name="close"
-              className="h-3.5 w-3.5"
-            />
+            <Icon name="close" className="h-3.5 w-3.5" />
           </button>
         </header>
 
@@ -1323,54 +847,25 @@ function ActivityDetailsModal({
             <DetailCard
               label="Performed by"
               value={log.actorName}
-              secondary={
-                log.actorEmail ||
-                log.actorRole
-              }
+              secondary={log.actorEmail || log.actorRole}
             />
 
-            <DetailCard
-              label="Case"
-              value={log.caseNumber}
-              secondary={
-                log.caseStatus
-              }
-            />
+            <DetailCard label="Case" value={log.caseNumber} secondary={log.caseStatus} />
 
-            <DetailCard
-              label="Student"
-              value={log.studentName}
-              secondary={
-                log.studentIdNumber
-              }
-            />
+            <DetailCard label="Student" value={log.studentName} secondary={log.studentIdNumber} />
 
-            <DetailCard
-              label="Academic information"
-              value={log.college}
-              secondary={
-                log.program
-              }
-            />
+            <DetailCard label="Academic information" value={log.college} secondary={log.program} />
 
             <DetailCard
               label="Concern domain"
               value={log.domain}
-              secondary={
-                `Priority: ${log.priority}`
-              }
+              secondary={`Priority: ${log.priority}`}
             />
 
             <DetailCard
               label="Record state"
-              value={
-                log.isArchived
-                  ? "Archived"
-                  : "Active record"
-              }
-              secondary={
-                log.caseStatus
-              }
+              value={log.isArchived ? "Archived" : "Active record"}
+              secondary={log.caseStatus}
             />
           </div>
 
@@ -1396,11 +891,7 @@ function ActivityDetailsModal({
 
           <button
             type="button"
-            onClick={() =>
-              onOpenCase(
-                log.caseId,
-              )
-            }
+            onClick={() => onOpenCase(log.caseId)}
             className="h-8 rounded-lg bg-[#8C1518] px-3 text-[13px] font-semibold text-white"
           >
             Open case
@@ -1411,20 +902,12 @@ function ActivityDetailsModal({
   );
 }
 
-function MetricCard({
-  label,
-  value,
-  note,
-  icon,
-}) {
+function MetricCard({ label, value, note, icon }) {
   return (
     <article className="rounded-xl border border-[#E4DFDC] bg-white p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#F4EAEA] text-[#8C1518]">
-          <Icon
-            name={icon}
-            className="h-4 w-4"
-          />
+          <Icon name={icon} className="h-4 w-4" />
         </div>
 
         <span className="max-w-[130px] text-right text-[12px] leading-3 text-[#948C87]">
@@ -1432,38 +915,25 @@ function MetricCard({
         </span>
       </div>
 
-      <p className="mt-3 text-[13px] text-[#8D8580]">
-        {label}
-      </p>
+      <p className="mt-3 text-[13px] text-[#8D8580]">{label}</p>
 
-      <p className="mt-1 text-[22px] font-semibold tracking-[-0.04em]">
-        {value}
-      </p>
+      <p className="mt-1 text-[22px] font-semibold tracking-[-0.04em]">{value}</p>
     </article>
   );
 }
 
-function Pagination({
-  currentPage,
-  totalPages,
-  onPageChange,
-}) {
+function Pagination({ currentPage, totalPages, onPageChange }) {
   return (
     <footer className="flex items-center justify-between border-t border-[#ECE8E5] px-4 py-3">
       <p className="text-[13px] text-[#8C847F]">
-        Page {currentPage} of{" "}
-        {totalPages}
+        Page {currentPage} of {totalPages}
       </p>
 
       <div className="flex gap-2">
         <button
           type="button"
           disabled={currentPage <= 1}
-          onClick={() =>
-            onPageChange(
-              currentPage - 1,
-            )
-          }
+          onClick={() => onPageChange(currentPage - 1)}
           className="h-8 rounded-lg border border-[#DDD7D3] bg-white px-3 text-[13px] font-semibold text-[#5E5753] disabled:opacity-40"
         >
           Previous
@@ -1471,14 +941,8 @@ function Pagination({
 
         <button
           type="button"
-          disabled={
-            currentPage >= totalPages
-          }
-          onClick={() =>
-            onPageChange(
-              currentPage + 1,
-            )
-          }
+          disabled={currentPage >= totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
           className="h-8 rounded-lg border border-[#DDD7D3] bg-white px-3 text-[13px] font-semibold text-[#5E5753] disabled:opacity-40"
         >
           Next
@@ -1490,33 +954,22 @@ function Pagination({
 
 function ActionBadge({ action }) {
   const styles = {
-    Created:
-      "bg-emerald-50 text-emerald-700",
-    Assigned:
-      "bg-blue-50 text-blue-700",
-    Reassigned:
-      "bg-violet-50 text-violet-700",
-    Updated:
-      "bg-slate-100 text-slate-700",
-    "Follow-up":
-      "bg-amber-50 text-amber-700",
-    Closed:
-      "bg-emerald-50 text-emerald-700",
-    Reopened:
-      "bg-blue-50 text-blue-700",
-    Archived:
-      "bg-red-50 text-red-700",
-    Restored:
-      "bg-cyan-50 text-cyan-700",
-    Terminated:
-      "bg-red-50 text-red-700",
+    Created: "bg-emerald-50 text-emerald-700",
+    Assigned: "bg-blue-50 text-blue-700",
+    Reassigned: "bg-violet-50 text-violet-700",
+    Updated: "bg-slate-100 text-slate-700",
+    "Follow-up": "bg-amber-50 text-amber-700",
+    Closed: "bg-emerald-50 text-emerald-700",
+    Reopened: "bg-blue-50 text-blue-700",
+    Archived: "bg-red-50 text-red-700",
+    Restored: "bg-cyan-50 text-cyan-700",
+    Terminated: "bg-red-50 text-red-700",
   };
 
   return (
     <span
       className={`inline-flex rounded-full px-2 py-1 text-[13px] font-medium ${
-        styles[action] ||
-        "bg-[#F1EEEC] text-[#6E6763]"
+        styles[action] || "bg-[#F1EEEC] text-[#6E6763]"
       }`}
     >
       {action || "Unknown"}
@@ -1524,43 +977,26 @@ function ActionBadge({ action }) {
   );
 }
 
-function DetailCard({
-  label,
-  value,
-  secondary,
-}) {
+function DetailCard({ label, value, secondary }) {
   return (
     <article className="rounded-xl border border-[#E7E2DF] bg-[#FCFBFA] p-3">
       <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#958D88]">
         {label}
       </p>
 
-      <p className="mt-1 text-[14px] font-semibold text-[#4E4844]">
-        {value || "Not recorded"}
-      </p>
+      <p className="mt-1 text-[14px] font-semibold text-[#4E4844]">{value || "Not recorded"}</p>
 
-      {secondary && (
-        <p className="mt-1 text-[13px] text-[#938B86]">
-          {secondary}
-        </p>
-      )}
+      {secondary && <p className="mt-1 text-[13px] text-[#938B86]">{secondary}</p>}
     </article>
   );
 }
 
-function FilterField({
-  label,
-  children,
-}) {
+function FilterField({ label, children }) {
   return (
     <label>
-      <span className="text-[13px] font-semibold text-[#5B544F]">
-        {label}
-      </span>
+      <span className="text-[13px] font-semibold text-[#5B544F]">{label}</span>
 
-      <div className="mt-1.5">
-        {children}
-      </div>
+      <div className="mt-1.5">{children}</div>
     </label>
   );
 }
@@ -1571,9 +1007,7 @@ function LoadingPanel() {
       <div className="text-center">
         <span className="mx-auto block h-7 w-7 animate-spin rounded-full border-2 border-[#8C1518]/20 border-t-[#8C1518]" />
 
-        <p className="mt-3 text-[13px] text-[#8C847F]">
-          Loading activity logs...
-        </p>
+        <p className="mt-3 text-[13px] text-[#8C847F]">Loading activity logs...</p>
       </div>
     </div>
   );
@@ -1584,32 +1018,22 @@ function EmptyPanel() {
     <div className="grid min-h-[420px] place-items-center px-6 text-center">
       <div>
         <div className="mx-auto grid h-11 w-11 place-items-center rounded-xl bg-[#F4EAEA] text-[#8C1518]">
-          <Icon
-            name="history"
-            className="h-5 w-5"
-          />
+          <Icon name="history" className="h-5 w-5" />
         </div>
 
-        <p className="mt-4 text-[15px] font-semibold">
-          No activity logs found
-        </p>
+        <p className="mt-4 text-[15px] font-semibold">No activity logs found</p>
 
         <p className="mt-1 text-[14px] leading-4 text-[#938C87]">
-          Adjust the selected filters or
-          verify that case action history is
-          being recorded by the backend.
+          Adjust the selected filters or verify that case action history is being recorded by the
+          backend.
         </p>
       </div>
     </div>
   );
 }
 
-function Alert({
-  tone,
-  message,
-}) {
-  const success =
-    tone === "success";
+function Alert({ tone, message }) {
+  const success = tone === "success";
 
   return (
     <div
@@ -1625,31 +1049,18 @@ function Alert({
 }
 
 function getMostCommonAction(logs) {
-  const counts =
-    new Map();
+  const counts = new Map();
 
   logs.forEach((log) => {
-    counts.set(
-      log.action,
-      (counts.get(log.action) ||
-        0) + 1,
-    );
+    counts.set(log.action, (counts.get(log.action) || 0) + 1);
   });
 
-  return Array.from(
-    counts.entries(),
-  )
-    .map(
-      ([label, value]) => ({
-        label,
-        value,
-      }),
-    )
-    .sort(
-      (first, second) =>
-        second.value -
-        first.value,
-    )[0];
+  return Array.from(counts.entries())
+    .map(([label, value]) => ({
+      label,
+      value,
+    }))
+    .sort((first, second) => second.value - first.value)[0];
 }
 
 function getPeriodStart(period) {
@@ -1659,67 +1070,35 @@ function getPeriodStart(period) {
     return null;
   }
 
-  if (
-    period === "current-year"
-  ) {
-    return new Date(
-      now.getFullYear(),
-      0,
-      1,
-    );
+  if (period === "current-year") {
+    return new Date(now.getFullYear(), 0, 1);
   }
 
-  const days =
-    period === "7-days"
-      ? 7
-      : period === "90-days"
-        ? 90
-        : 30;
+  const days = period === "7-days" ? 7 : period === "90-days" ? 90 : 30;
 
-  const start =
-    startOfDay(now);
+  const start = startOfDay(now);
 
-  start.setDate(
-    start.getDate() -
-      (days - 1),
-  );
+  start.setDate(start.getDate() - (days - 1));
 
   return start;
 }
 
 function getPeriodLabel(period) {
-  return (
-    PERIOD_OPTIONS.find(
-      (option) =>
-        option.value === period,
-    )?.label || "Filtered period"
-  );
+  return PERIOD_OPTIONS.find((option) => option.value === period)?.label || "Filtered period";
 }
 
 function getRecordId(record) {
   if (!record) return "";
 
-  if (
-    typeof record === "string"
-  ) {
+  if (typeof record === "string") {
     return record;
   }
 
-  return String(
-    record._id ||
-      record.id ||
-      "",
-  );
+  return String(record._id || record.id || "");
 }
 
 function formatName(person) {
-  return [
-    person?.firstName,
-    person?.middleName,
-    person?.lastName,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  return [person?.firstName, person?.middleName, person?.lastName].filter(Boolean).join(" ");
 }
 
 function formatDate(value) {
@@ -1727,23 +1106,15 @@ function formatDate(value) {
     return "No date";
   }
 
-  const date =
-    new Date(value);
+  const date = new Date(value);
 
-  if (
-    Number.isNaN(
-      date.getTime(),
-    )
-  ) {
+  if (Number.isNaN(date.getTime())) {
     return "Invalid date";
   }
 
-  return new Intl.DateTimeFormat(
-    "en-PH",
-    {
-      dateStyle: "medium",
-    },
-  ).format(date);
+  return new Intl.DateTimeFormat("en-PH", {
+    dateStyle: "medium",
+  }).format(date);
 }
 
 function formatTime(value) {
@@ -1751,23 +1122,15 @@ function formatTime(value) {
     return "No time";
   }
 
-  const date =
-    new Date(value);
+  const date = new Date(value);
 
-  if (
-    Number.isNaN(
-      date.getTime(),
-    )
-  ) {
+  if (Number.isNaN(date.getTime())) {
     return "Invalid time";
   }
 
-  return new Intl.DateTimeFormat(
-    "en-PH",
-    {
-      timeStyle: "short",
-    },
-  ).format(date);
+  return new Intl.DateTimeFormat("en-PH", {
+    timeStyle: "short",
+  }).format(date);
 }
 
 function formatDateTime(value) {
@@ -1775,80 +1138,46 @@ function formatDateTime(value) {
     return "No date";
   }
 
-  const date =
-    new Date(value);
+  const date = new Date(value);
 
-  if (
-    Number.isNaN(
-      date.getTime(),
-    )
-  ) {
+  if (Number.isNaN(date.getTime())) {
     return "Invalid date";
   }
 
-  return new Intl.DateTimeFormat(
-    "en-PH",
-    {
-      dateStyle: "medium",
-      timeStyle: "short",
-    },
-  ).format(date);
+  return new Intl.DateTimeFormat("en-PH", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function formatFileDate(value) {
-  const date =
-    new Date(value);
+  const date = new Date(value);
 
   return [
     date.getFullYear(),
-    String(
-      date.getMonth() + 1,
-    ).padStart(2, "0"),
-    String(
-      date.getDate(),
-    ).padStart(2, "0"),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
   ].join("-");
 }
 
 function startOfDay(date) {
-  return new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  );
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 function convertRowsToCsv(rows) {
-  const columns =
-    Object.keys(rows[0]);
+  const columns = Object.keys(rows[0]);
 
   const escapeValue = (value) => {
-    const stringValue =
-      String(value ?? "");
+    const stringValue = String(value ?? "");
 
-    return `"${stringValue.replace(
-      /"/g,
-      '""',
-    )}"`;
+    return `"${stringValue.replace(/"/g, '""')}"`;
   };
 
-  const header =
-    columns
-      .map(escapeValue)
-      .join(",");
+  const header = columns.map(escapeValue).join(",");
 
-  const body =
-    rows
-      .map((row) =>
-        columns
-          .map((column) =>
-            escapeValue(
-              row[column],
-            ),
-          )
-          .join(","),
-      )
-      .join("\n");
+  const body = rows
+    .map((row) => columns.map((column) => escapeValue(row[column])).join(","))
+    .join("\n");
 
   return `${header}\n${body}`;
 }
@@ -1859,5 +1188,4 @@ const filterClass =
 const tableHeadClass =
   "px-4 py-3 text-[15px] font-semibold uppercase tracking-[0.08em] text-[#8E8681]";
 
-const tableCellClass =
-  "px-4 py-3 align-top !text-[14px]";
+const tableCellClass = "px-4 py-3 align-top !text-[14px]";

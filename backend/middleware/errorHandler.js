@@ -10,21 +10,15 @@ const errorHandler = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
       statusCode = 400;
-      message =
-        "Profile picture must not exceed 3 MB.";
+      message = "Profile picture must not exceed 3 MB.";
     } else {
       statusCode = 400;
-      message =
-        err.message ||
-        "Unable to upload the image.";
+      message = err.message || "Unable to upload the image.";
     }
   }
 
   // Invalid file type from upload middleware
-  else if (
-    err.message ===
-    "Only JPG, JPEG, PNG, and WEBP images are allowed."
-  ) {
+  else if (err.message === "Only JPG, JPEG, PNG, and WEBP images are allowed.") {
     statusCode = 400;
     message = err.message;
   }
@@ -54,10 +48,7 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Use an existing response status if one was already set
-  else if (
-    res.statusCode &&
-    res.statusCode !== 200
-  ) {
+  else if (res.statusCode && res.statusCode !== 200) {
     statusCode = res.statusCode;
   }
 

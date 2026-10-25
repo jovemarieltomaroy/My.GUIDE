@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -15,33 +10,13 @@ import { useAuth } from "../context/AuthContext";
 const ADMIN_ROLE = "Counselor-Admin";
 const COUNSELOR_ROLE = "Counselor-User";
 
-const ACTIVE_CASE_STATUSES = [
-  "Open",
-  "In Progress",
-  "For Follow-up",
-];
+const ACTIVE_CASE_STATUSES = ["Open", "In Progress", "For Follow-up"];
 
-const DOMAIN_ORDER = [
-  "Personal-Social",
-  "Academic-Educational",
-  "Career-Vocational",
-  "Other",
-];
+const DOMAIN_ORDER = ["Personal-Social", "Academic-Educational", "Career-Vocational", "Other"];
 
-const PRIORITY_ORDER = [
-  "Urgent",
-  "High",
-  "Moderate",
-  "Low",
-];
+const PRIORITY_ORDER = ["Urgent", "High", "Moderate", "Low"];
 
-const STATUS_ORDER = [
-  "Open",
-  "In Progress",
-  "For Follow-up",
-  "Closed",
-  "Terminated",
-];
+const STATUS_ORDER = ["Open", "In Progress", "For Follow-up", "Closed", "Terminated"];
 
 const PERIOD_OPTIONS = [
   {
@@ -66,44 +41,31 @@ export default function AnalyticsPage() {
   const navigate = useNavigate();
   const { user, clearUser } = useAuth();
 
-  const [sidebarOpen, setSidebarOpen] =
-    useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [cases, setCases] =
-    useState([]);
+  const [cases, setCases] = useState([]);
 
-  const [users, setUsers] =
-    useState([]);
+  const [users, setUsers] = useState([]);
 
-  const [period, setPeriod] =
-    useState("12-months");
+  const [period, setPeriod] = useState("12-months");
 
-  const [collegeFilter, setCollegeFilter] =
-    useState("");
+  const [collegeFilter, setCollegeFilter] = useState("");
 
-  const [programFilter, setProgramFilter] =
-    useState("");
+  const [programFilter, setProgramFilter] = useState("");
 
-  const [counselorFilter, setCounselorFilter] =
-    useState("");
+  const [counselorFilter, setCounselorFilter] = useState("");
 
-  const [domainFilter, setDomainFilter] =
-    useState("");
+  const [domainFilter, setDomainFilter] = useState("");
 
-  const [includeArchived, setIncludeArchived] =
-    useState(false);
+  const [includeArchived, setIncludeArchived] = useState(false);
 
-  const [isLoading, setIsLoading] =
-    useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [pageError, setPageError] =
-    useState("");
+  const [pageError, setPageError] = useState("");
 
-  const isAdmin =
-    user?.role === ADMIN_ROLE;
+  const isAdmin = user?.role === ADMIN_ROLE;
 
-  const isCounselor =
-    user?.role === COUNSELOR_ROLE;
+  const isCounselor = user?.role === COUNSELOR_ROLE;
 
   useEffect(() => {
     if (!user) {
@@ -114,9 +76,7 @@ export default function AnalyticsPage() {
       return;
     }
 
-    if (
-      user.mustChangePassword === true
-    ) {
+    if (user.mustChangePassword === true) {
       navigate("/change-password", {
         replace: true,
       });
@@ -124,119 +84,80 @@ export default function AnalyticsPage() {
       return;
     }
 
-    if (
-      user.profileCompleted === false
-    ) {
+    if (user.profileCompleted === false) {
       navigate("/complete-profile", {
         replace: true,
       });
     }
   }, [user, navigate]);
 
-  const handleUnauthorized =
-    useCallback(() => {
-      clearUser();
+  const handleUnauthorized = useCallback(() => {
+    clearUser();
 
-      navigate("/login", {
-        replace: true,
-      });
-    }, [clearUser, navigate]);
+    navigate("/login", {
+      replace: true,
+    });
+  }, [clearUser, navigate]);
 
-  const loadAnalyticsData =
-    useCallback(async () => {
-      if (!user) return;
+  const loadAnalyticsData = useCallback(async () => {
+    if (!user) return;
 
-      setIsLoading(true);
-      setPageError("");
+    setIsLoading(true);
+    setPageError("");
 
-      try {
-        if (isAdmin) {
-          const [
-            caseData,
-            userData,
-          ] = await Promise.all([
-            apiRequest("/cases", {
-              method: "GET",
-            }),
+    try {
+      if (isAdmin) {
+        const [caseData, userData] = await Promise.all([
+          apiRequest("/cases", {
+            method: "GET",
+          }),
 
-            apiRequest(
-              "/users?isActive=true",
-              {
-                method: "GET",
-              },
-            ),
-          ]);
+          apiRequest("/users?isActive=true", {
+            method: "GET",
+          }),
+        ]);
 
-          if (!Array.isArray(caseData)) {
-            throw new Error(
-              "The backend returned an invalid cases response.",
-            );
-          }
-
-          if (!Array.isArray(userData)) {
-            throw new Error(
-              "The backend returned an invalid users response.",
-            );
-          }
-
-          setCases(caseData);
-
-          setUsers(
-            userData.filter(
-              (account) =>
-                account.isActive !==
-                  false &&
-                [
-                  ADMIN_ROLE,
-                  COUNSELOR_ROLE,
-                ].includes(
-                  account.role,
-                ),
-            ),
-          );
-        } else {
-          const caseData =
-            await apiRequest(
-              "/cases/my-cases",
-              {
-                method: "GET",
-              },
-            );
-
-          if (
-            !Array.isArray(caseData)
-          ) {
-            throw new Error(
-              "The backend returned an invalid cases response.",
-            );
-          }
-
-          setCases(caseData);
-          setUsers([]);
-        }
-      } catch (error) {
-        console.error(
-          "Unable to load analytics:",
-          error,
-        );
-
-        if (error.status === 401) {
-          handleUnauthorized();
-          return;
+        if (!Array.isArray(caseData)) {
+          throw new Error("The backend returned an invalid cases response.");
         }
 
-        setPageError(
-          error.message ||
-            "Unable to load analytics data.",
+        if (!Array.isArray(userData)) {
+          throw new Error("The backend returned an invalid users response.");
+        }
+
+        setCases(caseData);
+
+        setUsers(
+          userData.filter(
+            (account) =>
+              account.isActive !== false && [ADMIN_ROLE, COUNSELOR_ROLE].includes(account.role)
+          )
         );
-      } finally {
-        setIsLoading(false);
+      } else {
+        const caseData = await apiRequest("/cases/my-cases", {
+          method: "GET",
+        });
+
+        if (!Array.isArray(caseData)) {
+          throw new Error("The backend returned an invalid cases response.");
+        }
+
+        setCases(caseData);
+        setUsers([]);
       }
-    }, [
-      user,
-      isAdmin,
-      handleUnauthorized,
-    ]);
+    } catch (error) {
+      console.error("Unable to load analytics:", error);
+
+      if (error.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      setPageError(error.message || "Unable to load analytics data.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, isAdmin, handleUnauthorized]);
 
   useEffect(() => {
     loadAnalyticsData();
@@ -244,128 +165,55 @@ export default function AnalyticsPage() {
 
   const colleges = useMemo(() => {
     return Array.from(
-      new Set(
-        cases
-          .map(
-            (caseRecord) =>
-              caseRecord.student?.college,
-          )
-          .filter(Boolean),
-      ),
-    ).sort((a, b) =>
-      a.localeCompare(b),
-    );
+      new Set(cases.map((caseRecord) => caseRecord.student?.college).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b));
   }, [cases]);
 
   const programs = useMemo(() => {
     return Array.from(
-      new Set(
-        cases
-          .map(
-            (caseRecord) =>
-              caseRecord.student?.program,
-          )
-          .filter(Boolean),
-      ),
-    ).sort((a, b) =>
-      a.localeCompare(b),
-    );
+      new Set(cases.map((caseRecord) => caseRecord.student?.program).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b));
   }, [cases]);
 
   const filteredCases = useMemo(() => {
-    const periodRange =
-      getPeriodRange(period);
+    const periodRange = getPeriodRange(period);
 
-    return cases.filter(
-      (caseRecord) => {
-        if (
-          !includeArchived &&
-          caseRecord.isArchived === true
-        ) {
-          return false;
-        }
+    return cases.filter((caseRecord) => {
+      if (!includeArchived && caseRecord.isArchived === true) {
+        return false;
+      }
 
-        const date =
-          new Date(
-            caseRecord.dateOpened ||
-              caseRecord.createdAt,
-          );
+      const date = new Date(caseRecord.dateOpened || caseRecord.createdAt);
 
-        if (
-          periodRange.start &&
-          (!Number.isNaN(
-            date.getTime(),
-          ) &&
-            date <
-              periodRange.start)
-        ) {
-          return false;
-        }
+      if (periodRange.start && !Number.isNaN(date.getTime()) && date < periodRange.start) {
+        return false;
+      }
 
-        if (
-          collegeFilter &&
-          caseRecord.student?.college !==
-            collegeFilter
-        ) {
-          return false;
-        }
+      if (collegeFilter && caseRecord.student?.college !== collegeFilter) {
+        return false;
+      }
 
-        if (
-          programFilter &&
-          caseRecord.student?.program !==
-            programFilter
-        ) {
-          return false;
-        }
+      if (programFilter && caseRecord.student?.program !== programFilter) {
+        return false;
+      }
 
-        const assignedCounselorId =
-          getRecordId(
-            caseRecord.assignedCounselor,
-          );
+      const assignedCounselorId = getRecordId(caseRecord.assignedCounselor);
 
-        if (
-          counselorFilter &&
-          assignedCounselorId !==
-            counselorFilter
-        ) {
-          return false;
-        }
+      if (counselorFilter && assignedCounselorId !== counselorFilter) {
+        return false;
+      }
 
-        if (
-          domainFilter &&
-          caseRecord
-            .problemAssessment
-            ?.mainDomain !==
-            domainFilter
-        ) {
-          return false;
-        }
+      if (domainFilter && caseRecord.problemAssessment?.mainDomain !== domainFilter) {
+        return false;
+      }
 
-        return true;
-      },
-    );
-  }, [
-    cases,
-    period,
-    collegeFilter,
-    programFilter,
-    counselorFilter,
-    domainFilter,
-    includeArchived,
-  ]);
+      return true;
+    });
+  }, [cases, period, collegeFilter, programFilter, counselorFilter, domainFilter, includeArchived]);
 
   const analytics = useMemo(
-    () =>
-      buildAnalytics(
-        filteredCases,
-        users,
-        period,
-      ),
-    [
-      filteredCases,
-      users,
-      period,
-    ],
+    () => buildAnalytics(filteredCases, users, period),
+    [filteredCases, users, period]
   );
 
   const hasFilters =
@@ -389,28 +237,19 @@ export default function AnalyticsPage() {
     return null;
   }
 
-  if (
-    !isAdmin &&
-    !isCounselor
-  ) {
+  if (!isAdmin && !isCounselor) {
     return (
       <main className="grid min-h-screen place-items-center bg-[#F7F6F4] px-5">
         <section className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center">
-          <h1 className="text-xl font-semibold text-red-700">
-            Analytics unavailable
-          </h1>
+          <h1 className="text-xl font-semibold text-red-700">Analytics unavailable</h1>
 
           <p className="mt-3 text-[15px] text-[#756E69]">
-            Your account role is not
-            authorized to access the
-            analytics module.
+            Your account role is not authorized to access the analytics module.
           </p>
 
           <button
             type="button"
-            onClick={() =>
-              navigate("/dashboard")
-            }
+            onClick={() => navigate("/dashboard")}
             className="mt-6 rounded-xl bg-[#8C1518] px-5 py-3 text-[15px] font-semibold text-white"
           >
             Return to dashboard
@@ -422,11 +261,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#292522]">
-      <AppSidebar
-        user={user}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-      />
+      <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex min-h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-7">
@@ -434,22 +269,15 @@ export default function AnalyticsPage() {
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
-                onClick={() =>
-                  setSidebarOpen(true)
-                }
+                onClick={() => setSidebarOpen(true)}
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-[#E4DFDC] text-[#655E59] lg:hidden"
                 aria-label="Open navigation"
               >
-                <Icon
-                  name="menu"
-                  className="h-4 w-4"
-                />
+                <Icon name="menu" className="h-4 w-4" />
               </button>
 
               <div>
-                <h1 className="text-[20px] font-semibold">
-                  Analytics
-                </h1>
+                <h1 className="text-[20px] font-semibold">Analytics</h1>
 
                 <p className="hidden text-[14px] text-[#99918C] sm:block">
                   {isAdmin
@@ -468,27 +296,14 @@ export default function AnalyticsPage() {
                 fontSize: "15px",
               }}
             >
-              <Icon
-                name="history"
-                className={`h-3 w-3 ${
-                  isLoading
-                    ? "animate-spin"
-                    : ""
-                }`}
-              />
-
+              <Icon name="history" className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} />
               Refresh
             </button>
           </div>
         </header>
 
         <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
-          {pageError && (
-            <Alert
-              tone="error"
-              message={pageError}
-            />
-          )}
+          {pageError && <Alert tone="error" message={pageError} />}
 
           <section className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
             <div>
@@ -497,23 +312,14 @@ export default function AnalyticsPage() {
               </h2>
 
               <p className="mt-1 max-w-[850px] text-[14px] leading-4 text-[#89817D]">
-                Monitor changes in case
-                volume, student concerns,
-                case status, priorities,
-                follow-up activity, and
-                intervention planning.
-                Analytics shown here are
-                limited to records your
-                account is authorized to
-                access.
+                Monitor changes in case volume, student concerns, case status, priorities, follow-up
+                activity, and intervention planning. Analytics shown here are limited to records
+                your account is authorized to access.
               </p>
             </div>
 
             <p className="text-[13px] text-[#9B938E]">
-              Last refreshed{" "}
-              {formatDateTime(
-                new Date(),
-              )}
+              Last refreshed {formatDateTime(new Date())}
             </p>
           </section>
 
@@ -522,25 +328,14 @@ export default function AnalyticsPage() {
               <FilterField label="Period">
                 <select
                   value={period}
-                  onChange={(event) =>
-                    setPeriod(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => setPeriod(event.target.value)}
                   className={filterClass}
                 >
-                  {PERIOD_OPTIONS.map(
-                    (option) => (
-                      <option
-                        key={option.value}
-                        value={
-                          option.value
-                        }
-                      >
-                        {option.label}
-                      </option>
-                    ),
-                  )}
+                  {PERIOD_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </FilterField>
 
@@ -548,54 +343,32 @@ export default function AnalyticsPage() {
                 <FilterField label="College">
                   <select
                     value={collegeFilter}
-                    onChange={(event) =>
-                      setCollegeFilter(
-                        event.target.value,
-                      )
-                    }
+                    onChange={(event) => setCollegeFilter(event.target.value)}
                     className={filterClass}
                   >
-                    <option value="">
-                      All colleges
-                    </option>
+                    <option value="">All colleges</option>
 
-                    {colleges.map(
-                      (college) => (
-                        <option
-                          key={college}
-                          value={college}
-                        >
-                          {college}
-                        </option>
-                      ),
-                    )}
+                    {colleges.map((college) => (
+                      <option key={college} value={college}>
+                        {college}
+                      </option>
+                    ))}
                   </select>
                 </FilterField>
               ) : (
                 <FilterField label="Program">
                   <select
                     value={programFilter}
-                    onChange={(event) =>
-                      setProgramFilter(
-                        event.target.value,
-                      )
-                    }
+                    onChange={(event) => setProgramFilter(event.target.value)}
                     className={filterClass}
                   >
-                    <option value="">
-                      All programs
-                    </option>
+                    <option value="">All programs</option>
 
-                    {programs.map(
-                      (program) => (
-                        <option
-                          key={program}
-                          value={program}
-                        >
-                          {program}
-                        </option>
-                      ),
-                    )}
+                    {programs.map((program) => (
+                      <option key={program} value={program}>
+                        {program}
+                      </option>
+                    ))}
                   </select>
                 </FilterField>
               )}
@@ -603,39 +376,20 @@ export default function AnalyticsPage() {
               {isAdmin && (
                 <FilterField label="Counselor">
                   <select
-                    value={
-                      counselorFilter
-                    }
-                    onChange={(event) =>
-                      setCounselorFilter(
-                        event.target.value,
-                      )
-                    }
+                    value={counselorFilter}
+                    onChange={(event) => setCounselorFilter(event.target.value)}
                     className={filterClass}
                   >
-                    <option value="">
-                      All counselors
-                    </option>
+                    <option value="">All counselors</option>
 
-                    {users.map(
-                      (account) => (
-                        <option
-                          key={
-                            account._id ||
-                            account.id
-                          }
-                          value={String(
-                            account._id ||
-                              account.id,
-                          )}
-                        >
-                          {formatName(
-                            account,
-                          ) ||
-                            account.email}
-                        </option>
-                      ),
-                    )}
+                    {users.map((account) => (
+                      <option
+                        key={account._id || account.id}
+                        value={String(account._id || account.id)}
+                      >
+                        {formatName(account) || account.email}
+                      </option>
+                    ))}
                   </select>
                 </FilterField>
               )}
@@ -643,27 +397,16 @@ export default function AnalyticsPage() {
               <FilterField label="Domain">
                 <select
                   value={domainFilter}
-                  onChange={(event) =>
-                    setDomainFilter(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => setDomainFilter(event.target.value)}
                   className={filterClass}
                 >
-                  <option value="">
-                    All domains
-                  </option>
+                  <option value="">All domains</option>
 
-                  {DOMAIN_ORDER.map(
-                    (domain) => (
-                      <option
-                        key={domain}
-                        value={domain}
-                      >
-                        {domain}
-                      </option>
-                    ),
-                  )}
+                  {DOMAIN_ORDER.map((domain) => (
+                    <option key={domain} value={domain}>
+                      {domain}
+                    </option>
+                  ))}
                 </select>
               </FilterField>
 
@@ -671,21 +414,12 @@ export default function AnalyticsPage() {
                 <label className="flex h-8 flex-1 cursor-pointer items-center gap-2 rounded-lg border border-[#DDD8D4] bg-white px-2.5">
                   <input
                     type="checkbox"
-                    checked={
-                      includeArchived
-                    }
-                    onChange={(event) =>
-                      setIncludeArchived(
-                        event.target
-                          .checked,
-                      )
-                    }
+                    checked={includeArchived}
+                    onChange={(event) => setIncludeArchived(event.target.checked)}
                     className="h-3.5 w-3.5 accent-[#8C1518]"
                   />
 
-                  <span className="text-[13px] font-medium text-[#5D5652]">
-                    Include archived
-                  </span>
+                  <span className="text-[13px] font-medium text-[#5D5652]">Include archived</span>
                 </label>
 
                 {hasFilters && (
@@ -704,12 +438,8 @@ export default function AnalyticsPage() {
           <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard
               label="Total cases"
-              value={
-                analytics.summary.totalCases
-              }
-              note={getPeriodLabel(
-                period,
-              )}
+              value={analytics.summary.totalCases}
+              note={getPeriodLabel(period)}
               icon="folder"
               tone="maroon"
               loading={isLoading}
@@ -717,9 +447,7 @@ export default function AnalyticsPage() {
 
             <MetricCard
               label="Active cases"
-              value={
-                analytics.summary.activeCases
-              }
+              value={analytics.summary.activeCases}
               note={`${analytics.summary.activeRate}% of filtered cases`}
               icon="history"
               tone="blue"
@@ -728,9 +456,7 @@ export default function AnalyticsPage() {
 
             <MetricCard
               label="Closed cases"
-              value={
-                analytics.summary.closedCases
-              }
+              value={analytics.summary.closedCases}
               note={`${analytics.summary.closureRate}% closure rate`}
               icon="checkSquare"
               tone="green"
@@ -739,9 +465,7 @@ export default function AnalyticsPage() {
 
             <MetricCard
               label="High or urgent"
-              value={
-                analytics.summary.highRiskCases
-              }
+              value={analytics.summary.highRiskCases}
               note={`${analytics.summary.highRiskRate}% need closer monitoring`}
               icon="alertTriangle"
               tone="red"
@@ -752,9 +476,7 @@ export default function AnalyticsPage() {
           <section className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard
               label="Students served"
-              value={
-                analytics.summary.uniqueStudents
-              }
+              value={analytics.summary.uniqueStudents}
               note="Unique students"
               icon="student"
               tone="gold"
@@ -763,9 +485,7 @@ export default function AnalyticsPage() {
 
             <MetricCard
               label="Pending follow-ups"
-              value={
-                analytics.summary.pendingFollowUps
-              }
+              value={analytics.summary.pendingFollowUps}
               note={`${analytics.summary.overdueFollowUps} overdue`}
               icon="calendar"
               tone="gold"
@@ -774,9 +494,7 @@ export default function AnalyticsPage() {
 
             <MetricCard
               label="Progress notes"
-              value={
-                analytics.summary.progressNotes
-              }
+              value={analytics.summary.progressNotes}
               note="Documented sessions"
               icon="notes"
               tone="blue"
@@ -785,9 +503,7 @@ export default function AnalyticsPage() {
 
             <MetricCard
               label="Intervention plans"
-              value={
-                analytics.summary.interventionPlans
-              }
+              value={analytics.summary.interventionPlans}
               note={`${analytics.summary.approvedPlans} approved`}
               icon="heart"
               tone="green"
@@ -796,32 +512,16 @@ export default function AnalyticsPage() {
           </section>
 
           <div className="mt-5 grid gap-5 xl:grid-cols-[1.45fr_0.75fr]">
-            <Panel
-              title="Case volume over time"
-              subtitle="Cases opened within the selected period"
-            >
-              {isLoading ? (
-                <LoadingPanel />
-              ) : (
-                <TrendChart
-                  data={
-                    analytics.monthlyTrend
-                  }
-                />
-              )}
+            <Panel title="Case volume over time" subtitle="Cases opened within the selected period">
+              {isLoading ? <LoadingPanel /> : <TrendChart data={analytics.monthlyTrend} />}
             </Panel>
 
-            <Panel
-              title="Case status distribution"
-              subtitle="Current status of filtered cases"
-            >
+            <Panel title="Case status distribution" subtitle="Current status of filtered cases">
               {isLoading ? (
                 <LoadingPanel />
               ) : (
                 <DistributionList
-                  items={
-                    analytics.statusDistribution
-                  }
+                  items={analytics.statusDistribution}
                   emptyText="No case-status data is available."
                 />
               )}
@@ -829,33 +529,23 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="mt-5 grid gap-5 xl:grid-cols-2">
-            <Panel
-              title="Concern domains"
-              subtitle="Most common counseling case categories"
-            >
+            <Panel title="Concern domains" subtitle="Most common counseling case categories">
               {isLoading ? (
                 <LoadingPanel />
               ) : (
                 <HorizontalBars
-                  items={
-                    analytics.domainDistribution
-                  }
+                  items={analytics.domainDistribution}
                   emptyText="No domain data is available."
                 />
               )}
             </Panel>
 
-            <Panel
-              title="Priority levels"
-              subtitle="Current case priority distribution"
-            >
+            <Panel title="Priority levels" subtitle="Current case priority distribution">
               {isLoading ? (
                 <LoadingPanel />
               ) : (
                 <HorizontalBars
-                  items={
-                    analytics.priorityDistribution
-                  }
+                  items={analytics.priorityDistribution}
                   emptyText="No priority data is available."
                 />
               )}
@@ -865,9 +555,7 @@ export default function AnalyticsPage() {
           <div className="mt-5 grid gap-5 xl:grid-cols-2">
             <Panel
               title={
-                isAdmin
-                  ? "Student distribution by college"
-                  : "Student distribution by program"
+                isAdmin ? "Student distribution by college" : "Student distribution by program"
               }
               subtitle={
                 isAdmin
@@ -879,15 +567,9 @@ export default function AnalyticsPage() {
                 <LoadingPanel />
               ) : (
                 <HorizontalBars
-                  items={
-                    isAdmin
-                      ? analytics.collegeDistribution
-                      : analytics.programDistribution
-                  }
+                  items={isAdmin ? analytics.collegeDistribution : analytics.programDistribution}
                   emptyText={
-                    isAdmin
-                      ? "No college data is available."
-                      : "No program data is available."
+                    isAdmin ? "No college data is available." : "No program data is available."
                   }
                   limit={8}
                 />
@@ -902,9 +584,7 @@ export default function AnalyticsPage() {
                 <LoadingPanel />
               ) : (
                 <HorizontalBars
-                  items={
-                    analytics.yearLevelDistribution
-                  }
+                  items={analytics.yearLevelDistribution}
                   emptyText="No year-level data is available."
                 />
               )}
@@ -920,14 +600,8 @@ export default function AnalyticsPage() {
                 <LoadingPanel />
               ) : (
                 <FollowUpOverview
-                  data={
-                    analytics.followUpOverview
-                  }
-                  onOpen={() =>
-                    navigate(
-                      "/follow-ups",
-                    )
-                  }
+                  data={analytics.followUpOverview}
+                  onOpen={() => navigate("/follow-ups")}
                 />
               )}
             </Panel>
@@ -940,9 +614,7 @@ export default function AnalyticsPage() {
                 <LoadingPanel />
               ) : (
                 <DistributionList
-                  items={
-                    analytics.planDistribution
-                  }
+                  items={analytics.planDistribution}
                   emptyText="No intervention plans are available."
                 />
               )}
@@ -955,20 +627,14 @@ export default function AnalyticsPage() {
                 title="Counselor workload"
                 subtitle="Active cases and high-priority workload per active counselor"
                 action="Manage users"
-                onAction={() =>
-                  navigate("/users")
-                }
+                onAction={() => navigate("/users")}
               >
                 {isLoading ? (
                   <LoadingPanel />
                 ) : (
                   <CounselorWorkloadTable
-                    rows={
-                      analytics.counselorWorkload
-                    }
-                    onOpenUser={() =>
-                      navigate("/users")
-                    }
+                    rows={analytics.counselorWorkload}
+                    onOpenUser={() => navigate("/users")}
                   />
                 )}
               </Panel>
@@ -984,9 +650,7 @@ export default function AnalyticsPage() {
                 <LoadingPanel />
               ) : (
                 <RankedList
-                  items={
-                    analytics.primaryProblems
-                  }
+                  items={analytics.primaryProblems}
                   emptyText="No primary problems have been recorded."
                 />
               )}
@@ -996,24 +660,13 @@ export default function AnalyticsPage() {
               title="Helpful monitoring indicators"
               subtitle="Additional signals for office planning and case review"
             >
-              {isLoading ? (
-                <LoadingPanel />
-              ) : (
-                <InsightList
-                  insights={
-                    analytics.insights
-                  }
-                />
-              )}
+              {isLoading ? <LoadingPanel /> : <InsightList insights={analytics.insights} />}
             </Panel>
           </div>
 
           <div className="mt-5 rounded-2xl border border-[#E6D9B7] bg-[#FCF8EB] px-4 py-3">
             <div className="flex items-start gap-3">
-              <Icon
-                name="alertTriangle"
-                className="mt-0.5 h-4 w-4 shrink-0 text-[#A77A00]"
-              />
+              <Icon name="alertTriangle" className="mt-0.5 h-4 w-4 shrink-0 text-[#A77A00]" />
 
               <div>
                 <p className="text-[14px] font-semibold text-[#705A1B]">
@@ -1021,17 +674,10 @@ export default function AnalyticsPage() {
                 </p>
 
                 <p className="mt-1 text-[13px] leading-4 text-[#806E3A]">
-                  These results describe
-                  patterns in recorded
-                  counseling cases. They
-                  should support case
-                  monitoring, staffing,
-                  outreach planning, and
-                  program development, but
-                  they should not be used to
-                  diagnose students or
-                  replace professional
-                  counseling judgment.
+                  These results describe patterns in recorded counseling cases. They should support
+                  case monitoring, staffing, outreach planning, and program development, but they
+                  should not be used to diagnose students or replace professional counseling
+                  judgment.
                 </p>
               </div>
             </div>
@@ -1042,108 +688,65 @@ export default function AnalyticsPage() {
   );
 }
 
-function MetricCard({
-  label,
-  value,
-  note,
-  icon,
-  tone,
-  loading,
-}) {
+function MetricCard({ label, value, note, icon, tone, loading }) {
   const tones = {
     maroon: {
-      border:
-        "border-[#A62A2E]/50",
-      icon:
-        "bg-[#F4E8E8] text-[#8C1518]",
+      border: "border-[#A62A2E]/50",
+      icon: "bg-[#F4E8E8] text-[#8C1518]",
     },
 
     green: {
-      border:
-        "border-[#5E8F3A]/50",
-      icon:
-        "bg-[#EAF4E5] text-[#398322]",
+      border: "border-[#5E8F3A]/50",
+      icon: "bg-[#EAF4E5] text-[#398322]",
     },
 
     gold: {
-      border:
-        "border-[#D2A92D]/50",
-      icon:
-        "bg-[#FAF3DC] text-[#A47900]",
+      border: "border-[#D2A92D]/50",
+      icon: "bg-[#FAF3DC] text-[#A47900]",
     },
 
     blue: {
-      border:
-        "border-[#3E79BA]/50",
-      icon:
-        "bg-[#EAF1F8] text-[#316FAE]",
+      border: "border-[#3E79BA]/50",
+      icon: "bg-[#EAF1F8] text-[#316FAE]",
     },
 
     red: {
-      border:
-        "border-[#D05A5E]/50",
-      icon:
-        "bg-[#FBE7E8] text-[#B1252A]",
+      border: "border-[#D05A5E]/50",
+      icon: "bg-[#FBE7E8] text-[#B1252A]",
     },
   };
 
-  const selected =
-    tones[tone] || tones.maroon;
+  const selected = tones[tone] || tones.maroon;
 
   return (
-    <article
-      className={`rounded-xl border bg-white p-4 ${selected.border}`}
-    >
+    <article className={`rounded-xl border bg-white p-4 ${selected.border}`}>
       <div className="flex items-start justify-between gap-3">
-        <div
-          className={`grid h-8 w-8 place-items-center rounded-lg ${selected.icon}`}
-        >
-          <Icon
-            name={icon}
-            className="h-4 w-4"
-          />
+        <div className={`grid h-8 w-8 place-items-center rounded-lg ${selected.icon}`}>
+          <Icon name={icon} className="h-4 w-4" />
         </div>
 
-        <span className="text-right text-[12px] leading-3 text-[#948C87]">
-          {note}
-        </span>
+        <span className="text-right text-[12px] leading-3 text-[#948C87]">{note}</span>
       </div>
 
-      <p className="mt-3 text-[13px] text-[#8D8580]">
-        {label}
-      </p>
+      <p className="mt-3 text-[13px] text-[#8D8580]">{label}</p>
 
       {loading ? (
         <div className="mt-2 h-7 w-14 animate-pulse rounded bg-[#EEEAE7]" />
       ) : (
-        <p className="mt-1 text-[22px] font-semibold tracking-[-0.04em]">
-          {value}
-        </p>
+        <p className="mt-1 text-[22px] font-semibold tracking-[-0.04em]">{value}</p>
       )}
     </article>
   );
 }
 
-function Panel({
-  title,
-  subtitle,
-  action,
-  onAction,
-  children,
-}) {
+function Panel({ title, subtitle, action, onAction, children }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white">
       <header className="flex min-h-[54px] items-center justify-between gap-3 border-b border-[#ECE8E5] px-4 py-3">
         <div>
-          <h3 className="text-[17px] font-semibold">
-            {title}
-          </h3>
+          <h3 className="text-[17px] font-semibold">{title}</h3>
 
-          {subtitle && (
-            <p className="mt-1 text-[12px] text-[#99918C]">
-              {subtitle}
-            </p>
-          )}
+          {subtitle && <p className="mt-1 text-[12px] text-[#99918C]">{subtitle}</p>}
         </div>
 
         {action && (
@@ -1163,21 +766,12 @@ function Panel({
 }
 
 function TrendChart({ data }) {
-  const maximum = Math.max(
-    ...data.map(
-      (item) => item.value,
-    ),
-    1,
-  );
+  const maximum = Math.max(...data.map((item) => item.value), 1);
 
-  const hasData = data.some(
-    (item) => item.value > 0,
-  );
+  const hasData = data.some((item) => item.value > 0);
 
   if (!hasData) {
-    return (
-      <EmptyPanel text="No cases were opened during the selected period." />
-    );
+    return <EmptyPanel text="No cases were opened during the selected period." />;
   }
 
   return (
@@ -1188,21 +782,10 @@ function TrendChart({ data }) {
         aria-label="Case volume by month"
       >
         {data.map((item) => {
-          const height =
-            item.value === 0
-              ? 0
-              : Math.max(
-                  (item.value /
-                    maximum) *
-                    100,
-                  8,
-                );
+          const height = item.value === 0 ? 0 : Math.max((item.value / maximum) * 100, 8);
 
           return (
-            <div
-              key={item.key}
-              className="flex h-full flex-1 flex-col justify-end"
-            >
+            <div key={item.key} className="flex h-full flex-1 flex-col justify-end">
               <div className="flex flex-1 items-end">
                 <div
                   className="relative w-full rounded-t-lg bg-[#A93D40] transition hover:bg-[#8C1518]"
@@ -1219,9 +802,7 @@ function TrendChart({ data }) {
                 </div>
               </div>
 
-              <p className="mt-2 text-center text-[12px] text-[#958D88]">
-                {item.shortLabel}
-              </p>
+              <p className="mt-2 text-center text-[12px] text-[#958D88]">{item.shortLabel}</p>
             </div>
           );
         })}
@@ -1230,111 +811,59 @@ function TrendChart({ data }) {
   );
 }
 
-function HorizontalBars({
-  items,
-  emptyText,
-  limit,
-}) {
-  const displayedItems =
-    typeof limit === "number"
-      ? items.slice(0, limit)
-      : items;
+function HorizontalBars({ items, emptyText, limit }) {
+  const displayedItems = typeof limit === "number" ? items.slice(0, limit) : items;
 
-  if (
-    displayedItems.length === 0 ||
-    !displayedItems.some(
-      (item) => item.value > 0,
-    )
-  ) {
-    return (
-      <EmptyPanel text={emptyText} />
-    );
+  if (displayedItems.length === 0 || !displayedItems.some((item) => item.value > 0)) {
+    return <EmptyPanel text={emptyText} />;
   }
 
-  const maximum = Math.max(
-    ...displayedItems.map(
-      (item) => item.value,
-    ),
-    1,
-  );
+  const maximum = Math.max(...displayedItems.map((item) => item.value), 1);
 
   return (
     <div className="space-y-3 p-4">
-      {displayedItems.map(
-        (item) => (
-          <div key={item.label}>
-            <div className="flex items-center justify-between gap-3">
-              <span className="truncate text-[13px] font-medium text-[#5B544F]">
-                {item.label}
-              </span>
+      {displayedItems.map((item) => (
+        <div key={item.label}>
+          <div className="flex items-center justify-between gap-3">
+            <span className="truncate text-[13px] font-medium text-[#5B544F]">{item.label}</span>
 
-              <span className="text-[13px] font-semibold text-[#8C1518]">
-                {item.value}
-              </span>
-            </div>
-
-            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#EFEAE7]">
-              <div
-                className="h-full rounded-full bg-[#A83C40]"
-                style={{
-                  width: `${
-                    (item.value /
-                      maximum) *
-                    100
-                  }%`,
-                }}
-              />
-            </div>
+            <span className="text-[13px] font-semibold text-[#8C1518]">{item.value}</span>
           </div>
-        ),
-      )}
+
+          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#EFEAE7]">
+            <div
+              className="h-full rounded-full bg-[#A83C40]"
+              style={{
+                width: `${(item.value / maximum) * 100}%`,
+              }}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
-function DistributionList({
-  items,
-  emptyText,
-}) {
-  const total = items.reduce(
-    (sum, item) =>
-      sum + item.value,
-    0,
-  );
+function DistributionList({ items, emptyText }) {
+  const total = items.reduce((sum, item) => sum + item.value, 0);
 
   if (total === 0) {
-    return (
-      <EmptyPanel text={emptyText} />
-    );
+    return <EmptyPanel text={emptyText} />;
   }
 
   return (
     <div className="divide-y divide-[#EEEAE7]">
       {items.map((item) => {
-        const percentage =
-          total === 0
-            ? 0
-            : Math.round(
-                (item.value /
-                  total) *
-                  100,
-              );
+        const percentage = total === 0 ? 0 : Math.round((item.value / total) * 100);
 
         return (
-          <div
-            key={item.label}
-            className="flex items-center gap-3 px-4 py-3"
-          >
+          <div key={item.label} className="flex items-center gap-3 px-4 py-3">
             <span
-              className={`h-2.5 w-2.5 shrink-0 rounded-full ${getDistributionTone(
-                item.label,
-              )}`}
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${getDistributionTone(item.label)}`}
             />
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-medium text-[#5C5550]">
-                {item.label}
-              </p>
+              <p className="truncate text-[13px] font-medium text-[#5C5550]">{item.label}</p>
 
               <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#EEEAE7]">
                 <div
@@ -1347,13 +876,9 @@ function DistributionList({
             </div>
 
             <div className="shrink-0 text-right">
-              <p className="text-[14px] font-semibold">
-                {item.value}
-              </p>
+              <p className="text-[14px] font-semibold">{item.value}</p>
 
-              <p className="mt-0.5 text-[12px] text-[#99918D]">
-                {percentage}%
-              </p>
+              <p className="mt-0.5 text-[12px] text-[#99918D]">{percentage}%</p>
             </div>
           </div>
         );
@@ -1362,34 +887,27 @@ function DistributionList({
   );
 }
 
-function FollowUpOverview({
-  data,
-  onOpen,
-}) {
+function FollowUpOverview({ data, onOpen }) {
   const items = [
     {
       label: "Overdue",
       value: data.overdue,
-      tone:
-        "border-red-200 bg-red-50 text-red-700",
+      tone: "border-red-200 bg-red-50 text-red-700",
     },
     {
       label: "Due today",
       value: data.dueToday,
-      tone:
-        "border-amber-200 bg-amber-50 text-amber-700",
+      tone: "border-amber-200 bg-amber-50 text-amber-700",
     },
     {
       label: "Upcoming",
       value: data.upcoming,
-      tone:
-        "border-blue-200 bg-blue-50 text-blue-700",
+      tone: "border-blue-200 bg-blue-50 text-blue-700",
     },
     {
       label: "Completed",
       value: data.completed,
-      tone:
-        "border-emerald-200 bg-emerald-50 text-emerald-700",
+      tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
     },
   ];
 
@@ -1397,17 +915,10 @@ function FollowUpOverview({
     <div className="p-4">
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map((item) => (
-          <article
-            key={item.label}
-            className={`rounded-xl border p-3 ${item.tone}`}
-          >
-            <p className="text-[13px] font-medium">
-              {item.label}
-            </p>
+          <article key={item.label} className={`rounded-xl border p-3 ${item.tone}`}>
+            <p className="text-[13px] font-medium">{item.label}</p>
 
-            <p className="mt-1 text-[18px] font-semibold">
-              {item.value}
-            </p>
+            <p className="mt-1 text-[18px] font-semibold">{item.value}</p>
           </article>
         ))}
       </div>
@@ -1423,14 +934,9 @@ function FollowUpOverview({
   );
 }
 
-function CounselorWorkloadTable({
-  rows,
-  onOpenUser,
-}) {
+function CounselorWorkloadTable({ rows, onOpenUser }) {
   if (rows.length === 0) {
-    return (
-      <EmptyPanel text="No active counselors were returned." />
-    );
+    return <EmptyPanel text="No active counselors were returned." />;
   }
 
   return (
@@ -1438,83 +944,64 @@ function CounselorWorkloadTable({
       <table className="min-w-[760px] w-full border-collapse">
         <thead>
           <tr className="border-b border-[#ECE8E5] bg-[#FCFBFA] text-left">
-            <th className={tableHeadClass}>
-              Counselor
-            </th>
+            <th className={tableHeadClass}>Counselor</th>
 
-            <th className={tableHeadClass}>
-              Colleges handled
-            </th>
+            <th className={tableHeadClass}>Colleges handled</th>
 
-            <th className={`${tableHeadClass} text-center`}>
-              Active
-            </th>
+            <th className={`${tableHeadClass} text-center`}>Active</th>
 
-            <th className={`${tableHeadClass} text-center`}>
-              High/Urgent
-            </th>
+            <th className={`${tableHeadClass} text-center`}>High/Urgent</th>
 
-            <th className={`${tableHeadClass} text-center`}>
-              Follow-ups
-            </th>
+            <th className={`${tableHeadClass} text-center`}>Follow-ups</th>
 
-            <th className={`${tableHeadClass} text-center`}>
-              Closed
-            </th>
+            <th className={`${tableHeadClass} text-center`}>Closed</th>
 
-            <th className={`${tableHeadClass} text-right`}>
-              Action
-            </th>
+            <th className={`${tableHeadClass} text-right`}>Action</th>
           </tr>
         </thead>
 
         <tbody>
           {rows.map((row) => (
-            <tr
-              key={row.id}
-              className="border-b border-[#F0ECE9] last:border-b-0"
-            >
+            <tr key={row.id} className="border-b border-[#F0ECE9] last:border-b-0">
               <td className={tableCellClass}>
                 <div className="flex items-center gap-3">
                   <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#8C1518] text-[13px] font-semibold text-white">
-                    {getInitials(
-                      row.name,
-                    )}
+                    {getInitials(row.name)}
                   </div>
 
                   <div className="min-w-0">
-                    <p className="truncate text-[14px] font-semibold">
-                      {row.name}
-                    </p>
+                    <p className="truncate text-[14px] font-semibold">{row.name}</p>
 
                     <p className="mt-0.5 truncate text-[12px] text-[#99918D]">
-                      {row.email ||
-                        "No email"}
+                      {row.email || "No email"}
                     </p>
                   </div>
                 </div>
               </td>
 
               <td className={tableCellClass}>
-                <span className="text-[13px] text-[#6E6763]">
-                  {row.colleges ||
-                    "Not assigned"}
-                </span>
+                <span className="text-[13px] text-[#6E6763]">{row.colleges || "Not assigned"}</span>
               </td>
 
               <td className={`${tableCellClass} text-center text-[14px] font-semibold`}>
                 {row.activeCases}
               </td>
 
-              <td className={`${tableCellClass} text-center text-[14px] font-semibold text-red-600`}>
+              <td
+                className={`${tableCellClass} text-center text-[14px] font-semibold text-red-600`}
+              >
                 {row.highPriority}
               </td>
 
-              <td className={`${tableCellClass} text-center text-[14px] font-semibold text-amber-700`}>
+              <td
+                className={`${tableCellClass} text-center text-[14px] font-semibold text-amber-700`}
+              >
                 {row.pendingFollowUps}
               </td>
 
-              <td className={`${tableCellClass} text-center text-[14px] font-semibold text-emerald-700`}>
+              <td
+                className={`${tableCellClass} text-center text-[14px] font-semibold text-emerald-700`}
+              >
                 {row.closedCases}
               </td>
 
@@ -1535,66 +1022,42 @@ function CounselorWorkloadTable({
   );
 }
 
-function RankedList({
-  items,
-  emptyText,
-}) {
+function RankedList({ items, emptyText }) {
   if (items.length === 0) {
-    return (
-      <EmptyPanel text={emptyText} />
-    );
+    return <EmptyPanel text={emptyText} />;
   }
 
   return (
     <div className="divide-y divide-[#EEEAE7]">
-      {items
-        .slice(0, 10)
-        .map((item, index) => (
-          <div
-            key={item.label}
-            className="flex items-center gap-3 px-4 py-3"
-          >
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#F4EAEA] text-[13px] font-semibold text-[#8C1518]">
-              {index + 1}
-            </span>
+      {items.slice(0, 10).map((item, index) => (
+        <div key={item.label} className="flex items-center gap-3 px-4 py-3">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#F4EAEA] text-[13px] font-semibold text-[#8C1518]">
+            {index + 1}
+          </span>
 
-            <p className="min-w-0 flex-1 truncate text-[13px] font-medium text-[#5B544F]">
-              {item.label}
-            </p>
+          <p className="min-w-0 flex-1 truncate text-[13px] font-medium text-[#5B544F]">
+            {item.label}
+          </p>
 
-            <span className="text-[14px] font-semibold text-[#8C1518]">
-              {item.value}
-            </span>
-          </div>
-        ))}
+          <span className="text-[14px] font-semibold text-[#8C1518]">{item.value}</span>
+        </div>
+      ))}
     </div>
   );
 }
 
-function InsightList({
-  insights,
-}) {
+function InsightList({ insights }) {
   return (
     <div className="space-y-3 p-4">
       {insights.map((insight) => (
-        <article
-          key={insight.title}
-          className={`rounded-xl border px-3 py-3 ${insight.tone}`}
-        >
+        <article key={insight.title} className={`rounded-xl border px-3 py-3 ${insight.tone}`}>
           <div className="flex items-start gap-3">
-            <Icon
-              name={insight.icon}
-              className="mt-0.5 h-3.5 w-3.5 shrink-0"
-            />
+            <Icon name={insight.icon} className="mt-0.5 h-3.5 w-3.5 shrink-0" />
 
             <div>
-              <p className="text-[14px] font-semibold">
-                {insight.title}
-              </p>
+              <p className="text-[14px] font-semibold">{insight.title}</p>
 
-              <p className="mt-1 text-[13px] leading-4 opacity-80">
-                {insight.message}
-              </p>
+              <p className="mt-1 text-[13px] leading-4 opacity-80">{insight.message}</p>
             </div>
           </div>
         </article>
@@ -1603,19 +1066,12 @@ function InsightList({
   );
 }
 
-function FilterField({
-  label,
-  children,
-}) {
+function FilterField({ label, children }) {
   return (
     <label>
-      <span className="text-[13px] font-semibold text-[#5B544F]">
-        {label}
-      </span>
+      <span className="text-[13px] font-semibold text-[#5B544F]">{label}</span>
 
-      <div className="mt-1.5">
-        {children}
-      </div>
+      <div className="mt-1.5">{children}</div>
     </label>
   );
 }
@@ -1626,9 +1082,7 @@ function LoadingPanel() {
       <div className="text-center">
         <span className="mx-auto block h-7 w-7 animate-spin rounded-full border-2 border-[#8C1518]/20 border-t-[#8C1518]" />
 
-        <p className="mt-3 text-[13px] text-[#8C847F]">
-          Loading analytics...
-        </p>
+        <p className="mt-3 text-[13px] text-[#8C847F]">Loading analytics...</p>
       </div>
     </div>
   );
@@ -1639,26 +1093,17 @@ function EmptyPanel({ text }) {
     <div className="grid min-h-[180px] place-items-center px-5 text-center">
       <div>
         <div className="mx-auto grid h-9 w-9 place-items-center rounded-lg bg-[#F4EAEA] text-[#8C1518]">
-          <Icon
-            name="folder"
-            className="h-4 w-4"
-          />
+          <Icon name="folder" className="h-4 w-4" />
         </div>
 
-        <p className="mt-3 text-[13px] leading-4 text-[#8C847F]">
-          {text}
-        </p>
+        <p className="mt-3 text-[13px] leading-4 text-[#8C847F]">{text}</p>
       </div>
     </div>
   );
 }
 
-function Alert({
-  tone,
-  message,
-}) {
-  const success =
-    tone === "success";
+function Alert({ tone, message }) {
+  const success = tone === "success";
 
   return (
     <div
@@ -1673,96 +1118,37 @@ function Alert({
   );
 }
 
-function buildAnalytics(
-  cases,
-  users,
-  period,
-) {
-  const totalCases =
-    cases.length;
+function buildAnalytics(cases, users, period) {
+  const totalCases = cases.length;
 
-  const activeCases =
-    cases.filter((item) =>
-      ACTIVE_CASE_STATUSES.includes(
-        item.caseStatus,
-      ),
-    ).length;
+  const activeCases = cases.filter((item) => ACTIVE_CASE_STATUSES.includes(item.caseStatus)).length;
 
-  const closedCases =
-    cases.filter(
-      (item) =>
-        item.caseStatus ===
-        "Closed",
-    ).length;
+  const closedCases = cases.filter((item) => item.caseStatus === "Closed").length;
 
-  const highRiskCases =
-    cases.filter(
-      (item) =>
-        ACTIVE_CASE_STATUSES.includes(
-          item.caseStatus,
-        ) &&
-        ["High", "Urgent"].includes(
-          item.priorityLevel,
-        ),
-    ).length;
+  const highRiskCases = cases.filter(
+    (item) =>
+      ACTIVE_CASE_STATUSES.includes(item.caseStatus) &&
+      ["High", "Urgent"].includes(item.priorityLevel)
+  ).length;
 
-  const uniqueStudents =
-    new Set(
-      cases
-        .map((item) =>
-          getRecordId(item.student),
-        )
-        .filter(Boolean),
-    ).size;
+  const uniqueStudents = new Set(cases.map((item) => getRecordId(item.student)).filter(Boolean))
+    .size;
 
-  const allFollowUps =
-    cases.flatMap(
-      (item) =>
-        item.followUps || [],
-    );
+  const allFollowUps = cases.flatMap((item) => item.followUps || []);
 
-  const pendingFollowUps =
-    allFollowUps.filter(
-      (item) =>
-        item.status ===
-        "Pending",
-    ).length;
+  const pendingFollowUps = allFollowUps.filter((item) => item.status === "Pending").length;
 
-  const overdueFollowUps =
-    allFollowUps.filter(
-      (item) =>
-        item.status ===
-          "Pending" &&
-        isOverdue(
-          item.followUpDate,
-        ),
-    ).length;
+  const overdueFollowUps = allFollowUps.filter(
+    (item) => item.status === "Pending" && isOverdue(item.followUpDate)
+  ).length;
 
-  const progressNotes =
-    cases.reduce(
-      (total, item) =>
-        total +
-        (item.progressNotes
-          ?.length || 0),
-      0,
-    );
+  const progressNotes = cases.reduce((total, item) => total + (item.progressNotes?.length || 0), 0);
 
-  const allPlans =
-    cases.flatMap(
-      (item) =>
-        item.interventionPlans ||
-        [],
-    );
+  const allPlans = cases.flatMap((item) => item.interventionPlans || []);
 
-  const interventionPlans =
-    allPlans.length;
+  const interventionPlans = allPlans.length;
 
-  const approvedPlans =
-    allPlans.filter(
-      (plan) =>
-        plan.approvalStatus ===
-        "Approved",
-    ).length;
+  const approvedPlans = allPlans.filter((plan) => plan.approvalStatus === "Approved").length;
 
   return {
     summary: {
@@ -1777,117 +1163,57 @@ function buildAnalytics(
       interventionPlans,
       approvedPlans,
 
-      activeRate:
-        percentage(
-          activeCases,
-          totalCases,
-        ),
+      activeRate: percentage(activeCases, totalCases),
 
-      closureRate:
-        percentage(
-          closedCases,
-          totalCases,
-        ),
+      closureRate: percentage(closedCases, totalCases),
 
-      highRiskRate:
-        percentage(
-          highRiskCases,
-          activeCases,
-        ),
+      highRiskRate: percentage(highRiskCases, activeCases),
     },
 
-    monthlyTrend:
-      getMonthlyTrend(
-        cases,
-        period,
-      ),
+    monthlyTrend: getMonthlyTrend(cases, period),
 
-    statusDistribution:
-      countByOrder(
-        cases,
-        (item) =>
-          item.caseStatus ||
-          "Unknown",
-        STATUS_ORDER,
-      ),
+    statusDistribution: countByOrder(cases, (item) => item.caseStatus || "Unknown", STATUS_ORDER),
 
-    domainDistribution:
-      countByOrder(
-        cases,
-        (item) =>
-          item.problemAssessment
-            ?.mainDomain ||
-          "Other",
-        DOMAIN_ORDER,
-      ),
+    domainDistribution: countByOrder(
+      cases,
+      (item) => item.problemAssessment?.mainDomain || "Other",
+      DOMAIN_ORDER
+    ),
 
-    priorityDistribution:
-      countByOrder(
-        cases,
-        (item) =>
-          item.priorityLevel ||
-          "Moderate",
-        PRIORITY_ORDER,
-      ),
+    priorityDistribution: countByOrder(
+      cases,
+      (item) => item.priorityLevel || "Moderate",
+      PRIORITY_ORDER
+    ),
 
-    collegeDistribution:
-      countAndSort(
-        cases,
-        (item) =>
-          item.student?.college ||
-          "Not recorded",
-      ),
+    collegeDistribution: countAndSort(cases, (item) => item.student?.college || "Not recorded"),
 
-    programDistribution:
-      countAndSort(
-        cases,
-        (item) =>
-          item.student?.program ||
-          "Not recorded",
-      ),
+    programDistribution: countAndSort(cases, (item) => item.student?.program || "Not recorded"),
 
-    yearLevelDistribution:
-        getYearLevelDistribution(cases),
+    yearLevelDistribution: getYearLevelDistribution(cases),
 
-    followUpOverview:
-      getFollowUpOverview(
-        allFollowUps,
-      ),
+    followUpOverview: getFollowUpOverview(allFollowUps),
 
-    planDistribution:
-      getPlanDistribution(
-        allPlans,
-      ),
+    planDistribution: getPlanDistribution(allPlans),
 
-    counselorWorkload:
-      getCounselorWorkload(
-        cases,
-        users,
-      ),
+    counselorWorkload: getCounselorWorkload(cases, users),
 
-    primaryProblems:
-      getPrimaryProblemCounts(
-        cases,
-      ),
+    primaryProblems: getPrimaryProblemCounts(cases),
 
-    insights:
-      buildInsights({
-        cases,
-        totalCases,
-        activeCases,
-        highRiskCases,
-        overdueFollowUps,
-        pendingFollowUps,
-        interventionPlans,
-        approvedPlans,
-      }),
+    insights: buildInsights({
+      cases,
+      totalCases,
+      activeCases,
+      highRiskCases,
+      overdueFollowUps,
+      pendingFollowUps,
+      interventionPlans,
+      approvedPlans,
+    }),
   };
 }
 
-function getMonthlyTrend(
-  cases,
-  period,
-) {
+function getMonthlyTrend(cases, period) {
   const today = new Date();
 
   let numberOfMonths = 12;
@@ -1896,121 +1222,63 @@ function getMonthlyTrend(
     numberOfMonths = 6;
   }
 
-  if (
-    period === "current-year"
-  ) {
-    numberOfMonths =
-      today.getMonth() + 1;
+  if (period === "current-year") {
+    numberOfMonths = today.getMonth() + 1;
   }
 
   if (period === "all-time") {
-    const validDates =
-      cases
-        .map(
-          (item) =>
-            new Date(
-              item.dateOpened ||
-                item.createdAt,
-            ),
-        )
-        .filter(
-          (date) =>
-            !Number.isNaN(
-              date.getTime(),
-            ),
-        );
+    const validDates = cases
+      .map((item) => new Date(item.dateOpened || item.createdAt))
+      .filter((date) => !Number.isNaN(date.getTime()));
 
     if (validDates.length > 0) {
-      const earliest =
-        new Date(
-          Math.min(
-            ...validDates.map(
-              (date) =>
-                date.getTime(),
-            ),
-          ),
-        );
+      const earliest = new Date(Math.min(...validDates.map((date) => date.getTime())));
 
-      numberOfMonths =
-        Math.min(
-          monthsBetween(
-            earliest,
-            today,
-          ) + 1,
-          24,
-        );
+      numberOfMonths = Math.min(monthsBetween(earliest, today) + 1, 24);
     } else {
       numberOfMonths = 12;
     }
   }
 
-  const formatter =
-    new Intl.DateTimeFormat(
-      "en-US",
-      {
-        month: "short",
-      },
-    );
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+  });
 
-  const months =
-    Array.from(
-      {
-        length:
-          numberOfMonths,
-      },
-      (_, index) => {
-        const date =
-          new Date(
-            today.getFullYear(),
-            today.getMonth() -
-              (numberOfMonths -
-                1 -
-                index),
-            1,
-          );
-
-        return {
-          key: `${date.getFullYear()}-${date.getMonth()}`,
-          shortLabel:
-            formatter.format(date),
-          label:
-            new Intl.DateTimeFormat(
-              "en-US",
-              {
-                month: "long",
-                year: "numeric",
-              },
-            ).format(date),
-          value: 0,
-        };
-      },
-    );
-
-  const map =
-    new Map(
-      months.map((item) => [
-        item.key,
-        item,
-      ]),
-    );
-
-  cases.forEach((item) => {
-    const date =
-      new Date(
-        item.dateOpened ||
-          item.createdAt,
+  const months = Array.from(
+    {
+      length: numberOfMonths,
+    },
+    (_, index) => {
+      const date = new Date(
+        today.getFullYear(),
+        today.getMonth() - (numberOfMonths - 1 - index),
+        1
       );
 
-    if (
-      Number.isNaN(date.getTime())
-    ) {
+      return {
+        key: `${date.getFullYear()}-${date.getMonth()}`,
+        shortLabel: formatter.format(date),
+        label: new Intl.DateTimeFormat("en-US", {
+          month: "long",
+          year: "numeric",
+        }).format(date),
+        value: 0,
+      };
+    }
+  );
+
+  const map = new Map(months.map((item) => [item.key, item]));
+
+  cases.forEach((item) => {
+    const date = new Date(item.dateOpened || item.createdAt);
+
+    if (Number.isNaN(date.getTime())) {
       return;
     }
 
     const key = `${date.getFullYear()}-${date.getMonth()}`;
 
-    const month =
-      map.get(key);
+    const month = map.get(key);
 
     if (month) {
       month.value += 1;
@@ -2020,329 +1288,156 @@ function getMonthlyTrend(
   return months;
 }
 
-function getFollowUpOverview(
-  followUps,
-) {
-  const today =
-    startOfDay(new Date());
+function getFollowUpOverview(followUps) {
+  const today = startOfDay(new Date());
 
-  const tomorrow =
-    new Date(today);
+  const tomorrow = new Date(today);
 
-  tomorrow.setDate(
-    tomorrow.getDate() + 1,
-  );
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
   return {
-    overdue:
-      followUps.filter(
-        (item) => {
-          const date =
-            new Date(
-              item.followUpDate,
-            );
+    overdue: followUps.filter((item) => {
+      const date = new Date(item.followUpDate);
 
-          return (
-            item.status ===
-              "Pending" &&
-            !Number.isNaN(
-              date.getTime(),
-            ) &&
-            date < today
-          );
-        },
-      ).length,
+      return item.status === "Pending" && !Number.isNaN(date.getTime()) && date < today;
+    }).length,
 
-    dueToday:
-      followUps.filter(
-        (item) => {
-          const date =
-            new Date(
-              item.followUpDate,
-            );
+    dueToday: followUps.filter((item) => {
+      const date = new Date(item.followUpDate);
 
-          return (
-            item.status ===
-              "Pending" &&
-            !Number.isNaN(
-              date.getTime(),
-            ) &&
-            date >= today &&
-            date < tomorrow
-          );
-        },
-      ).length,
+      return (
+        item.status === "Pending" &&
+        !Number.isNaN(date.getTime()) &&
+        date >= today &&
+        date < tomorrow
+      );
+    }).length,
 
-    upcoming:
-      followUps.filter(
-        (item) => {
-          const date =
-            new Date(
-              item.followUpDate,
-            );
+    upcoming: followUps.filter((item) => {
+      const date = new Date(item.followUpDate);
 
-          return (
-            item.status ===
-              "Pending" &&
-            !Number.isNaN(
-              date.getTime(),
-            ) &&
-            date >= tomorrow
-          );
-        },
-      ).length,
+      return item.status === "Pending" && !Number.isNaN(date.getTime()) && date >= tomorrow;
+    }).length,
 
-    completed:
-      followUps.filter(
-        (item) =>
-          item.status ===
-          "Completed",
-      ).length,
+    completed: followUps.filter((item) => item.status === "Completed").length,
   };
 }
 
-function getPlanDistribution(
-  plans,
-) {
-  const labels = [
-    "Pending Review",
-    "Approved",
-    "Revised",
-    "Rejected",
-    "Sent to Student",
-  ];
+function getPlanDistribution(plans) {
+  const labels = ["Pending Review", "Approved", "Revised", "Rejected", "Sent to Student"];
 
-  const counts =
-    new Map(
-      labels.map((label) => [
-        label,
-        0,
-      ]),
-    );
+  const counts = new Map(labels.map((label) => [label, 0]));
 
   plans.forEach((plan) => {
-    const approvalStatus =
-      plan.approvalStatus ||
-      "Pending Review";
+    const approvalStatus = plan.approvalStatus || "Pending Review";
 
-    if (
-      counts.has(
-        approvalStatus,
-      )
-    ) {
-      counts.set(
-        approvalStatus,
-        counts.get(
-          approvalStatus,
-        ) + 1,
-      );
+    if (counts.has(approvalStatus)) {
+      counts.set(approvalStatus, counts.get(approvalStatus) + 1);
     }
 
-    if (
-      plan.isSentToStudent
-    ) {
-      counts.set(
-        "Sent to Student",
-        counts.get(
-          "Sent to Student",
-        ) + 1,
-      );
+    if (plan.isSentToStudent) {
+      counts.set("Sent to Student", counts.get("Sent to Student") + 1);
     }
   });
 
-  return labels.map(
-    (label) => ({
-      label,
-      value:
-        counts.get(label),
-    }),
-  );
+  return labels.map((label) => ({
+    label,
+    value: counts.get(label),
+  }));
 }
 
-function getCounselorWorkload(
-  cases,
-  users,
-) {
-  const records =
-    new Map();
+function getCounselorWorkload(cases, users) {
+  const records = new Map();
 
-  users.forEach(
-    (account) => {
-      const id =
-        String(
-          account._id ||
-            account.id,
-        );
+  users.forEach((account) => {
+    const id = String(account._id || account.id);
 
+    records.set(id, {
+      id,
+      name: formatName(account) || account.email || "Counselor",
+      email: account.email || "",
+      colleges: (account.collegesHandled || []).join(", "),
+      activeCases: 0,
+      highPriority: 0,
+      pendingFollowUps: 0,
+      closedCases: 0,
+    });
+  });
+
+  cases.forEach((caseRecord) => {
+    const counselor = caseRecord.assignedCounselor;
+
+    const id = getRecordId(counselor);
+
+    if (!id) return;
+
+    if (!records.has(id)) {
       records.set(id, {
         id,
         name:
-          formatName(account) ||
-          account.email ||
-          "Counselor",
-        email:
-          account.email || "",
-        colleges:
-          (
-            account.collegesHandled ||
-            []
-          ).join(", "),
+          typeof counselor === "object"
+            ? formatName(counselor) || counselor.email || "Counselor"
+            : "Counselor",
+        email: typeof counselor === "object" ? counselor.email || "" : "",
+        colleges: "",
         activeCases: 0,
         highPriority: 0,
         pendingFollowUps: 0,
         closedCases: 0,
       });
-    },
-  );
+    }
 
-  cases.forEach(
-    (caseRecord) => {
-      const counselor =
-        caseRecord.assignedCounselor;
+    const record = records.get(id);
 
-      const id =
-        getRecordId(
-          counselor,
-        );
+    if (ACTIVE_CASE_STATUSES.includes(caseRecord.caseStatus)) {
+      record.activeCases += 1;
+    }
 
-      if (!id) return;
+    if (
+      ACTIVE_CASE_STATUSES.includes(caseRecord.caseStatus) &&
+      ["High", "Urgent"].includes(caseRecord.priorityLevel)
+    ) {
+      record.highPriority += 1;
+    }
 
-      if (!records.has(id)) {
-        records.set(id, {
-          id,
-          name:
-            typeof counselor ===
-            "object"
-              ? formatName(
-                  counselor,
-                ) ||
-                counselor.email ||
-                "Counselor"
-              : "Counselor",
-          email:
-            typeof counselor ===
-            "object"
-              ? counselor.email ||
-                ""
-              : "",
-          colleges: "",
-          activeCases: 0,
-          highPriority: 0,
-          pendingFollowUps: 0,
-          closedCases: 0,
-        });
-      }
+    if (caseRecord.caseStatus === "Closed") {
+      record.closedCases += 1;
+    }
 
-      const record =
-        records.get(id);
+    record.pendingFollowUps += (caseRecord.followUps || []).filter(
+      (item) => item.status === "Pending"
+    ).length;
+  });
 
-      if (
-        ACTIVE_CASE_STATUSES.includes(
-          caseRecord.caseStatus,
-        )
-      ) {
-        record.activeCases += 1;
-      }
-
-      if (
-        ACTIVE_CASE_STATUSES.includes(
-          caseRecord.caseStatus,
-        ) &&
-        ["High", "Urgent"].includes(
-          caseRecord.priorityLevel,
-        )
-      ) {
-        record.highPriority += 1;
-      }
-
-      if (
-        caseRecord.caseStatus ===
-        "Closed"
-      ) {
-        record.closedCases += 1;
-      }
-
-      record.pendingFollowUps +=
-        (
-          caseRecord.followUps ||
-          []
-        ).filter(
-          (item) =>
-            item.status ===
-            "Pending",
-        ).length;
-    },
-  );
-
-  return Array.from(
-    records.values(),
-  ).sort(
-    (first, second) =>
-      second.activeCases -
-      first.activeCases,
+  return Array.from(records.values()).sort(
+    (first, second) => second.activeCases - first.activeCases
   );
 }
 
-function getPrimaryProblemCounts(
-  cases,
-) {
-  const counts =
-    new Map();
+function getPrimaryProblemCounts(cases) {
+  const counts = new Map();
 
-  cases.forEach(
-    (caseRecord) => {
-      const problems =
-        caseRecord
-          .problemAssessment
-          ?.primaryProblems ||
-        [];
+  cases.forEach((caseRecord) => {
+    const problems = caseRecord.problemAssessment?.primaryProblems || [];
 
-      problems.forEach(
-        (problem) => {
-          const original =
-            String(problem || "")
-              .trim();
+    problems.forEach((problem) => {
+      const original = String(problem || "").trim();
 
-          if (!original) return;
+      if (!original) return;
 
-          const normalized =
-            original
-              .toLowerCase()
-              .replace(
-                /\s+/g,
-                " ",
-              );
+      const normalized = original.toLowerCase().replace(/\s+/g, " ");
 
-          const existing =
-            counts.get(normalized);
+      const existing = counts.get(normalized);
 
-          counts.set(
-            normalized,
-            {
-              label:
-                existing?.label ||
-                toTitleCase(
-                  original,
-                ),
-              value:
-                (existing?.value ||
-                  0) + 1,
-            },
-          );
-        },
-      );
-    },
-  );
+      counts.set(normalized, {
+        label: existing?.label || toTitleCase(original),
+        value: (existing?.value || 0) + 1,
+      });
+    });
+  });
 
-  return Array.from(
-    counts.values(),
-  ).sort(
-    (first, second) =>
-      second.value -
-        first.value ||
-      first.label.localeCompare(
-        second.label,
-      ),
+  return Array.from(counts.values()).sort(
+    (first, second) => second.value - first.value || first.label.localeCompare(second.label)
   );
 }
 
@@ -2356,55 +1451,30 @@ function buildInsights({
   interventionPlans,
   approvedPlans,
 }) {
-  const topDomain =
-    countAndSort(
-      cases,
-      (item) =>
-        item.problemAssessment
-          ?.mainDomain ||
-        "Other",
-    )[0];
+  const topDomain = countAndSort(cases, (item) => item.problemAssessment?.mainDomain || "Other")[0];
 
-  const casesWithoutPlans =
-    cases.filter(
-      (item) =>
-        ACTIVE_CASE_STATUSES.includes(
-          item.caseStatus,
-        ) &&
-        (
-          item.interventionPlans ||
-          []
-        ).length === 0,
-    ).length;
+  const casesWithoutPlans = cases.filter(
+    (item) =>
+      ACTIVE_CASE_STATUSES.includes(item.caseStatus) && (item.interventionPlans || []).length === 0
+  ).length;
 
-  const casesWithoutNotes =
-    cases.filter(
-      (item) =>
-        ACTIVE_CASE_STATUSES.includes(
-          item.caseStatus,
-        ) &&
-        (
-          item.progressNotes ||
-          []
-        ).length === 0,
-    ).length;
+  const casesWithoutNotes = cases.filter(
+    (item) =>
+      ACTIVE_CASE_STATUSES.includes(item.caseStatus) && (item.progressNotes || []).length === 0
+  ).length;
 
   return [
     {
-      title:
-        "Most common domain",
-      message:
-        topDomain
-          ? `${topDomain.label} currently has the highest number of filtered cases with ${topDomain.value}.`
-          : "No case-domain data is available for the selected filters.",
+      title: "Most common domain",
+      message: topDomain
+        ? `${topDomain.label} currently has the highest number of filtered cases with ${topDomain.value}.`
+        : "No case-domain data is available for the selected filters.",
       icon: "folder",
-      tone:
-        "border-violet-200 bg-violet-50 text-violet-800",
+      tone: "border-violet-200 bg-violet-50 text-violet-800",
     },
 
     {
-      title:
-        "Follow-up attention",
+      title: "Follow-up attention",
       message:
         pendingFollowUps > 0
           ? `${pendingFollowUps} pending follow-ups remain, including ${overdueFollowUps} overdue.`
@@ -2417,38 +1487,32 @@ function buildInsights({
     },
 
     {
-      title:
-        "Intervention planning coverage",
+      title: "Intervention planning coverage",
       message:
         activeCases > 0
           ? `${casesWithoutPlans} active cases currently have no intervention plan. ${approvedPlans} of ${interventionPlans} plans are approved.`
           : "There are no active cases in the selected filters.",
       icon: "heart",
-      tone:
-        "border-blue-200 bg-blue-50 text-blue-800",
+      tone: "border-blue-200 bg-blue-50 text-blue-800",
     },
 
     {
-      title:
-        "Documentation coverage",
+      title: "Documentation coverage",
       message:
         activeCases > 0
           ? `${casesWithoutNotes} active cases currently have no progress notes.`
           : "There are no active cases in the selected filters.",
       icon: "notes",
-      tone:
-        "border-amber-200 bg-amber-50 text-amber-800",
+      tone: "border-amber-200 bg-amber-50 text-amber-800",
     },
 
     {
-      title:
-        "High-priority monitoring",
+      title: "High-priority monitoring",
       message:
         totalCases > 0
           ? `${highRiskCases} active cases are marked High or Urgent and may require closer monitoring.`
           : "No cases match the selected filters.",
-      icon:
-        "alertTriangle",
+      icon: "alertTriangle",
       tone:
         highRiskCases > 0
           ? "border-red-200 bg-red-50 text-red-800"
@@ -2457,79 +1521,40 @@ function buildInsights({
   ];
 }
 
-function countByOrder(
-  records,
-  accessor,
-  order,
-) {
-  const counts =
-    new Map(
-      order.map((label) => [
-        label,
-        0,
-      ]),
-    );
+function countByOrder(records, accessor, order) {
+  const counts = new Map(order.map((label) => [label, 0]));
 
-  records.forEach(
-    (record) => {
-      const label =
-        accessor(record);
+  records.forEach((record) => {
+    const label = accessor(record);
 
-      if (!counts.has(label)) {
-        counts.set(label, 0);
-      }
+    if (!counts.has(label)) {
+      counts.set(label, 0);
+    }
 
-      counts.set(
-        label,
-        counts.get(label) + 1,
-      );
-    },
-  );
+    counts.set(label, counts.get(label) + 1);
+  });
 
-  return Array.from(
-    counts.entries(),
-  ).map(
-    ([label, value]) => ({
-      label,
-      value,
-    }),
-  );
+  return Array.from(counts.entries()).map(([label, value]) => ({
+    label,
+    value,
+  }));
 }
 
-function countAndSort(
-  records,
-  accessor,
-) {
-  const counts =
-    new Map();
+function countAndSort(records, accessor) {
+  const counts = new Map();
 
-  records.forEach(
-    (record) => {
-      const label =
-        accessor(record);
+  records.forEach((record) => {
+    const label = accessor(record);
 
-      counts.set(
-        label,
-        (counts.get(label) ||
-          0) + 1,
-      );
-    },
-  );
+    counts.set(label, (counts.get(label) || 0) + 1);
+  });
 
-  return Array.from(
-    counts.entries(),
-  )
-    .map(
-      ([label, value]) => ({
-        label,
-        value,
-      }),
-    )
-    .sort(
-      (first, second) =>
-        second.value -
-        first.value,
-    );
+  return Array.from(counts.entries())
+    .map(([label, value]) => ({
+      label,
+      value,
+    }))
+    .sort((first, second) => second.value - first.value);
 }
 function getYearLevelDistribution(cases) {
   const YEAR_LEVEL_ORDER = [
@@ -2543,26 +1568,16 @@ function getYearLevelDistribution(cases) {
     "Not recorded",
   ];
 
-  const counts = new Map(
-    YEAR_LEVEL_ORDER.map((label) => [
-      label,
-      0,
-    ]),
-  );
+  const counts = new Map(YEAR_LEVEL_ORDER.map((label) => [label, 0]));
 
   cases.forEach((caseRecord) => {
-    const label = formatYearLevel(
-      caseRecord.student?.yearLevel,
-    );
+    const label = formatYearLevel(caseRecord.student?.yearLevel);
 
     if (!counts.has(label)) {
       counts.set(label, 0);
     }
 
-    counts.set(
-      label,
-      counts.get(label) + 1,
-    );
+    counts.set(label, counts.get(label) + 1);
   });
 
   return Array.from(counts.entries())
@@ -2574,188 +1589,116 @@ function getYearLevelDistribution(cases) {
 }
 
 function formatYearLevel(value) {
-    if (
-        value === undefined ||
-        value === null ||
-        String(value).trim() === ""
-    ) {
-        return "Not recorded";
-    }
+  if (value === undefined || value === null || String(value).trim() === "") {
+    return "Not recorded";
+  }
 
-    const normalized = String(value)
-        .trim()
-        .toLowerCase();
+  const normalized = String(value).trim().toLowerCase();
 
-    const labels = {
-        "1": "1st Year",
-        "1st": "1st Year",
-        "1st year": "1st Year",
-        "first year": "1st Year",
+  const labels = {
+    1: "1st Year",
+    "1st": "1st Year",
+    "1st year": "1st Year",
+    "first year": "1st Year",
 
-        "2": "2nd Year",
-        "2nd": "2nd Year",
-        "2nd year": "2nd Year",
-        "second year": "2nd Year",
+    2: "2nd Year",
+    "2nd": "2nd Year",
+    "2nd year": "2nd Year",
+    "second year": "2nd Year",
 
-        "3": "3rd Year",
-        "3rd": "3rd Year",
-        "3rd year": "3rd Year",
-        "third year": "3rd Year",
+    3: "3rd Year",
+    "3rd": "3rd Year",
+    "3rd year": "3rd Year",
+    "third year": "3rd Year",
 
-        "4": "4th Year",
-        "4th": "4th Year",
-        "4th year": "4th Year",
-        "fourth year": "4th Year",
+    4: "4th Year",
+    "4th": "4th Year",
+    "4th year": "4th Year",
+    "fourth year": "4th Year",
 
-        "5": "5th Year",
-        "5th": "5th Year",
-        "5th year": "5th Year",
-        "fifth year": "5th Year",
+    5: "5th Year",
+    "5th": "5th Year",
+    "5th year": "5th Year",
+    "fifth year": "5th Year",
 
-        graduate: "Graduate",
-        postgraduate: "Graduate",
+    graduate: "Graduate",
+    postgraduate: "Graduate",
 
-        other: "Other",
-    };
+    other: "Other",
+  };
 
-    return labels[normalized] || "Other";
+  return labels[normalized] || "Other";
 }
-function getPeriodRange(
-  period,
-) {
+function getPeriodRange(period) {
   const now = new Date();
 
-  if (
-    period === "all-time"
-  ) {
+  if (period === "all-time") {
     return {
       start: null,
     };
   }
 
-  if (
-    period === "current-year"
-  ) {
+  if (period === "current-year") {
     return {
-      start: new Date(
-        now.getFullYear(),
-        0,
-        1,
-      ),
+      start: new Date(now.getFullYear(), 0, 1),
     };
   }
 
-  const months =
-    period === "6-months"
-      ? 6
-      : 12;
+  const months = period === "6-months" ? 6 : 12;
 
   return {
-    start: new Date(
-      now.getFullYear(),
-      now.getMonth() -
-        (months - 1),
-      1,
-    ),
+    start: new Date(now.getFullYear(), now.getMonth() - (months - 1), 1),
   };
 }
 
-function getPeriodLabel(
-  period,
-) {
-  return (
-    PERIOD_OPTIONS.find(
-      (option) =>
-        option.value === period,
-    )?.label || "Filtered period"
-  );
+function getPeriodLabel(period) {
+  return PERIOD_OPTIONS.find((option) => option.value === period)?.label || "Filtered period";
 }
 
-function percentage(
-  value,
-  total,
-) {
+function percentage(value, total) {
   if (!total) return 0;
 
-  return Math.round(
-    (value / total) * 100,
-  );
+  return Math.round((value / total) * 100);
 }
 
 function isOverdue(value) {
   if (!value) return false;
 
-  const date =
-    new Date(value);
+  const date = new Date(value);
 
-  if (
-    Number.isNaN(
-      date.getTime(),
-    )
-  ) {
+  if (Number.isNaN(date.getTime())) {
     return false;
   }
 
-  return (
-    date <
-    startOfDay(new Date())
-  );
+  return date < startOfDay(new Date());
 }
 
 function startOfDay(date) {
-  return new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  );
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-function monthsBetween(
-  first,
-  second,
-) {
-  return (
-    (second.getFullYear() -
-      first.getFullYear()) *
-      12 +
-    second.getMonth() -
-    first.getMonth()
-  );
+function monthsBetween(first, second) {
+  return (second.getFullYear() - first.getFullYear()) * 12 + second.getMonth() - first.getMonth();
 }
 
 function getRecordId(record) {
   if (!record) return "";
 
-  if (
-    typeof record === "string"
-  ) {
+  if (typeof record === "string") {
     return record;
   }
 
-  return String(
-    record._id ||
-      record.id ||
-      "",
-  );
+  return String(record._id || record.id || "");
 }
 
 function formatName(person) {
-  return [
-    person?.firstName,
-    person?.lastName,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  return [person?.firstName, person?.lastName].filter(Boolean).join(" ");
 }
 
 function toTitleCase(value) {
   return String(value || "")
     .toLowerCase()
-    .replace(
-      /\b\w/g,
-      (character) =>
-        character.toUpperCase(),
-    );
+    .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
 function getInitials(name) {
@@ -2769,53 +1712,33 @@ function getInitials(name) {
 }
 
 function formatDateTime(value) {
-  const date =
-    new Date(value);
+  const date = new Date(value);
 
-  if (
-    Number.isNaN(
-      date.getTime(),
-    )
-  ) {
+  if (Number.isNaN(date.getTime())) {
     return "Invalid date";
   }
 
-  return new Intl.DateTimeFormat(
-    "en-PH",
-    {
-      dateStyle: "medium",
-      timeStyle: "short",
-    },
-  ).format(date);
+  return new Intl.DateTimeFormat("en-PH", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function getDistributionTone(label) {
   const tones = {
     Open: "bg-blue-500",
-    "In Progress":
-      "bg-amber-500",
-    "For Follow-up":
-      "bg-violet-500",
-    Closed:
-      "bg-emerald-500",
-    Terminated:
-      "bg-red-500",
-    "Pending Review":
-      "bg-amber-500",
-    Approved:
-      "bg-emerald-500",
-    Revised:
-      "bg-blue-500",
-    Rejected:
-      "bg-red-500",
-    "Sent to Student":
-      "bg-violet-500",
+    "In Progress": "bg-amber-500",
+    "For Follow-up": "bg-violet-500",
+    Closed: "bg-emerald-500",
+    Terminated: "bg-red-500",
+    "Pending Review": "bg-amber-500",
+    Approved: "bg-emerald-500",
+    Revised: "bg-blue-500",
+    Rejected: "bg-red-500",
+    "Sent to Student": "bg-violet-500",
   };
 
-  return (
-    tones[label] ||
-    "bg-slate-400"
-  );
+  return tones[label] || "bg-slate-400";
 }
 
 const filterClass =
@@ -2824,5 +1747,4 @@ const filterClass =
 const tableHeadClass =
   "px-4 py-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-[#8E8681]";
 
-const tableCellClass =
-  "px-4 py-3";
+const tableCellClass = "px-4 py-3";

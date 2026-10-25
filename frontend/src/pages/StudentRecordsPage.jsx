@@ -1,10 +1,5 @@
 import { clickableRecordProps } from "../utils/clickableRecord";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -25,15 +20,7 @@ const COLLEGES = [
   "College of Health Sciences",
 ];
 
-const YEAR_LEVELS = [
-  "1",
-  "2",
-  "3",
-  "4",
-  "5",
-  "Graduate",
-  "Other",
-];
+const YEAR_LEVELS = ["1", "2", "3", "4", "5", "Graduate", "Other"];
 
 const ENROLLMENT_STATUSES = [
   "Enrolled",
@@ -45,13 +32,7 @@ const ENROLLMENT_STATUSES = [
   "Unknown",
 ];
 
-const SEX_VALUES = [
-  "",
-  "Male",
-  "Female",
-  "Intersex",
-  "Prefer not to say",
-];
+const SEX_VALUES = ["", "Male", "Female", "Intersex", "Prefer not to say"];
 
 const CIVIL_STATUSES = [
   "",
@@ -128,8 +109,7 @@ export default function StudentRecordsPage() {
   const [minimumForm, setMinimumForm] = useState(EMPTY_MINIMUM_FORM);
   const [studentForm, setStudentForm] = useState(EMPTY_STUDENT_FORM);
   const [archiveReason, setArchiveReason] = useState("");
-  const [selectedEnrollmentStatus, setSelectedEnrollmentStatus] =
-    useState("Unknown");
+  const [selectedEnrollmentStatus, setSelectedEnrollmentStatus] = useState("Unknown");
 
   const [modalError, setModalError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -337,9 +317,7 @@ export default function StudentRecordsPage() {
       });
 
       setMinimumModalOpen(false);
-      setSuccessMessage(
-        data?.message || "Minimum student profile created successfully.",
-      );
+      setSuccessMessage(data?.message || "Minimum student profile created successfully.");
       setActiveTab("incomplete");
       setPage(1);
       await fetchStudents();
@@ -379,8 +357,7 @@ export default function StudentRecordsPage() {
         religion: studentForm.religion.trim(),
         emergencyContactName: studentForm.emergencyContactName.trim(),
         emergencyContactNumber: studentForm.emergencyContactNumber.trim(),
-        emergencyContactRelationship:
-          studentForm.emergencyContactRelationship.trim(),
+        emergencyContactRelationship: studentForm.emergencyContactRelationship.trim(),
       };
 
       if (!selectedStudent.profileCompleted) {
@@ -397,9 +374,7 @@ export default function StudentRecordsPage() {
       });
 
       setStudentModalOpen(false);
-      setSuccessMessage(
-        data?.message || "Student record updated successfully.",
-      );
+      setSuccessMessage(data?.message || "Student record updated successfully.");
       await fetchStudents();
     } catch (error) {
       setModalError(error.message || "Unable to update the student record.");
@@ -424,13 +399,11 @@ export default function StudentRecordsPage() {
           body: JSON.stringify({
             enrollmentStatus: selectedEnrollmentStatus,
           }),
-        },
+        }
       );
 
       setEnrollmentModalOpen(false);
-      setSuccessMessage(
-        data?.message || "Enrollment status updated successfully.",
-      );
+      setSuccessMessage(data?.message || "Enrollment status updated successfully.");
       await fetchStudents();
     } catch (error) {
       setModalError(error.message || "Unable to update enrollment status.");
@@ -455,7 +428,7 @@ export default function StudentRecordsPage() {
           body: JSON.stringify({
             archiveReason: archiveReason.trim(),
           }),
-        },
+        }
       );
 
       setArchiveModalOpen(false);
@@ -470,7 +443,7 @@ export default function StudentRecordsPage() {
 
   const restoreStudent = async (student) => {
     const confirmed = window.confirm(
-      `Restore ${formatStudentName(student)} to active student records?`,
+      `Restore ${formatStudentName(student)} to active student records?`
     );
 
     if (!confirmed) return;
@@ -478,12 +451,9 @@ export default function StudentRecordsPage() {
     setPageError("");
 
     try {
-      const data = await apiRequest(
-        `/students/${student._id || student.id}/restore`,
-        {
-          method: "PATCH",
-        },
-      );
+      const data = await apiRequest(`/students/${student._id || student.id}/restore`, {
+        method: "PATCH",
+      });
 
       setSuccessMessage(data?.message || "Student restored successfully.");
       await fetchStudents();
@@ -494,11 +464,7 @@ export default function StudentRecordsPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#2F2A27]">
-      <AppSidebar
-        user={user}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-      />
+      <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex min-h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-7">
@@ -534,9 +500,7 @@ export default function StudentRecordsPage() {
         </header>
 
         <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
-          {successMessage && (
-            <Alert tone="success" message={successMessage} />
-          )}
+          {successMessage && <Alert tone="success" message={successMessage} />}
 
           {pageError && <Alert tone="error" message={pageError} />}
 
@@ -580,10 +544,7 @@ export default function StudentRecordsPage() {
           <section className="mt-5 overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white">
             <div className="border-b border-[#ECE8E5] px-4 pt-4">
               <div className="flex flex-wrap gap-1">
-                <TabButton
-                  active={activeTab === "active"}
-                  onClick={() => setActiveTab("active")}
-                >
+                <TabButton active={activeTab === "active"} onClick={() => setActiveTab("active")}>
                   Active students
                 </TabButton>
 
@@ -607,9 +568,7 @@ export default function StudentRecordsPage() {
 
             <div className="flex flex-col gap-3 border-b border-[#ECE8E5] p-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
               <div>
-                <h3 className="text-[17px] font-semibold">
-                  {getTabTitle(activeTab)}
-                </h3>
+                <h3 className="text-[17px] font-semibold">{getTabTitle(activeTab)}</h3>
 
                 <p className="mt-1 text-[13px] text-[#938B86]">
                   {totalStudents} total matching record
@@ -638,9 +597,7 @@ export default function StudentRecordsPage() {
                   <>
                     <select
                       value={yearLevelFilter}
-                      onChange={(event) =>
-                        setYearLevelFilter(event.target.value)
-                      }
+                      onChange={(event) => setYearLevelFilter(event.target.value)}
                       className="h-8 w-full min-w-0 rounded-lg border border-[#E1DCD8] bg-white px-2.5 outline-none focus:border-[#8C1518]"
                       style={{ fontSize: "15px" }}
                     >
@@ -654,9 +611,7 @@ export default function StudentRecordsPage() {
 
                     <select
                       value={enrollmentFilter}
-                      onChange={(event) =>
-                        setEnrollmentFilter(event.target.value)
-                      }
+                      onChange={(event) => setEnrollmentFilter(event.target.value)}
                       className="h-8 w-full min-w-0 rounded-lg border border-[#E1DCD8] bg-white px-2.5 outline-none focus:border-[#8C1518]"
                       style={{ fontSize: "15px" }}
                     >
@@ -670,9 +625,7 @@ export default function StudentRecordsPage() {
 
                     <select
                       value={profileFilter}
-                      onChange={(event) =>
-                        setProfileFilter(event.target.value)
-                      }
+                      onChange={(event) => setProfileFilter(event.target.value)}
                       className="h-8 w-full min-w-0 rounded-lg border border-[#E1DCD8] bg-white px-2.5 outline-none focus:border-[#8C1518]"
                       style={{ fontSize: "15px" }}
                     >
@@ -716,9 +669,7 @@ export default function StudentRecordsPage() {
               page={page}
               totalPages={totalPages}
               onPrevious={() => setPage((current) => Math.max(current - 1, 1))}
-              onNext={() =>
-                setPage((current) => Math.min(current + 1, totalPages))
-              }
+              onNext={() => setPage((current) => Math.min(current + 1, totalPages))}
             />
           </section>
         </main>
@@ -782,14 +733,7 @@ export default function StudentRecordsPage() {
   );
 }
 
-function StudentList({
-  students,
-  isLoading,
-  activeTab,
-  onOpen,
-  onEnrollment,
-  onRestore,
-}) {
+function StudentList({ students, isLoading, activeTab, onOpen, onEnrollment, onRestore }) {
   if (isLoading) {
     return (
       <div className="grid min-h-[340px] place-items-center">
@@ -808,9 +752,7 @@ function StudentList({
           <div className="mx-auto grid h-11 w-11 place-items-center rounded-xl bg-[#F4EAEA] text-[#8C1518]">
             <Icon name="student" className="h-5 w-5" />
           </div>
-          <p className="mt-4 text-[15px] font-semibold">
-            No student records found
-          </p>
+          <p className="mt-4 text-[15px] font-semibold">No student records found</p>
           <p className="mt-1 text-[14px] text-[#938C87]">
             Adjust the filters or create a minimum student profile.
           </p>
@@ -844,8 +786,17 @@ function StudentList({
             {students.map((student) => (
               <tr
                 key={student._id || student.id}
-                {...(activeTab !== "archived" ? clickableRecordProps(() => onOpen(student), `Open ${formatStudentName(student)}`) : {})}
-                className={activeTab !== "archived" ? "clickable-record transition hover:bg-[#FCFBFA]" : "transition hover:bg-[#FCFBFA]"}
+                {...(activeTab !== "archived"
+                  ? clickableRecordProps(
+                      () => onOpen(student),
+                      `Open ${formatStudentName(student)}`
+                    )
+                  : {})}
+                className={
+                  activeTab !== "archived"
+                    ? "clickable-record transition hover:bg-[#FCFBFA]"
+                    : "transition hover:bg-[#FCFBFA]"
+                }
               >
                 <td className="px-5 py-5 align-top">
                   <p className="break-words text-[14px] font-semibold leading-5 text-[#37322F]">
@@ -899,7 +850,6 @@ function StudentList({
                       </button>
                     ) : (
                       <>
-
                         <ActionButton onClick={() => onEnrollment(student)}>
                           Enrollment
                         </ActionButton>
@@ -915,12 +865,16 @@ function StudentList({
 
       <div className="divide-y divide-[#EEEAE7] md:hidden">
         {students.map((student) => (
-          <article key={student._id || student.id} {...(activeTab !== "archived" ? clickableRecordProps(() => onOpen(student), `Open ${formatStudentName(student)}`) : {})} className={activeTab !== "archived" ? "clickable-record p-4" : "p-4"}>
+          <article
+            key={student._id || student.id}
+            {...(activeTab !== "archived"
+              ? clickableRecordProps(() => onOpen(student), `Open ${formatStudentName(student)}`)
+              : {})}
+            className={activeTab !== "archived" ? "clickable-record p-4" : "p-4"}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="truncate text-[17px] font-semibold">
-                  {formatStudentName(student)}
-                </h3>
+                <h3 className="truncate text-[17px] font-semibold">{formatStudentName(student)}</h3>
                 <p className="mt-1 text-[13px] text-[#938B86]">
                   {student.studentIdNumber} · {formatYearLevel(student.yearLevel)}
                 </p>
@@ -938,15 +892,10 @@ function StudentList({
 
               <div className="flex gap-1.5">
                 {activeTab === "archived" ? (
-                  <ActionButton onClick={() => onRestore(student)}>
-                    Restore
-                  </ActionButton>
+                  <ActionButton onClick={() => onRestore(student)}>Restore</ActionButton>
                 ) : (
                   <>
-
-                    <ActionButton onClick={() => onEnrollment(student)}>
-                      Enrollment
-                    </ActionButton>
+                    <ActionButton onClick={() => onEnrollment(student)}>Enrollment</ActionButton>
                   </>
                 )}
               </div>
@@ -958,15 +907,7 @@ function StudentList({
   );
 }
 
-function MinimumProfileModal({
-  open,
-  form,
-  setForm,
-  error,
-  saving,
-  onClose,
-  onSubmit,
-}) {
+function MinimumProfileModal({ open, form, setForm, error, saving, onClose, onSubmit }) {
   if (!open) return null;
 
   return (
@@ -1075,11 +1016,7 @@ function MinimumProfileModal({
           </Field>
         </div>
 
-        <ModalActions
-          saving={saving}
-          onClose={onClose}
-          submitLabel="Create profile"
-        />
+        <ModalActions saving={saving} onClose={onClose} submitLabel="Create profile" />
       </form>
     </Modal>
   );
@@ -1125,26 +1062,49 @@ function StudentProfileModal({
     ];
 
     return (
-      <Modal title="Student profile" description={formatStudentName(student)} onClose={onClose} wide>
+      <Modal
+        title="Student profile"
+        description={formatStudentName(student)}
+        onClose={onClose}
+        wide
+      >
         <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
           {details.map(([label, value]) => (
             <div key={label}>
               <dt className="text-[12px] font-medium text-[#918984]">{label}</dt>
-              <dd className="mt-1 break-words text-[14px] leading-6 text-[#3E3936]">{value || "Not provided"}</dd>
+              <dd className="mt-1 break-words text-[14px] leading-6 text-[#3E3936]">
+                {value || "Not provided"}
+              </dd>
             </div>
           ))}
         </dl>
         <div className="mt-6 flex items-center justify-between gap-3 border-t border-[#ECE8E5] pt-4">
           <div>
             {canArchive && (
-              <button type="button" onClick={onArchive} className="rounded-lg border border-red-200 px-4 py-2 text-[14px] font-medium text-red-600 hover:bg-red-50">
+              <button
+                type="button"
+                onClick={onArchive}
+                className="rounded-lg border border-red-200 px-4 py-2 text-[14px] font-medium text-red-600 hover:bg-red-50"
+              >
                 Archive student
               </button>
             )}
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="rounded-lg border border-[#DDD7D3] px-4 py-2 text-[14px] font-medium">Close</button>
-            <button type="button" onClick={onEdit} className="rounded-lg bg-[#8C1518] px-4 py-2 text-[14px] font-semibold text-white hover:bg-[#701013]">Edit profile</button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-[#DDD7D3] px-4 py-2 text-[14px] font-medium"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={onEdit}
+              className="rounded-lg bg-[#8C1518] px-4 py-2 text-[14px] font-semibold text-white hover:bg-[#701013]"
+            >
+              Edit profile
+            </button>
           </div>
         </div>
       </Modal>
@@ -1160,11 +1120,7 @@ function StudentProfileModal({
 
   return (
     <Modal
-      title={
-        student.profileCompleted
-          ? "Edit student profile"
-          : "Complete student profile"
-      }
+      title={student.profileCompleted ? "Edit student profile" : "Complete student profile"}
       description={`${student.studentIdNumber} · ${formatStudentName(student)}`}
       onClose={onClose}
       wide
@@ -1178,9 +1134,7 @@ function StudentProfileModal({
               required
               disabled={!student.profileCompleted}
               value={form.studentIdNumber}
-              onChange={(event) =>
-                update("studentIdNumber", event.target.value.toUpperCase())
-              }
+              onChange={(event) => update("studentIdNumber", event.target.value.toUpperCase())}
               className={inputClass}
               style={{ fontSize: "15px" }}
             />
@@ -1267,8 +1221,7 @@ function StudentProfileModal({
               }}
               onBlur={(event) => {
                 if (!event.currentTarget.value.trim()) {
-                  event.currentTarget.placeholder =
-                    "BS Information Technology";
+                  event.currentTarget.placeholder = "BS Information Technology";
                 }
               }}
               className={inputClass}
@@ -1295,11 +1248,9 @@ function StudentProfileModal({
             <Field label="Enrollment status">
               <select
                 value={form.enrollmentStatus}
-                onChange={(event) =>
-                  update("enrollmentStatus", event.target.value)
-                }
+                onChange={(event) => update("enrollmentStatus", event.target.value)}
                 className={inputClass}
-              style={{ fontSize: "15px" }}
+                style={{ fontSize: "15px" }}
               >
                 {ENROLLMENT_STATUSES.map((status) => (
                   <option key={status} value={status}>
@@ -1368,30 +1319,20 @@ function StudentProfileModal({
             />
           </Field>
 
-          <Field
-            label="Permanent address"
-            className="sm:col-span-2 xl:col-span-3"
-          >
+          <Field label="Permanent address" className="sm:col-span-2 xl:col-span-3">
             <textarea
               value={form.permanentAddress}
-              onChange={(event) =>
-                update("permanentAddress", event.target.value)
-              }
+              onChange={(event) => update("permanentAddress", event.target.value)}
               rows={3}
               className={textareaClass}
               style={{ fontSize: "15px" }}
             />
           </Field>
 
-          <Field
-            label="Temporary address"
-            className="sm:col-span-2 xl:col-span-3"
-          >
+          <Field label="Temporary address" className="sm:col-span-2 xl:col-span-3">
             <textarea
               value={form.temporaryAddress}
-              onChange={(event) =>
-                update("temporaryAddress", event.target.value)
-              }
+              onChange={(event) => update("temporaryAddress", event.target.value)}
               rows={3}
               className={textareaClass}
               style={{ fontSize: "15px" }}
@@ -1407,9 +1348,7 @@ function StudentProfileModal({
           <Field label="Contact name">
             <input
               value={form.emergencyContactName}
-              onChange={(event) =>
-                update("emergencyContactName", event.target.value)
-              }
+              onChange={(event) => update("emergencyContactName", event.target.value)}
               className={inputClass}
               style={{ fontSize: "15px" }}
             />
@@ -1418,9 +1357,7 @@ function StudentProfileModal({
           <Field label="Contact number">
             <input
               value={form.emergencyContactNumber}
-              onChange={(event) =>
-                update("emergencyContactNumber", event.target.value)
-              }
+              onChange={(event) => update("emergencyContactNumber", event.target.value)}
               className={inputClass}
               style={{ fontSize: "15px" }}
             />
@@ -1429,9 +1366,7 @@ function StudentProfileModal({
           <Field label="Relationship">
             <input
               value={form.emergencyContactRelationship}
-              onChange={(event) =>
-                update("emergencyContactRelationship", event.target.value)
-              }
+              onChange={(event) => update("emergencyContactRelationship", event.target.value)}
               className={inputClass}
               style={{ fontSize: "15px" }}
             />
@@ -1448,16 +1383,7 @@ function StudentProfileModal({
   );
 }
 
-function EnrollmentModal({
-  open,
-  student,
-  value,
-  setValue,
-  error,
-  saving,
-  onClose,
-  onSubmit,
-}) {
+function EnrollmentModal({ open, student, value, setValue, error, saving, onClose, onSubmit }) {
   if (!open || !student) return null;
 
   return (
@@ -1474,7 +1400,7 @@ function EnrollmentModal({
             value={value}
             onChange={(event) => setValue(event.target.value)}
             className={inputClass}
-              style={{ fontSize: "15px" }}
+            style={{ fontSize: "15px" }}
           >
             {ENROLLMENT_STATUSES.map((status) => (
               <option key={status} value={status}>
@@ -1484,26 +1410,13 @@ function EnrollmentModal({
           </select>
         </Field>
 
-        <ModalActions
-          saving={saving}
-          onClose={onClose}
-          submitLabel="Update status"
-        />
+        <ModalActions saving={saving} onClose={onClose} submitLabel="Update status" />
       </form>
     </Modal>
   );
 }
 
-function ArchiveModal({
-  open,
-  student,
-  reason,
-  setReason,
-  error,
-  saving,
-  onClose,
-  onSubmit,
-}) {
+function ArchiveModal({ open, student, reason, setReason, error, saving, onClose, onSubmit }) {
   if (!open || !student) return null;
 
   return (
@@ -1522,20 +1435,16 @@ function ArchiveModal({
             onChange={(event) => setReason(event.target.value)}
             rows={4}
             className={textareaClass}
-              style={{ fontSize: "15px" }}
+            style={{ fontSize: "15px" }}
           />
         </Field>
 
         <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[13px] leading-4 text-red-700">
-          Archiving removes this student from active searches and prevents profile updates until an administrator restores the record.
+          Archiving removes this student from active searches and prevents profile updates until an
+          administrator restores the record.
         </div>
 
-        <ModalActions
-          saving={saving}
-          onClose={onClose}
-          submitLabel="Archive student"
-          danger
-        />
+        <ModalActions saving={saving} onClose={onClose} submitLabel="Archive student" danger />
       </form>
     </Modal>
   );
@@ -1596,12 +1505,7 @@ function Modal({ title, description, onClose, wide = false, children }) {
   );
 }
 
-function ModalActions({
-  saving,
-  onClose,
-  submitLabel,
-  danger = false,
-}) {
+function ModalActions({ saving, onClose, submitLabel, danger = false }) {
   return (
     <div className="mt-5 flex justify-end gap-2 border-t border-[#ECE8E5] pt-4">
       <button
@@ -1708,9 +1612,7 @@ function ProfileBadge({ complete }) {
   return (
     <span
       className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-medium ${
-        complete
-          ? "bg-emerald-50 text-emerald-700"
-          : "bg-amber-50 text-amber-700"
+        complete ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
       }`}
     >
       {complete ? "Complete" : "Incomplete"}
@@ -1811,15 +1713,12 @@ function mapStudentToForm(student) {
     religion: student.religion || "",
     emergencyContactName: student.emergencyContactName || "",
     emergencyContactNumber: student.emergencyContactNumber || "",
-    emergencyContactRelationship:
-      student.emergencyContactRelationship || "",
+    emergencyContactRelationship: student.emergencyContactRelationship || "",
   };
 }
 
 function formatStudentName(student) {
-  return [student?.firstName, student?.middleName, student?.lastName]
-    .filter(Boolean)
-    .join(" ");
+  return [student?.firstName, student?.middleName, student?.lastName].filter(Boolean).join(" ");
 }
 
 function formatDateInput(value) {

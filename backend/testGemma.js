@@ -35,9 +35,7 @@ const testGemma = async () => {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Ollama request failed: ${response.status} ${response.statusText}`
-      );
+      throw new Error(`Ollama request failed: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();

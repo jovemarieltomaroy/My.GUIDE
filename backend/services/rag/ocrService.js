@@ -1,6 +1,4 @@
-const {
-    createWorker,
-} = require("tesseract.js");
+const { createWorker } = require("tesseract.js");
 
 let workerPromise = null;
 let ocrQueue = Promise.resolve();
@@ -9,16 +7,13 @@ let ocrQueue = Promise.resolve();
  * Creates one reusable Tesseract worker.
  */
 const getOcrWorker = async () => {
-    if (!workerPromise) {
-        console.log(
-            "Starting OCR worker..."
-        );
+  if (!workerPromise) {
+    console.log("Starting OCR worker...");
 
-        workerPromise =
-            createWorker("eng");
-    }
+    workerPromise = createWorker("eng");
+  }
 
-    return workerPromise;
+  return workerPromise;
 };
 
 /**
@@ -29,100 +24,66 @@ const getOcrWorker = async () => {
  * @param {number|null} options.pageNumber
  * @returns {Promise<string>}
  */
-const ocrImageBuffer = async (
-    imageBuffer,
-    {
-        pageNumber = null,
-    } = {}
-) => {
-    const runOcr = async () => {
-        if (
-            !imageBuffer ||
-            imageBuffer.length === 0
-        ) {
-            throw new Error(
-                "A valid image buffer is required for OCR."
-            );
-        }
+const ocrImageBuffer = async (imageBuffer, { pageNumber = null } = {}) => {
+  const runOcr = async () => {
+    if (!imageBuffer || imageBuffer.length === 0) {
+      throw new Error("A valid image buffer is required for OCR.");
+    }
 
-        if (pageNumber) {
-            console.log(
-                `Running OCR on page ${pageNumber}...`
-            );
-        } else {
-            console.log(
-                "Running OCR..."
-            );
-        }
+    if (pageNumber) {
+      console.log(`Running OCR on page ${pageNumber}...`);
+    } else {
+      console.log("Running OCR...");
+    }
 
-        const worker =
-            await getOcrWorker();
+    const worker = await getOcrWorker();
 
-        const result =
-            await worker.recognize(
-                imageBuffer
-            );
+    const result = await worker.recognize(imageBuffer);
 
-        const text =
-            result?.data?.text
-                ?.trim() || "";
+    const text = result?.data?.text?.trim() || "";
 
-        if (pageNumber) {
-            console.log(
-                `OCR completed for page ${pageNumber}. Extracted ${text.length} characters.`
-            );
-        }
+    if (pageNumber) {
+      console.log(`OCR completed for page ${pageNumber}. Extracted ${text.length} characters.`);
+    }
 
-        return text;
-    };
+    return text;
+  };
 
-    /*
-     * Use one OCR worker sequentially.
-     */
-    const currentJob =
-        ocrQueue.then(
-            runOcr,
-            runOcr
-        );
+  /*
+   * Use one OCR worker sequentially.
+   */
+  const currentJob = ocrQueue.then(runOcr, runOcr);
 
-    /*
-     * Keep queue functional even when
-     * one OCR attempt fails.
-     */
-    ocrQueue =
-        currentJob.catch(
-            () => undefined
-        );
+  /*
+   * Keep queue functional even when
+   * one OCR attempt fails.
+   */
+  ocrQueue = currentJob.catch(() => undefined);
 
-    return currentJob;
+  return currentJob;
 };
 
 /**
  * Stops the reusable Tesseract worker.
  */
-const terminateOcrWorker =
-    async () => {
-        if (!workerPromise) {
-            return;
-        }
+const terminateOcrWorker = async () => {
+  if (!workerPromise) {
+    return;
+  }
 
-        try {
-            const worker =
-                await workerPromise;
+  try {
+    const worker = await workerPromise;
 
-            await worker.terminate();
+    await worker.terminate();
 
-            console.log(
-                "OCR worker stopped."
-            );
-        } finally {
-            workerPromise = null;
-            ocrQueue =
-                Promise.resolve();
-        }
-    };
+    console.log("OCR worker stopped.");
+  } finally {
+    workerPromise = null;
+    ocrQueue = Promise.resolve();
+  }
+};
 
 module.exports = {
-    ocrImageBuffer,
-    terminateOcrWorker,
+  ocrImageBuffer,
+  terminateOcrWorker,
 };

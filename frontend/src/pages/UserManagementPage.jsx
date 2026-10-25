@@ -11,15 +11,7 @@ const USER_ROLE = "Counselor-User";
 
 const USER_ROLES = [ADMIN_ROLE, USER_ROLE];
 
-const COLLEGES = [
-  "CCS",
-  "CEBA",
-  "CED",
-  "COE",
-  "CSM",
-  "CASS",
-  "CHS",
-];
+const COLLEGES = ["CCS", "CEBA", "CED", "COE", "CSM", "CASS", "CHS"];
 
 const EMPTY_CREATE_FORM = {
   email: "",
@@ -74,8 +66,7 @@ export default function UserManagementPage() {
 
   const isAdmin = currentUser?.role === ADMIN_ROLE;
 
-  const currentUserId =
-    currentUser?._id || currentUser?.id || null;
+  const currentUserId = currentUser?._id || currentUser?.id || null;
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
@@ -98,17 +89,12 @@ export default function UserManagementPage() {
 
       const queryString = parameters.toString();
 
-      const data = await apiRequest(
-        `/users${queryString ? `?${queryString}` : ""}`,
-        {
-          method: "GET",
-        },
-      );
+      const data = await apiRequest(`/users${queryString ? `?${queryString}` : ""}`, {
+        method: "GET",
+      });
 
       if (!Array.isArray(data)) {
-        throw new Error(
-          "The backend returned an invalid users response.",
-        );
+        throw new Error("The backend returned an invalid users response.");
       }
 
       setUsers(data);
@@ -121,19 +107,11 @@ export default function UserManagementPage() {
         return;
       }
 
-      setPageError(
-        error.message || "Unable to retrieve users.",
-      );
+      setPageError(error.message || "Unable to retrieve users.");
     } finally {
       setIsLoading(false);
     }
-  }, [
-    searchQuery,
-    roleFilter,
-    statusFilter,
-    clearUser,
-    navigate,
-  ]);
+  }, [searchQuery, roleFilter, statusFilter, clearUser, navigate]);
 
   useEffect(() => {
     if (!currentUser) {
@@ -147,12 +125,7 @@ export default function UserManagementPage() {
     }
 
     fetchUsers();
-  }, [
-    currentUser,
-    isAdmin,
-    navigate,
-    fetchUsers,
-  ]);
+  }, [currentUser, isAdmin, navigate, fetchUsers]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -200,7 +173,7 @@ export default function UserManagementPage() {
         active: 0,
         inactive: 0,
         admins: 0,
-      },
+      }
     );
   }, [users]);
 
@@ -221,12 +194,8 @@ export default function UserManagementPage() {
       designation: account.designation || "",
       instituteIdNumber: account.instituteIdNumber || "",
       contactNumber: account.contactNumber || "",
-      dateJoinedAsCounselor: formatDateForInput(
-        account.dateJoinedAsCounselor,
-      ),
-      collegesHandled: Array.isArray(account.collegesHandled)
-        ? account.collegesHandled
-        : [],
+      dateJoinedAsCounselor: formatDateForInput(account.dateJoinedAsCounselor),
+      collegesHandled: Array.isArray(account.collegesHandled) ? account.collegesHandled : [],
     });
 
     setFormError("");
@@ -272,9 +241,7 @@ export default function UserManagementPage() {
     event.preventDefault();
     setFormError("");
 
-    const normalizedEmail = createForm.email
-      .trim()
-      .toLowerCase();
+    const normalizedEmail = createForm.email.trim().toLowerCase();
 
     if (!normalizedEmail) {
       setFormError("Email is required.");
@@ -287,15 +254,11 @@ export default function UserManagementPage() {
     }
 
     if (createForm.password.length < 8) {
-      setFormError(
-        "Temporary password must contain at least 8 characters.",
-      );
+      setFormError("Temporary password must contain at least 8 characters.");
       return;
     }
 
-    if (
-      createForm.password !== createForm.confirmPassword
-    ) {
+    if (createForm.password !== createForm.confirmPassword) {
       setFormError("Passwords do not match.");
       return;
     }
@@ -312,7 +275,7 @@ export default function UserManagementPage() {
       });
 
       setSuccessMessage(
-        "User account created successfully. The counselor must change the temporary password and complete the profile.",
+        "User account created successfully. The counselor must change the temporary password and complete the profile."
       );
 
       closeModalAfterSave();
@@ -320,9 +283,7 @@ export default function UserManagementPage() {
     } catch (error) {
       console.error("Unable to create user:", error);
 
-      setFormError(
-        error.message || "Unable to create user.",
-      );
+      setFormError(error.message || "Unable to create user.");
     } finally {
       setIsSaving(false);
     }
@@ -350,27 +311,14 @@ export default function UserManagementPage() {
       await apiRequest(`/users/${userId}`, {
         method: "PUT",
         body: JSON.stringify({
-          firstName: cleanOptionalString(
-            editForm.firstName,
-          ),
-          middleName: cleanOptionalString(
-            editForm.middleName,
-          ),
-          lastName: cleanOptionalString(
-            editForm.lastName,
-          ),
+          firstName: cleanOptionalString(editForm.firstName),
+          middleName: cleanOptionalString(editForm.middleName),
+          lastName: cleanOptionalString(editForm.lastName),
           email: editForm.email.trim().toLowerCase(),
-          designation: cleanOptionalString(
-            editForm.designation,
-          ),
-          instituteIdNumber: cleanOptionalString(
-            editForm.instituteIdNumber,
-          ),
-          contactNumber: cleanOptionalString(
-            editForm.contactNumber,
-          ),
-          dateJoinedAsCounselor:
-            editForm.dateJoinedAsCounselor || null,
+          designation: cleanOptionalString(editForm.designation),
+          instituteIdNumber: cleanOptionalString(editForm.instituteIdNumber),
+          contactNumber: cleanOptionalString(editForm.contactNumber),
+          dateJoinedAsCounselor: editForm.dateJoinedAsCounselor || null,
           collegesHandled: editForm.collegesHandled,
         }),
       });
@@ -382,9 +330,7 @@ export default function UserManagementPage() {
     } catch (error) {
       console.error("Unable to update user:", error);
 
-      setFormError(
-        error.message || "Unable to update user.",
-      );
+      setFormError(error.message || "Unable to update user.");
     } finally {
       setIsSaving(false);
     }
@@ -412,9 +358,7 @@ export default function UserManagementPage() {
     }
 
     if (!adminPassword.trim()) {
-      setFormError(
-        "Enter your administrator password to confirm this action.",
-      );
+      setFormError("Enter your administrator password to confirm this action.");
       return;
     }
 
@@ -436,9 +380,7 @@ export default function UserManagementPage() {
     } catch (error) {
       console.error("Unable to update role:", error);
 
-      setFormError(
-        error.message || "Unable to update role.",
-      );
+      setFormError(error.message || "Unable to update role.");
     } finally {
       setIsSaving(false);
     }
@@ -456,15 +398,11 @@ export default function UserManagementPage() {
     }
 
     if (!adminPassword.trim()) {
-      setFormError(
-        "Enter your administrator password to confirm this action.",
-      );
+      setFormError("Enter your administrator password to confirm this action.");
       return;
     }
 
-    const action = selectedUser.isActive
-      ? "deactivate"
-      : "reactivate";
+    const action = selectedUser.isActive ? "deactivate" : "reactivate";
 
     setIsSaving(true);
 
@@ -477,7 +415,7 @@ export default function UserManagementPage() {
       setSuccessMessage(
         selectedUser.isActive
           ? "User account deactivated successfully."
-          : "User account reactivated successfully.",
+          : "User account reactivated successfully."
       );
 
       closeModalAfterSave();
@@ -485,10 +423,7 @@ export default function UserManagementPage() {
     } catch (error) {
       console.error("Unable to update account status:", error);
 
-      setFormError(
-        error.message ||
-          "Unable to update account status.",
-      );
+      setFormError(error.message || "Unable to update account status.");
     } finally {
       setIsSaving(false);
     }
@@ -511,45 +446,34 @@ export default function UserManagementPage() {
     }
 
     if (passwordForm.newPassword.length < 8) {
-      setFormError(
-        "New temporary password must contain at least 8 characters.",
-      );
+      setFormError("New temporary password must contain at least 8 characters.");
       return;
     }
 
-    if (
-      passwordForm.newPassword !==
-      passwordForm.confirmNewPassword
-    ) {
+    if (passwordForm.newPassword !== passwordForm.confirmNewPassword) {
       setFormError("Passwords do not match.");
       return;
     }
 
     if (!adminPassword.trim()) {
-      setFormError(
-        "Enter your administrator password to confirm this action.",
-      );
+      setFormError("Enter your administrator password to confirm this action.");
       return;
     }
 
     setIsSaving(true);
 
     try {
-      await apiRequest(
-        `/users/${userId}/reset-password`,
-        {
-          method: "PUT",
-          body: JSON.stringify({
-            newPassword: passwordForm.newPassword,
-            confirmNewPassword:
-              passwordForm.confirmNewPassword,
-            adminPassword,
-          }),
-        },
-      );
+      await apiRequest(`/users/${userId}/reset-password`, {
+        method: "PUT",
+        body: JSON.stringify({
+          newPassword: passwordForm.newPassword,
+          confirmNewPassword: passwordForm.confirmNewPassword,
+          adminPassword,
+        }),
+      });
 
       setSuccessMessage(
-        "Password reset successfully. The user must change it during the next login.",
+        "Password reset successfully. The user must change it during the next login."
       );
 
       closeModalAfterSave();
@@ -557,9 +481,7 @@ export default function UserManagementPage() {
     } catch (error) {
       console.error("Unable to reset password:", error);
 
-      setFormError(
-        error.message || "Unable to reset password.",
-      );
+      setFormError(error.message || "Unable to reset password.");
     } finally {
       setIsSaving(false);
     }
@@ -575,16 +497,12 @@ export default function UserManagementPage() {
 
   const toggleCollege = (college) => {
     setEditForm((current) => {
-      const selected = current.collegesHandled.includes(
-        college,
-      );
+      const selected = current.collegesHandled.includes(college);
 
       return {
         ...current,
         collegesHandled: selected
-          ? current.collegesHandled.filter(
-              (item) => item !== college,
-            )
+          ? current.collegesHandled.filter((item) => item !== college)
           : [...current.collegesHandled, college],
       };
     });
@@ -601,11 +519,7 @@ export default function UserManagementPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#262220]">
-      <AppSidebar
-        user={currentUser}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-      />
+      <AppSidebar user={currentUser} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 backdrop-blur-xl sm:px-6 lg:px-7">
@@ -620,9 +534,7 @@ export default function UserManagementPage() {
               </button>
 
               <div>
-                <h1 className="text-[20px] font-semibold">
-                  User Management
-                </h1>
+                <h1 className="text-[20px] font-semibold">User Management</h1>
 
                 <p className="hidden text-[14px] text-[#99918C] sm:block">
                   Manage counselor accounts and system access
@@ -649,8 +561,8 @@ export default function UserManagementPage() {
               </h2>
 
               <p className="mt-1 text-[15px] leading-5 text-[#8A837F]">
-                Create accounts, update counselor information,
-                manage roles, and control account access.
+                Create accounts, update counselor information, manage roles, and control account
+                access.
               </p>
             </div>
 
@@ -660,38 +572,17 @@ export default function UserManagementPage() {
               disabled={isLoading}
               className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-[#DDD7D3] bg-white px-4 !text-[15px] font-medium text-[#514B47] hover:bg-[#FAF8F7] disabled:opacity-50"
             >
-              <Icon
-                name="history"
-                className={`h-3.5 w-3.5 ${
-                  isLoading ? "animate-spin" : ""
-                }`}
-              />
-
+              <Icon name="history" className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
               Refresh
             </button>
           </div>
 
-          {successMessage && (
-            <AlertMessage
-              type="success"
-              message={successMessage}
-            />
-          )}
+          {successMessage && <AlertMessage type="success" message={successMessage} />}
 
-          {pageError && (
-            <AlertMessage
-              type="error"
-              message={pageError}
-            />
-          )}
+          {pageError && <AlertMessage type="error" message={pageError} />}
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <SummaryCard
-              label="Total accounts"
-              value={summary.total}
-              icon="users"
-              tone="maroon"
-            />
+            <SummaryCard label="Total accounts" value={summary.total} icon="users" tone="maroon" />
 
             <SummaryCard
               label="Active accounts"
@@ -707,20 +598,13 @@ export default function UserManagementPage() {
               tone="gold"
             />
 
-            <SummaryCard
-              label="Administrators"
-              value={summary.admins}
-              icon="shield"
-              tone="blue"
-            />
+            <SummaryCard label="Administrators" value={summary.admins} icon="shield" tone="blue" />
           </div>
 
           <section className="mt-5 overflow-hidden rounded-xl border border-[#E5E1DE] bg-white">
             <div className="flex flex-col gap-3 border-b border-[#ECE8E5] p-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h3 className="text-[17px] font-semibold">
-                  Counselor accounts
-                </h3>
+                <h3 className="text-[17px] font-semibold">Counselor accounts</h3>
 
                 <p className="mt-1 text-[14px] text-[#98918D]">
                   Results are retrieved directly from the backend.
@@ -737,9 +621,7 @@ export default function UserManagementPage() {
                   <input
                     type="search"
                     value={searchInput}
-                    onChange={(event) =>
-                      setSearchInput(event.target.value)
-                    }
+                    onChange={(event) => setSearchInput(event.target.value)}
                     placeholder="Search users..."
                     className="h-9 w-full rounded-lg border border-[#E1DCD8] bg-[#FAF9F8] pl-9 pr-3 !text-[15px] outline-none focus:border-[#8C1518] focus:ring-4 focus:ring-[#8C1518]/[0.06] sm:w-[230px]"
                   />
@@ -747,25 +629,17 @@ export default function UserManagementPage() {
 
                 <select
                   value={roleFilter}
-                  onChange={(event) =>
-                    setRoleFilter(event.target.value)
-                  }
+                  onChange={(event) => setRoleFilter(event.target.value)}
                   className="h-9 rounded-lg border border-[#E1DCD8] bg-white px-3 !text-[15px] outline-none focus:border-[#8C1518]"
                 >
                   <option value="">All roles</option>
-                  <option value={ADMIN_ROLE}>
-                    Counselor Admin
-                  </option>
-                  <option value={USER_ROLE}>
-                    Counselor User
-                  </option>
+                  <option value={ADMIN_ROLE}>Counselor Admin</option>
+                  <option value={USER_ROLE}>Counselor User</option>
                 </select>
 
                 <select
                   value={statusFilter}
-                  onChange={(event) =>
-                    setStatusFilter(event.target.value)
-                  }
+                  onChange={(event) => setStatusFilter(event.target.value)}
                   className="h-9 rounded-lg border border-[#E1DCD8] bg-white px-3 !text-[15px] outline-none focus:border-[#8C1518]"
                 >
                   <option value="">All statuses</option>
@@ -846,11 +720,7 @@ export default function UserManagementPage() {
 
       {modal === "status" && selectedUser && (
         <Modal
-          title={
-            selectedUser.isActive
-              ? "Deactivate account"
-              : "Reactivate account"
-          }
+          title={selectedUser.isActive ? "Deactivate account" : "Reactivate account"}
           description={formatUserName(selectedUser)}
           onClose={closeModal}
         >
@@ -903,9 +773,7 @@ function UsersTable({
         <div className="text-center">
           <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-2 border-[#8C1518]/20 border-t-[#8C1518]" />
 
-          <p className="mt-3 text-[15px] text-[#827B77]">
-            Loading users...
-          </p>
+          <p className="mt-3 text-[15px] text-[#827B77]">Loading users...</p>
         </div>
       </div>
     );
@@ -919,13 +787,10 @@ function UsersTable({
             <Icon name="users" className="h-5 w-5" />
           </div>
 
-          <p className="mt-4 text-[16px] font-semibold">
-            No users found
-          </p>
+          <p className="mt-4 text-[16px] font-semibold">No users found</p>
 
           <p className="mt-1 text-[14px] text-[#938C87]">
-            Adjust the filters or create a new counselor
-            account.
+            Adjust the filters or create a new counselor account.
           </p>
         </div>
       </div>
@@ -951,27 +816,20 @@ function UsersTable({
         <tbody className="divide-y divide-[#EEEAE7]">
           {users.map((account) => {
             const accountId = getUserId(account);
-            const isCurrentAccount =
-              String(accountId) === String(currentUserId);
+            const isCurrentAccount = String(accountId) === String(currentUserId);
 
             return (
-              <tr
-                key={accountId}
-                className="transition hover:bg-[#FCFBFA]"
-              >
+              <tr key={accountId} className="transition hover:bg-[#FCFBFA]">
                 <td className="px-4 py-3.5">
                   <div className="flex items-center gap-3">
                     <TableAvatar user={account} />
 
                     <div className="min-w-0">
                       <p className="max-w-[210px] truncate text-[15px] font-semibold text-[#36312E]">
-                        {formatUserName(account) ||
-                          "Profile not completed"}
+                        {formatUserName(account) || "Profile not completed"}
 
                         {isCurrentAccount && (
-                          <span className="ml-2 text-[13px] font-medium text-[#8C1518]">
-                            You
-                          </span>
+                          <span className="ml-2 text-[13px] font-medium text-[#8C1518]">You</span>
                         )}
                       </p>
 
@@ -991,9 +849,7 @@ function UsersTable({
                 </td>
 
                 <td className="px-4 py-3.5">
-                  <CollegeList
-                    colleges={account.collegesHandled}
-                  />
+                  <CollegeList colleges={account.collegesHandled} />
                 </td>
 
                 <td className="px-4 py-3.5">
@@ -1005,18 +861,12 @@ function UsersTable({
                 </td>
 
                 <td className="px-4 py-3.5">
-                  <ProfileBadge
-                    completed={account.profileCompleted}
-                  />
+                  <ProfileBadge completed={account.profileCompleted} />
                 </td>
 
                 <td className="px-4 py-3.5">
                   <div className="flex justify-end gap-1.5">
-                    <ActionButton
-                      title="Edit user"
-                      icon="notes"
-                      onClick={() => onEdit(account)}
-                    />
+                    <ActionButton title="Edit user" icon="notes" onClick={() => onEdit(account)} />
 
                     <ActionButton
                       title="Change role"
@@ -1027,23 +877,13 @@ function UsersTable({
                     <ActionButton
                       title="Reset password"
                       icon="lock"
-                      onClick={() =>
-                        onResetPassword(account)
-                      }
+                      onClick={() => onResetPassword(account)}
                     />
 
                     {!isCurrentAccount && (
                       <ActionButton
-                        title={
-                          account.isActive
-                            ? "Deactivate user"
-                            : "Reactivate user"
-                        }
-                        icon={
-                          account.isActive
-                            ? "close"
-                            : "check"
-                        }
+                        title={account.isActive ? "Deactivate user" : "Reactivate user"}
+                        icon={account.isActive ? "close" : "check"}
                         danger={account.isActive}
                         onClick={() => onStatus(account)}
                       />
@@ -1059,22 +899,12 @@ function UsersTable({
   );
 }
 
-function CreateUserForm({
-  form,
-  setForm,
-  error,
-  isSaving,
-  onSubmit,
-  onCancel,
-}) {
+function CreateUserForm({ form, setForm, error, isSaving, onSubmit, onCancel }) {
   return (
     <form onSubmit={onSubmit}>
       {error && <FormError message={error} />}
 
-      <FormField
-        label="Institutional email"
-        required
-      >
+      <FormField label="Institutional email" required>
         <input
           type="email"
           value={form.email}
@@ -1120,29 +950,16 @@ function CreateUserForm({
       </div>
 
       <div className="mt-4 rounded-lg border border-[#E7D9B2] bg-[#FCF7E9] p-3 text-[14px] leading-4 text-[#766229]">
-        The backend creates this account as
-        Counselor-User with `mustChangePassword: true` and
+        The backend creates this account as Counselor-User with `mustChangePassword: true` and
         `profileCompleted: false`.
       </div>
 
-      <ModalActions
-        isSaving={isSaving}
-        submitLabel="Create account"
-        onCancel={onCancel}
-      />
+      <ModalActions isSaving={isSaving} submitLabel="Create account" onCancel={onCancel} />
     </form>
   );
 }
 
-function EditUserForm({
-  form,
-  setForm,
-  error,
-  isSaving,
-  onSubmit,
-  onCancel,
-  toggleCollege,
-}) {
+function EditUserForm({ form, setForm, error, isSaving, onSubmit, onCancel, toggleCollege }) {
   const update = (field, value) => {
     setForm((current) => ({
       ...current,
@@ -1158,9 +975,7 @@ function EditUserForm({
         <FormField label="First name">
           <input
             value={form.firstName}
-            onChange={(event) =>
-              update("firstName", event.target.value)
-            }
+            onChange={(event) => update("firstName", event.target.value)}
             className={inputClass}
           />
         </FormField>
@@ -1168,9 +983,7 @@ function EditUserForm({
         <FormField label="Middle name">
           <input
             value={form.middleName}
-            onChange={(event) =>
-              update("middleName", event.target.value)
-            }
+            onChange={(event) => update("middleName", event.target.value)}
             className={inputClass}
           />
         </FormField>
@@ -1178,9 +991,7 @@ function EditUserForm({
         <FormField label="Last name">
           <input
             value={form.lastName}
-            onChange={(event) =>
-              update("lastName", event.target.value)
-            }
+            onChange={(event) => update("lastName", event.target.value)}
             className={inputClass}
           />
         </FormField>
@@ -1191,9 +1002,7 @@ function EditUserForm({
           <input
             type="email"
             value={form.email}
-            onChange={(event) =>
-              update("email", event.target.value)
-            }
+            onChange={(event) => update("email", event.target.value)}
             className={inputClass}
           />
         </FormField>
@@ -1201,12 +1010,7 @@ function EditUserForm({
         <FormField label="Institute ID number">
           <input
             value={form.instituteIdNumber}
-            onChange={(event) =>
-              update(
-                "instituteIdNumber",
-                event.target.value,
-              )
-            }
+            onChange={(event) => update("instituteIdNumber", event.target.value)}
             className={inputClass}
           />
         </FormField>
@@ -1214,9 +1018,7 @@ function EditUserForm({
         <FormField label="Designation">
           <input
             value={form.designation}
-            onChange={(event) =>
-              update("designation", event.target.value)
-            }
+            onChange={(event) => update("designation", event.target.value)}
             className={inputClass}
           />
         </FormField>
@@ -1224,9 +1026,7 @@ function EditUserForm({
         <FormField label="Contact number">
           <input
             value={form.contactNumber}
-            onChange={(event) =>
-              update("contactNumber", event.target.value)
-            }
+            onChange={(event) => update("contactNumber", event.target.value)}
             className={inputClass}
           />
         </FormField>
@@ -1235,26 +1035,18 @@ function EditUserForm({
           <input
             type="date"
             value={form.dateJoinedAsCounselor}
-            onChange={(event) =>
-              update(
-                "dateJoinedAsCounselor",
-                event.target.value,
-              )
-            }
+            onChange={(event) => update("dateJoinedAsCounselor", event.target.value)}
             className={inputClass}
           />
         </FormField>
       </div>
 
       <fieldset className="mt-4">
-        <legend className="text-[14px] font-semibold text-[#49433F]">
-          Colleges handled
-        </legend>
+        <legend className="text-[14px] font-semibold text-[#49433F]">Colleges handled</legend>
 
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {COLLEGES.map((college) => {
-            const selected =
-              form.collegesHandled.includes(college);
+            const selected = form.collegesHandled.includes(college);
 
             return (
               <label
@@ -1279,11 +1071,7 @@ function EditUserForm({
         </div>
       </fieldset>
 
-      <ModalActions
-        isSaving={isSaving}
-        submitLabel="Save changes"
-        onCancel={onCancel}
-      />
+      <ModalActions isSaving={isSaving} submitLabel="Save changes" onCancel={onCancel} />
     </form>
   );
 }
@@ -1323,9 +1111,7 @@ function RoleForm({
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-[15px] font-semibold">
-                    {role === ADMIN_ROLE
-                      ? "Counselor Administrator"
-                      : "Counselor User"}
+                    {role === ADMIN_ROLE ? "Counselor Administrator" : "Counselor User"}
                   </p>
 
                   <p className="mt-1 text-[14px] leading-4 text-[#847D79]">
@@ -1357,9 +1143,7 @@ function RoleForm({
           <input
             type="password"
             value={adminPassword}
-            onChange={(event) =>
-              setAdminPassword(event.target.value)
-            }
+            onChange={(event) => setAdminPassword(event.target.value)}
             placeholder="Enter your password"
             autoComplete="current-password"
             className={inputClass}
@@ -1367,16 +1151,11 @@ function RoleForm({
         </FormField>
 
         <p className="mt-2 text-[13px] leading-4 text-[#918A86]">
-          Enter your own password to authorize this role
-          change.
+          Enter your own password to authorize this role change.
         </p>
       </div>
 
-      <ModalActions
-        isSaving={isSaving}
-        submitLabel="Confirm role change"
-        onCancel={onCancel}
-      />
+      <ModalActions isSaving={isSaving} submitLabel="Confirm role change" onCancel={onCancel} />
     </form>
   );
 }
@@ -1398,21 +1177,15 @@ function StatusConfirmation({
 
       <div
         className={`rounded-xl border p-4 ${
-          deactivating
-            ? "border-red-200 bg-red-50"
-            : "border-emerald-200 bg-emerald-50"
+          deactivating ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"
         }`}
       >
         <p
           className={`text-[15px] font-semibold ${
-            deactivating
-              ? "text-red-700"
-              : "text-emerald-700"
+            deactivating ? "text-red-700" : "text-emerald-700"
           }`}
         >
-          {deactivating
-            ? "Deactivate this user?"
-            : "Reactivate this user?"}
+          {deactivating ? "Deactivate this user?" : "Reactivate this user?"}
         </p>
 
         <p className="mt-2 text-[14px] leading-4 text-[#6F6864]">
@@ -1427,9 +1200,7 @@ function StatusConfirmation({
           <input
             type="password"
             value={adminPassword}
-            onChange={(event) =>
-              setAdminPassword(event.target.value)
-            }
+            onChange={(event) => setAdminPassword(event.target.value)}
             placeholder="Enter your password"
             autoComplete="current-password"
             className={inputClass}
@@ -1437,8 +1208,7 @@ function StatusConfirmation({
         </FormField>
 
         <p className="mt-2 text-[13px] leading-4 text-[#918A86]">
-          Enter your own password to authorize this account
-          status change.
+          Enter your own password to authorize this account status change.
         </p>
       </div>
 
@@ -1456,9 +1226,7 @@ function StatusConfirmation({
           type="submit"
           disabled={isSaving}
           className={`rounded-lg px-4 py-2.5 text-[15px] font-semibold text-white disabled:opacity-50 ${
-            deactivating
-              ? "bg-red-600 hover:bg-red-700"
-              : "bg-emerald-600 hover:bg-emerald-700"
+            deactivating ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
           }`}
         >
           {isSaving
@@ -1521,9 +1289,7 @@ function ResetPasswordForm({
           <input
             type="password"
             value={adminPassword}
-            onChange={(event) =>
-              setAdminPassword(event.target.value)
-            }
+            onChange={(event) => setAdminPassword(event.target.value)}
             placeholder="Enter your own password"
             autoComplete="current-password"
             className={inputClass}
@@ -1531,21 +1297,15 @@ function ResetPasswordForm({
         </FormField>
 
         <p className="mt-2 text-[13px] leading-4 text-[#918A86]">
-          This is your current administrator password, not
-          the user’s new temporary password.
+          This is your current administrator password, not the user’s new temporary password.
         </p>
       </div>
 
       <div className="mt-4 rounded-lg border border-[#E7D9B2] bg-[#FCF7E9] p-3 text-[14px] leading-4 text-[#766229]">
-        The user will be required to change this password
-        during the next login.
+        The user will be required to change this password during the next login.
       </div>
 
-      <ModalActions
-        isSaving={isSaving}
-        submitLabel="Reset password"
-        onCancel={onCancel}
-      />
+      <ModalActions isSaving={isSaving} submitLabel="Reset password" onCancel={onCancel} />
     </form>
   );
 }
@@ -1571,11 +1331,7 @@ function SidebarGroup({ label, items }) {
           >
             <Icon
               name={item.icon}
-              className={`h-[13px] w-[13px] ${
-                item.active
-                  ? "text-[#E4C45D]"
-                  : "text-white/40"
-              }`}
+              className={`h-[13px] w-[13px] ${item.active ? "text-[#FFC440]" : "text-white/40"}`}
             />
 
             {item.label}
@@ -1588,47 +1344,28 @@ function SidebarGroup({ label, items }) {
 
 function SummaryCard({ label, value, icon, tone }) {
   const tones = {
-    maroon:
-      "border-[#A62A2E]/60 bg-[#F4E8E8] text-[#8C1518]",
-    green:
-      "border-[#5E8F3A]/60 bg-[#EAF4E5] text-[#398322]",
-    gold:
-      "border-[#D2A92D]/60 bg-[#FAF3DC] text-[#A47900]",
-    blue:
-      "border-[#3E79BA]/60 bg-[#EAF1F8] text-[#316FAE]",
+    maroon: "border-[#A62A2E]/60 bg-[#F4E8E8] text-[#8C1518]",
+    green: "border-[#5E8F3A]/60 bg-[#EAF4E5] text-[#398322]",
+    gold: "border-[#D2A92D]/60 bg-[#FAF3DC] text-[#A47900]",
+    blue: "border-[#3E79BA]/60 bg-[#EAF1F8] text-[#316FAE]",
   };
 
-  const [borderClass, backgroundClass, textClass] =
-    tones[tone].split(" ");
+  const [borderClass, backgroundClass, textClass] = tones[tone].split(" ");
 
   return (
-    <article
-      className={`rounded-xl border bg-white p-4 ${borderClass}`}
-    >
-      <div
-        className={`grid h-8 w-8 place-items-center rounded-lg ${backgroundClass} ${textClass}`}
-      >
+    <article className={`rounded-xl border bg-white p-4 ${borderClass}`}>
+      <div className={`grid h-8 w-8 place-items-center rounded-lg ${backgroundClass} ${textClass}`}>
         <Icon name={icon} className="h-4 w-4" />
       </div>
 
-      <p className="mt-3 text-[14px] text-[#8D8580]">
-        {label}
-      </p>
+      <p className="mt-3 text-[14px] text-[#8D8580]">{label}</p>
 
-      <p className="mt-1 text-xl font-semibold">
-        {value}
-      </p>
+      <p className="mt-1 text-xl font-semibold">{value}</p>
     </article>
   );
 }
 
-function Modal({
-  title,
-  description,
-  children,
-  onClose,
-  large = false,
-}) {
+function Modal({ title, description, children, onClose, large = false }) {
   return (
     <div className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-black/40 px-4 py-8 backdrop-blur-[2px]">
       <button
@@ -1645,15 +1382,9 @@ function Modal({
       >
         <header className="flex items-start justify-between border-b border-[#ECE8E5] px-5 py-4">
           <div>
-            <h2 className="text-[20px] font-semibold">
-              {title}
-            </h2>
+            <h2 className="text-[20px] font-semibold">{title}</h2>
 
-            {description && (
-              <p className="mt-1 text-[14px] text-[#918A86]">
-                {description}
-              </p>
-            )}
+            {description && <p className="mt-1 text-[14px] text-[#918A86]">{description}</p>}
           </div>
 
           <button
@@ -1665,27 +1396,16 @@ function Modal({
           </button>
         </header>
 
-        <div className="max-h-[75vh] overflow-y-auto p-5">
-          {children}
-        </div>
+        <div className="max-h-[75vh] overflow-y-auto p-5">{children}</div>
       </section>
     </div>
   );
 }
 
-function ModalActions({
-  isSaving,
-  submitLabel,
-  onCancel,
-}) {
+function ModalActions({ isSaving, submitLabel, onCancel }) {
   return (
     <div className="mt-6 flex justify-end gap-2">
-      <button
-        type="button"
-        onClick={onCancel}
-        disabled={isSaving}
-        className={secondaryButtonClass}
-      >
+      <button type="button" onClick={onCancel} disabled={isSaving} className={secondaryButtonClass}>
         Cancel
       </button>
 
@@ -1706,9 +1426,7 @@ function FormField({ label, required, children }) {
       <span className="text-[14px] font-semibold text-[#49433F]">
         {label}
 
-        {required && (
-          <span className="ml-1 text-red-600">*</span>
-        )}
+        {required && <span className="ml-1 text-red-600">*</span>}
       </span>
 
       <div className="mt-1.5">{children}</div>
@@ -1752,12 +1470,7 @@ function TableHeading({ children, align = "left" }) {
   );
 }
 
-function ActionButton({
-  title,
-  icon,
-  onClick,
-  danger = false,
-}) {
+function ActionButton({ title, icon, onClick, danger = false }) {
   return (
     <button
       type="button"
@@ -1817,9 +1530,7 @@ function RoleBadge({ role }) {
   return (
     <span
       className={`rounded-full px-2 py-1 text-[13px] font-medium ${
-        admin
-          ? "bg-[#F3E8F7] text-[#7B358F]"
-          : "bg-[#EAF1F8] text-[#316FAE]"
+        admin ? "bg-[#F3E8F7] text-[#7B358F]" : "bg-[#EAF1F8] text-[#316FAE]"
       }`}
     >
       {admin ? "Admin" : "Counselor"}
@@ -1831,16 +1542,10 @@ function StatusBadge({ active }) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[13px] font-medium ${
-        active
-          ? "bg-emerald-50 text-emerald-700"
-          : "bg-red-50 text-red-600"
+        active ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
       }`}
     >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          active ? "bg-emerald-500" : "bg-red-500"
-        }`}
-      />
+      <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-emerald-500" : "bg-red-500"}`} />
 
       {active ? "Active" : "Inactive"}
     </span>
@@ -1851,9 +1556,7 @@ function ProfileBadge({ completed }) {
   return (
     <span
       className={`rounded-full px-2 py-1 text-[13px] font-medium ${
-        completed
-          ? "bg-emerald-50 text-emerald-700"
-          : "bg-amber-50 text-amber-700"
+        completed ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
       }`}
     >
       {completed ? "Complete" : "Incomplete"}
@@ -1863,11 +1566,7 @@ function ProfileBadge({ completed }) {
 
 function CollegeList({ colleges }) {
   if (!Array.isArray(colleges) || colleges.length === 0) {
-    return (
-      <span className="text-[14px] text-[#AAA29D]">
-        —
-      </span>
-    );
+    return <span className="text-[14px] text-[#AAA29D]">—</span>;
   }
 
   const visible = colleges.slice(0, 2);
@@ -1898,19 +1597,11 @@ function getUserId(user) {
 }
 
 function getInitials(user) {
-  return `${user?.firstName?.[0] || ""}${
-    user?.lastName?.[0] || ""
-  }`.toUpperCase();
+  return `${user?.firstName?.[0] || ""}${user?.lastName?.[0] || ""}`.toUpperCase();
 }
 
 function formatUserName(user) {
-  return [
-    user?.firstName,
-    user?.middleName,
-    user?.lastName,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  return [user?.firstName, user?.middleName, user?.lastName].filter(Boolean).join(" ");
 }
 
 function formatDateForInput(value) {

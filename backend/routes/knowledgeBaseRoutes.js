@@ -1,44 +1,32 @@
-const express = require(
-    "express"
-);
+const express = require("express");
 
-const router =
-    express.Router();
-
+const router = express.Router();
 
 const {
-    getStudentMaterials,
-    updateKnowledgeResource,
-    uploadKnowledgeResource,
-    getKnowledgeResources,
-    getKnowledgeResourceById,
-    viewKnowledgeResourcePdf,
-    deleteKnowledgeResource,
-} = require(
-    "../controllers/knowledgeBaseController"
-);
+  getStudentMaterials,
+  updateKnowledgeResource,
+  uploadKnowledgeResource,
+  getKnowledgeResources,
+  getKnowledgeResourceById,
+  viewKnowledgeResourcePdf,
+  deleteKnowledgeResource,
+} = require("../controllers/knowledgeBaseController");
 
+const { protect, adminOnly } = require("../middleware/authValidator");
 
-const {
-    protect,
-    adminOnly,
-} = require(
-    "../middleware/authValidator"
-);
-
-
-const uploadKnowledgeResourceMiddleware =
-    require(
-        "../middleware/uploadKnowledgeResource"
-    );
-
+const uploadKnowledgeResourceMiddleware = require("../middleware/uploadKnowledgeResource");
 
 const uploadPdf = (req, res, next) => {
-    uploadKnowledgeResourceMiddleware.single('file')(req, res, error => {
-        if (!error) return next();
-        return res.status(400).json({ success: false, message: error.code === 'LIMIT_FILE_SIZE'
-            ? 'The PDF must not exceed 100 MB.' : error.message || 'Unable to upload the PDF.' });
+  uploadKnowledgeResourceMiddleware.single("file")(req, res, (error) => {
+    if (!error) return next();
+    return res.status(400).json({
+      success: false,
+      message:
+        error.code === "LIMIT_FILE_SIZE"
+          ? "The PDF must not exceed 100 MB."
+          : error.message || "Unable to upload the PDF.",
     });
+  });
 };
 
 /*
@@ -50,20 +38,14 @@ const uploadPdf = (req, res, next) => {
  * restricted to Counselor-Admin users.
  */
 
-
 /*
  * GET /api/knowledge-base
  *
  * Retrieve all uploaded knowledge resources.
  */
-router.get('/student-materials', protect, getStudentMaterials);
+router.get("/student-materials", protect, getStudentMaterials);
 
-router.get(
-    "/",
-    protect,
-    getKnowledgeResources
-);
-
+router.get("/", protect, getKnowledgeResources);
 
 /*
  * POST /api/knowledge-base
@@ -78,13 +60,13 @@ router.get(
  * topic
  */
 router.post(
-    "/",
-    protect,
-    adminOnly,
+  "/",
+  protect,
+  adminOnly,
 
-    uploadPdf,
+  uploadPdf,
 
-    uploadKnowledgeResource
+  uploadKnowledgeResource
 );
 
 /*
@@ -92,23 +74,14 @@ router.post(
  *
  * Preview the original uploaded PDF.
  */
-router.get(
-    "/:id/pdf",
-    protect,
-    viewKnowledgeResourcePdf
-);
+router.get("/:id/pdf", protect, viewKnowledgeResourcePdf);
 
 /*
  * GET /api/knowledge-base/:id
  *
  * Retrieve one knowledge resource.
  */
-router.get(
-    "/:id",
-    protect,
-    getKnowledgeResourceById
-);
-
+router.get("/:id", protect, getKnowledgeResourceById);
 
 /*
  * DELETE /api/knowledge-base/:id
@@ -119,16 +92,9 @@ router.get(
  * - associated KnowledgeChunks
  * - uploaded PDF
  */
-router.delete(
-    "/:id",
-    protect,
-    adminOnly,
-    deleteKnowledgeResource
-);
+router.delete("/:id", protect, adminOnly, deleteKnowledgeResource);
 
+router.patch("/:id", protect, adminOnly, updateKnowledgeResource);
+router.post("/:id/replace", protect, adminOnly, uploadPdf, uploadKnowledgeResource);
 
-router.patch('/:id', protect, adminOnly, updateKnowledgeResource);
-router.post('/:id/replace', protect, adminOnly, uploadPdf, uploadKnowledgeResource);
-
-module.exports =
-    router;
+module.exports = router;

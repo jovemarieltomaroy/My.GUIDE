@@ -1,14 +1,8 @@
-import {
-  Navigate,
-  useLocation,
-} from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 
-export default function ProtectedRoute({
-  children,
-  allowedRoles,
-}) {
+export default function ProtectedRoute({ children, allowedRoles }) {
   const { user, isAuthenticated } = useAuth();
   const location = useLocation();
 
@@ -24,17 +18,8 @@ export default function ProtectedRoute({
     );
   }
 
-  if (
-    Array.isArray(allowedRoles) &&
-    allowedRoles.length > 0 &&
-    !allowedRoles.includes(user.role)
-  ) {
-    return (
-      <Navigate
-        to="/dashboard"
-        replace
-      />
-    );
+  if (Array.isArray(allowedRoles) && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;

@@ -1,19 +1,15 @@
-const express = require('express');
+const express = require("express");
 
 const router = express.Router();
 
 const {
-    sendPreCounselingForm,
-    getPublicPreCounselingForm,
-    submitPreCounselingForm,
-    getLatestSubmittedPreCounselingForm,
-} = require(
-    '../controllers/preCounselingController'
-);
+  sendPreCounselingForm,
+  getPublicPreCounselingForm,
+  submitPreCounselingForm,
+  getLatestSubmittedPreCounselingForm,
+} = require("../controllers/preCounselingController");
 
-const {
-    protect,
-} = require('../middleware/authValidator');
+const { protect } = require("../middleware/authValidator");
 
 /*
  * =========================================================
@@ -26,15 +22,9 @@ const {
  * The student does NOT need a My.GUIDE account.
  */
 
-router.get(
-    '/public/:token',
-    getPublicPreCounselingForm
-);
+router.get("/public/:token", getPublicPreCounselingForm);
 
-router.post(
-    '/public/:token/submit',
-    submitPreCounselingForm
-);
+router.post("/public/:token/submit", submitPreCounselingForm);
 
 /*
  * =========================================================
@@ -44,16 +34,8 @@ router.post(
  * These require a logged-in My.GUIDE counselor.
  */
 
-router.post(
-    '/send',
-    protect,
-    sendPreCounselingForm
-);
+router.post("/send", protect, sendPreCounselingForm);
 
-router.get(
-    '/student/:studentId/latest',
-    protect,
-    getLatestSubmittedPreCounselingForm
-);
+router.get("/student/:studentId/latest", protect, getLatestSubmittedPreCounselingForm);
 
 module.exports = router;

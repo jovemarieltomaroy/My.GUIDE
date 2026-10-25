@@ -1,9 +1,4 @@
-import {
-  Navigate,
-  Route,
-  Routes,
-  useNavigate,
-} from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
 import ScrollToTop from "./components/ScrollToTop";
 import LandingPage from "./pages/LandingPage";
@@ -37,17 +32,10 @@ import PreCounselingFormPage from "./pages/PreCounselingFormPage";
 function LandingRoute() {
   const navigate = useNavigate();
 
-  return (
-    <LandingPage
-      onLogin={() => navigate("/login")}
-    />
-  );
+  return <LandingPage onLogin={() => navigate("/login")} />;
 }
 
-function RequiredActionPage({
-  title,
-  description,
-}) {
+function RequiredActionPage({ title, description }) {
   const navigate = useNavigate();
 
   return (
@@ -58,19 +46,12 @@ function RequiredActionPage({
         </div>
 
         <div className="mx-auto mt-8 grid h-12 w-12 place-items-center rounded-xl bg-[#F5EAEA] text-[#8C1518]">
-          <Icon
-            name="shield"
-            className="h-6 w-6"
-          />
+          <Icon name="shield" className="h-6 w-6" />
         </div>
 
-        <h1 className="mt-6 text-2xl font-semibold tracking-[-0.03em] text-[#262220]">
-          {title}
-        </h1>
+        <h1 className="mt-6 text-2xl font-semibold tracking-[-0.03em] text-[#262220]">{title}</h1>
 
-        <p className="mt-4 text-sm leading-7 text-[#746D69]">
-          {description}
-        </p>
+        <p className="mt-4 text-sm leading-7 text-[#746D69]">{description}</p>
 
         <button
           type="button"
@@ -90,13 +71,9 @@ function NotFoundPage() {
   return (
     <main className="grid min-h-screen place-items-center bg-[#F8F6F4] px-5">
       <div className="text-center">
-        <p className="text-6xl font-semibold text-[#8C1518]">
-          404
-        </p>
+        <p className="text-6xl font-semibold text-[#8C1518]">404</p>
 
-        <h1 className="mt-4 text-2xl font-semibold text-[#262220]">
-          Page not found
-        </h1>
+        <h1 className="mt-4 text-2xl font-semibold text-[#262220]">Page not found</h1>
 
         <button
           type="button"
@@ -112,162 +89,93 @@ function NotFoundPage() {
 
 export default function App() {
   return (
-    <> <ScrollToTop />
-   <Routes>
-      <Route
-        path="/"
-        element={<LandingRoute />}
-      />
+    <>
+      {" "}
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<LandingRoute />} />
 
-      <Route
-        path="/login"
-        element={<LoginPage />}
-      />
+        <Route path="/login" element={<LoginPage />} />
 
-      <Route
-        path="/pre-counseling/:token"
-        element={<PreCounselingFormPage />}
-      />
+        <Route path="/pre-counseling/:token" element={<PreCounselingFormPage />} />
 
-      <Route
-        path="/change-password"
-        element={
-          <ProtectedRoute>
-            <ChangePasswordPage />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/change-password"
+          element={
+            <ProtectedRoute>
+              <ChangePasswordPage />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/complete-profile"
-        element={
-          <ProtectedRoute>
-            <CompleteProfilePage />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/complete-profile"
+          element={
+            <ProtectedRoute>
+              <CompleteProfilePage />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "Counselor-Admin",
-              "Counselor-User",
-            ]}
-          >
-            <DashboardPage />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["Counselor-Admin", "Counselor-User"]}>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/users"
-        element={
-          <ProtectedRoute
-            allowedRoles={["Counselor-Admin"]}
-          >
-            <UserManagementPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/me"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "Counselor-Admin",
-              "Counselor-User",
-            ]}
-          >
-            <AccountSetupRoute>
-              <MyProfilePage />
-            </AccountSetupRoute>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/account/change-password"
-        element={
-          <ProtectedRoute
-            allowedRoles={[
-              "Counselor-Admin",
-              "Counselor-User",
-            ]}
-          >
-            <AccountSetupRoute>
-              <ChangeOwnPasswordPage />
-            </AccountSetupRoute>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/cases/new"
-        element={<NewCasePage />
-        }
-      />
-      <Route
-        path="/consent-form"
-        element={<ConsentFormPage />
-        }
-      />
-      <Route
-        path="/cases"
-        element={<MyCasesPage />
-        }
-      />
-      <Route
-        path="/students"
-        element={<StudentRecordsPage />
-        }
-      />
-      <Route
-        path="/progress-notes"
-        element={<ProgressNotesPage />}
-      />
-      <Route
-        path="/intervention-plans"
-        element={<InterventionPlansPage />}
-      />
-      <Route
-        path="/cases/:id"
-        element={<CaseDetailsPage />}
-      />
-      <Route
-        path="/follow-ups"
-        element={<FollowUpsPage />}
-      />
-      <Route
-        path="/llm-recommendations"
-        element={<LLMRecommendationsPage />}
-      />
-      <Route
-        path="/knowledge-base"
-        element={
-          <ProtectedRoute
-            allowedRoles={["Counselor-Admin", "Counselor-User"]}
-          >
-            <KnowledgeBasePage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/analytics"
-        element={<AnalyticsPage />}
-      />
-      <Route
-        path="/reports"
-        element={<ReportsPage />}
-      />
-      <Route
-        path="/activity-logs"
-        element={<ActivityLogPage />}
-      />
-      <Route
-        path="/settings"
-        element={<SettingsPage />}
-      />
-  </Routes>
-  </>
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute allowedRoles={["Counselor-Admin"]}>
+              <UserManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/me"
+          element={
+            <ProtectedRoute allowedRoles={["Counselor-Admin", "Counselor-User"]}>
+              <AccountSetupRoute>
+                <MyProfilePage />
+              </AccountSetupRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/account/change-password"
+          element={
+            <ProtectedRoute allowedRoles={["Counselor-Admin", "Counselor-User"]}>
+              <AccountSetupRoute>
+                <ChangeOwnPasswordPage />
+              </AccountSetupRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/cases/new" element={<NewCasePage />} />
+        <Route path="/consent-form" element={<ConsentFormPage />} />
+        <Route path="/cases" element={<MyCasesPage />} />
+        <Route path="/students" element={<StudentRecordsPage />} />
+        <Route path="/progress-notes" element={<ProgressNotesPage />} />
+        <Route path="/intervention-plans" element={<InterventionPlansPage />} />
+        <Route path="/cases/:id" element={<CaseDetailsPage />} />
+        <Route path="/follow-ups" element={<FollowUpsPage />} />
+        <Route path="/llm-recommendations" element={<LLMRecommendationsPage />} />
+        <Route
+          path="/knowledge-base"
+          element={
+            <ProtectedRoute allowedRoles={["Counselor-Admin", "Counselor-User"]}>
+              <KnowledgeBasePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/activity-logs" element={<ActivityLogPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Routes>
+    </>
   );
 }

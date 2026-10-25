@@ -1,15 +1,65 @@
-const Case = require('../models/case');
-const { generateResponse } = require('../services/llm/ollamaService');
-const pickText = (value, fields) => Object.fromEntries(fields.filter(field => {
-    const item = value?.[field];
-    return typeof item === 'string' ? item.trim() : Array.isArray(item) && item.some(text => typeof text === 'string' && text.trim());
-}).map(field => [field, Array.isArray(value[field]) ? value[field].filter(text => typeof text === 'string' && text.trim()).map(text => text.trim()) : value[field].trim()]));
-const buildPresentationSummaryPrompt = record => {
-    const problemAssessment = pickText(record.problemAssessment, ['mainDomain', 'primaryProblems', 'secondaryProblems']);
-    const mentalStatus = pickText(record.mentalStatus, ['grooming', 'attire', 'physicalPresentation', 'eyeContact', 'activityLevel', 'speechRate', 'speechVolume', 'speechFluency', 'speechArticulation', 'speech', 'moodAndAffect', 'thoughtProcess', 'orientation', 'attentionAndConcentration', 'riskIndicators']);
-    const currentPresentation = pickText(record.currentPresentation, ['narrativeDescription', 'behavioralObservations', 'onset', 'duration', 'frequency', 'intensity']);
-    if (!problemAssessment.primaryProblems?.length && !problemAssessment.secondaryProblems?.length && !Object.keys(mentalStatus).length && !currentPresentation.narrativeDescription && !currentPresentation.behavioralObservations) throw new Error('Record problem assessment, mental status, or presenting concerns before generating drafts.');
-    return `Create three concise draft fields for counselor review. Return ONLY valid JSON with exactly these string keys: "presentingProblem", "formulationNarrative", "counselorAssessment".
+const Case = require("../models/case");
+const { generateResponse } = require("../services/llm/ollamaService");
+const pickText = (value, fields) =>
+  Object.fromEntries(
+    fields
+      .filter((field) => {
+        const item = value?.[field];
+        return typeof item === "string"
+          ? item.trim()
+          : Array.isArray(item) && item.some((text) => typeof text === "string" && text.trim());
+      })
+      .map((field) => [
+        field,
+        Array.isArray(value[field])
+          ? value[field]
+              .filter((text) => typeof text === "string" && text.trim())
+              .map((text) => text.trim())
+          : value[field].trim(),
+      ])
+  );
+const buildPresentationSummaryPrompt = (record) => {
+  const problemAssessment = pickText(record.problemAssessment, [
+    "mainDomain",
+    "primaryProblems",
+    "secondaryProblems",
+  ]);
+  const mentalStatus = pickText(record.mentalStatus, [
+    "grooming",
+    "attire",
+    "physicalPresentation",
+    "eyeContact",
+    "activityLevel",
+    "speechRate",
+    "speechVolume",
+    "speechFluency",
+    "speechArticulation",
+    "speech",
+    "moodAndAffect",
+    "thoughtProcess",
+    "orientation",
+    "attentionAndConcentration",
+    "riskIndicators",
+  ]);
+  const currentPresentation = pickText(record.currentPresentation, [
+    "narrativeDescription",
+    "behavioralObservations",
+    "onset",
+    "duration",
+    "frequency",
+    "intensity",
+  ]);
+  if (
+    !problemAssessment.primaryProblems?.length &&
+    !problemAssessment.secondaryProblems?.length &&
+    !Object.keys(mentalStatus).length &&
+    !currentPresentation.narrativeDescription &&
+    !currentPresentation.behavioralObservations
+  )
+    throw new Error(
+      "Record problem assessment, mental status, or presenting concerns before generating drafts."
+    );
+  return `Create three concise draft fields for counselor review. Return ONLY valid JSON with exactly these string keys: "presentingProblem", "formulationNarrative", "counselorAssessment".
 Field rules:
 - presentingProblem: summarize ONLY PROBLEM ASSESSMENT, including documented primary and secondary concerns. Do not substitute current presentation. If there are no recorded problems, return an empty string.
 - formulationNarrative: summarize ONLY MENTAL STATUS observations in a coherent paragraph. Do not substitute presenting concerns. If no mental status is recorded, return an empty string.
@@ -19,34 +69,90 @@ SOURCE DATA:
 ${JSON.stringify({ problemAssessment, mentalStatus, currentPresentation })}
 END SOURCE DATA`;
 };
-const parseFormulationDraft = text => {
-    const result = JSON.parse(text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, ''));
-    const keys = ['presentingProblem', 'formulationNarrative', 'counselorAssessment'];
-    if (!result || keys.some(key => typeof result[key] !== 'string') || !keys.some(key => result[key].trim())) throw new Error('Invalid formulation draft');
-    return Object.fromEntries(keys.map(key => [key, result[key].trim()]));
+const parseFormulationDraft = (text) => {
+  const result = JSON.parse(
+    text
+      .trim()
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```$/, "")
+  );
+  const keys = ["presentingProblem", "formulationNarrative", "counselorAssessment"];
+  if (
+    !result ||
+    keys.some((key) => typeof result[key] !== "string") ||
+    !keys.some((key) => result[key].trim())
+  )
+    throw new Error("Invalid formulation draft");
+  return Object.fromEntries(keys.map((key) => [key, result[key].trim()]));
 };
 const generateFormulationSummary = async (req, res) => {
+  try {
+    const record = await Case.findById(req.params.id);
+    if (!record) return res.status(404).json({ message: "Case not found." });
+    const actor = String(req.user._id);
+    const owner = record.createdBy?._id || record.createdBy;
+    const assigned = record.assignedCounselor?._id || record.assignedCounselor;
+    const allowed =
+      req.user.role === "Counselor-Admin"
+        ? String(owner) === actor
+        : req.user.role === "Counselor-User" && String(assigned) === actor;
+    if (!allowed)
+      return res
+        .status(403)
+        .json({ message: "Not authorized to generate a formulation draft for this case." });
+    if (record.isArchived || ["Closed", "Terminated"].includes(record.caseStatus))
+      return res
+        .status(400)
+        .json({ message: "Only active cases can generate a formulation draft." });
+    let prompt;
     try {
-        const record = await Case.findById(req.params.id);
-        if (!record) return res.status(404).json({ message: 'Case not found.' });
-        const actor = String(req.user._id);
-        const owner = record.createdBy?._id || record.createdBy;
-        const assigned = record.assignedCounselor?._id || record.assignedCounselor;
-        const allowed = req.user.role === 'Counselor-Admin' ? String(owner) === actor : req.user.role === 'Counselor-User' && String(assigned) === actor;
-        if (!allowed) return res.status(403).json({ message: 'Not authorized to generate a formulation draft for this case.' });
-        if (record.isArchived || ['Closed', 'Terminated'].includes(record.caseStatus)) return res.status(400).json({ message: 'Only active cases can generate a formulation draft.' });
-        let prompt;
-        try { prompt = buildPresentationSummaryPrompt(record); }
-        catch (error) { return res.status(400).json({ message: error.message }); }
-        const summary = await generateResponse(prompt, { temperature: 0.2, numPredict: 1400 });
-        if (typeof summary !== 'string' || !summary.trim()) throw new Error('Empty summary');
-        // Return a draft only. Saving the counselor-reviewed narrative uses the existing case update endpoint.
-        const draft = parseFormulationDraft(summary);
-        if (!record.problemAssessment?.primaryProblems?.some(value => value?.trim()) && !record.problemAssessment?.secondaryProblems?.some(value => value?.trim())) draft.presentingProblem = '';
-        if (!Object.keys(pickText(record.mentalStatus, ['grooming', 'attire', 'physicalPresentation', 'eyeContact', 'activityLevel', 'speechRate', 'speechVolume', 'speechFluency', 'speechArticulation', 'speech', 'moodAndAffect', 'thoughtProcess', 'orientation', 'attentionAndConcentration', 'riskIndicators'])).length) draft.formulationNarrative = '';
-        return res.json({ draft, message: 'Review the AI drafts before saving the formulation.' });
+      prompt = buildPresentationSummaryPrompt(record);
     } catch (error) {
-        return res.status(error.name === 'CastError' ? 400 : 502).json({ message: error.name === 'CastError' ? 'Invalid case ID.' : 'Unable to generate the summary. Check that the AI service is available and try again.' });
+      return res.status(400).json({ message: error.message });
     }
+    const summary = await generateResponse(prompt, { temperature: 0.2, numPredict: 1400 });
+    if (typeof summary !== "string" || !summary.trim()) throw new Error("Empty summary");
+    // Return a draft only. Saving the counselor-reviewed narrative uses the existing case update endpoint.
+    const draft = parseFormulationDraft(summary);
+    if (
+      !record.problemAssessment?.primaryProblems?.some((value) => value?.trim()) &&
+      !record.problemAssessment?.secondaryProblems?.some((value) => value?.trim())
+    )
+      draft.presentingProblem = "";
+    if (
+      !Object.keys(
+        pickText(record.mentalStatus, [
+          "grooming",
+          "attire",
+          "physicalPresentation",
+          "eyeContact",
+          "activityLevel",
+          "speechRate",
+          "speechVolume",
+          "speechFluency",
+          "speechArticulation",
+          "speech",
+          "moodAndAffect",
+          "thoughtProcess",
+          "orientation",
+          "attentionAndConcentration",
+          "riskIndicators",
+        ])
+      ).length
+    )
+      draft.formulationNarrative = "";
+    return res.json({ draft, message: "Review the AI drafts before saving the formulation." });
+  } catch (error) {
+    return res.status(error.name === "CastError" ? 400 : 502).json({
+      message:
+        error.name === "CastError"
+          ? "Invalid case ID."
+          : "Unable to generate the summary. Check that the AI service is available and try again.",
+    });
+  }
 };
-module.exports = { generateFormulationSummary, buildPresentationSummaryPrompt, parseFormulationDraft };
+module.exports = {
+  generateFormulationSummary,
+  buildPresentationSummaryPrompt,
+  parseFormulationDraft,
+};

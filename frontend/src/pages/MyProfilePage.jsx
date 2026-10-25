@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -15,21 +10,9 @@ import { useAuth } from "../context/AuthContext";
 
 const ADMIN_ROLE = "Counselor-Admin";
 
-const COLLEGES = [
-  "CASS",
-  "CEBA",
-  "CED",
-  "CCS",
-  "COE",
-  "CSM",
-  "CHS",
-];
+const COLLEGES = ["CASS", "CEBA", "CED", "CCS", "COE", "CSM", "CHS"];
 
-const ALLOWED_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-];
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
 
@@ -37,29 +20,19 @@ export default function MyProfilePage() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
-  const {
-    user,
-    setUser,
-    clearUser,
-  } = useAuth();
+  const { user, setUser, clearUser } = useAuth();
 
-  const [sidebarOpen, setSidebarOpen] =
-    useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [isEditing, setIsEditing] =
-    useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
-  const [isSaving, setIsSaving] =
-    useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const [errors, setErrors] =
-    useState({});
+  const [errors, setErrors] = useState({});
 
-  const [successMessage, setSuccessMessage] =
-    useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const [passwordModalOpen, setPasswordModalOpen] =
-    useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 
   const initialForm = useMemo(
     () => ({
@@ -67,32 +40,22 @@ export default function MyProfilePage() {
       middleName: user?.middleName || "",
       lastName: user?.lastName || "",
 
-      designation:
-        user?.designation ||
-        "Guidance Counselor",
+      designation: user?.designation || "Guidance Counselor",
 
-      instituteIdNumber:
-        user?.instituteIdNumber || "",
+      instituteIdNumber: user?.instituteIdNumber || "",
 
-      contactNumber:
-        user?.contactNumber || "",
+      contactNumber: user?.contactNumber || "",
 
-      collegesHandled: Array.isArray(
-        user?.collegesHandled,
-      )
-        ? user.collegesHandled
-        : [],
+      collegesHandled: Array.isArray(user?.collegesHandled) ? user.collegesHandled : [],
 
       profilePictureFile: null,
 
-      profilePicturePreview:
-        user?.profilePicture || "",
+      profilePicturePreview: user?.profilePicture || "",
     }),
-    [user],
+    [user]
   );
 
-  const [formData, setFormData] =
-    useState(initialForm);
+  const [formData, setFormData] = useState(initialForm);
 
   useEffect(() => {
     if (!user) {
@@ -136,14 +99,8 @@ export default function MyProfilePage() {
 
   useEffect(() => {
     return () => {
-      if (
-        formData.profilePicturePreview?.startsWith(
-          "blob:",
-        )
-      ) {
-        URL.revokeObjectURL(
-          formData.profilePicturePreview,
-        );
+      if (formData.profilePicturePreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(formData.profilePicturePreview);
       }
     };
   }, [formData.profilePicturePreview]);
@@ -152,8 +109,7 @@ export default function MyProfilePage() {
     return null;
   }
 
-  const isAdmin =
-    user.role === ADMIN_ROLE;
+  const isAdmin = user.role === ADMIN_ROLE;
 
   const menuGroups = isAdmin
     ? [
@@ -252,10 +208,7 @@ export default function MyProfilePage() {
       ];
 
   const updateField = (event) => {
-    const {
-      name,
-      value,
-    } = event.target;
+    const { name, value } = event.target;
 
     setFormData((current) => ({
       ...current,
@@ -275,21 +228,13 @@ export default function MyProfilePage() {
     }
 
     setFormData((current) => {
-      const selected =
-        current.collegesHandled.includes(
-          college,
-        );
+      const selected = current.collegesHandled.includes(college);
 
       return {
         ...current,
         collegesHandled: selected
-          ? current.collegesHandled.filter(
-              (item) => item !== college,
-            )
-          : [
-              ...current.collegesHandled,
-              college,
-            ],
+          ? current.collegesHandled.filter((item) => item !== college)
+          : [...current.collegesHandled, college],
       };
     });
 
@@ -300,25 +245,17 @@ export default function MyProfilePage() {
     }));
   };
 
-  const handleProfilePictureChange = (
-    event,
-  ) => {
-    const file =
-      event.target.files?.[0];
+  const handleProfilePictureChange = (event) => {
+    const file = event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    if (
-      !ALLOWED_IMAGE_TYPES.includes(
-        file.type,
-      )
-    ) {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
       setErrors((current) => ({
         ...current,
-        profilePicture:
-          "Select a JPG, PNG, or WEBP image.",
+        profilePicture: "Select a JPG, PNG, or WEBP image.",
       }));
 
       event.target.value = "";
@@ -328,8 +265,7 @@ export default function MyProfilePage() {
     if (file.size > MAX_IMAGE_SIZE) {
       setErrors((current) => ({
         ...current,
-        profilePicture:
-          "The profile picture must not exceed 3 MB.",
+        profilePicture: "The profile picture must not exceed 3 MB.",
       }));
 
       event.target.value = "";
@@ -337,21 +273,14 @@ export default function MyProfilePage() {
     }
 
     setFormData((current) => {
-      if (
-        current.profilePicturePreview?.startsWith(
-          "blob:",
-        )
-      ) {
-        URL.revokeObjectURL(
-          current.profilePicturePreview,
-        );
+      if (current.profilePicturePreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(current.profilePicturePreview);
       }
 
       return {
         ...current,
         profilePictureFile: file,
-        profilePicturePreview:
-          URL.createObjectURL(file),
+        profilePicturePreview: URL.createObjectURL(file),
       };
     });
 
@@ -363,14 +292,8 @@ export default function MyProfilePage() {
   };
 
   const cancelEditing = () => {
-    if (
-      formData.profilePicturePreview?.startsWith(
-        "blob:",
-      )
-    ) {
-      URL.revokeObjectURL(
-        formData.profilePicturePreview,
-      );
+    if (formData.profilePicturePreview?.startsWith("blob:")) {
+      URL.revokeObjectURL(formData.profilePicturePreview);
     }
 
     setFormData(initialForm);
@@ -386,35 +309,23 @@ export default function MyProfilePage() {
     const validationErrors = {};
 
     if (!formData.firstName.trim()) {
-      validationErrors.firstName =
-        "First name is required.";
+      validationErrors.firstName = "First name is required.";
     }
 
     if (!formData.lastName.trim()) {
-      validationErrors.lastName =
-        "Last name is required.";
+      validationErrors.lastName = "Last name is required.";
     }
 
     if (!formData.designation.trim()) {
-      validationErrors.designation =
-        "Designation is required.";
+      validationErrors.designation = "Designation is required.";
     }
 
-    if (
-      !formData.instituteIdNumber.trim()
-    ) {
-      validationErrors.instituteIdNumber =
-        "Institute ID number is required.";
+    if (!formData.instituteIdNumber.trim()) {
+      validationErrors.instituteIdNumber = "Institute ID number is required.";
     }
 
-    if (
-      !Array.isArray(
-        formData.collegesHandled,
-      ) ||
-      formData.collegesHandled.length === 0
-    ) {
-      validationErrors.collegesHandled =
-        "Select at least one college.";
+    if (!Array.isArray(formData.collegesHandled) || formData.collegesHandled.length === 0) {
+      validationErrors.collegesHandled = "Select at least one college.";
     }
 
     return validationErrors;
@@ -423,13 +334,9 @@ export default function MyProfilePage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const validationErrors =
-      validateForm();
+    const validationErrors = validateForm();
 
-    if (
-      Object.keys(validationErrors).length >
-      0
-    ) {
+    if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
@@ -440,87 +347,46 @@ export default function MyProfilePage() {
     try {
       const payload = new FormData();
 
-      payload.append(
-        "firstName",
-        formData.firstName.trim(),
-      );
+      payload.append("firstName", formData.firstName.trim());
 
-      payload.append(
-        "middleName",
-        formData.middleName.trim(),
-      );
+      payload.append("middleName", formData.middleName.trim());
 
-      payload.append(
-        "lastName",
-        formData.lastName.trim(),
-      );
+      payload.append("lastName", formData.lastName.trim());
 
-      payload.append(
-        "designation",
-        formData.designation.trim(),
-      );
+      payload.append("designation", formData.designation.trim());
 
-      payload.append(
-        "instituteIdNumber",
-        formData.instituteIdNumber
-          .trim()
-          .toUpperCase(),
-      );
+      payload.append("instituteIdNumber", formData.instituteIdNumber.trim().toUpperCase());
 
-      payload.append(
-        "contactNumber",
-        formData.contactNumber.trim(),
-      );
+      payload.append("contactNumber", formData.contactNumber.trim());
 
-      payload.append(
-        "collegesHandled",
-        JSON.stringify(
-          formData.collegesHandled,
-        ),
-      );
+      payload.append("collegesHandled", JSON.stringify(formData.collegesHandled));
 
       if (formData.profilePictureFile) {
-        payload.append(
-          "profilePicture",
-          formData.profilePictureFile,
-        );
+        payload.append("profilePicture", formData.profilePictureFile);
       }
 
-      const data = await apiRequest(
-        "/users/me/complete-profile",
-        {
-          method: "PATCH",
-          body: payload,
-        },
-      );
+      const data = await apiRequest("/users/me/complete-profile", {
+        method: "PATCH",
+        body: payload,
+      });
 
-      const updatedUser =
-        data?.user || {
-          ...user,
+      const updatedUser = data?.user || {
+        ...user,
 
-          firstName:
-            formData.firstName.trim(),
+        firstName: formData.firstName.trim(),
 
-          middleName:
-            formData.middleName.trim(),
+        middleName: formData.middleName.trim(),
 
-          lastName:
-            formData.lastName.trim(),
+        lastName: formData.lastName.trim(),
 
-          designation:
-            formData.designation.trim(),
+        designation: formData.designation.trim(),
 
-          instituteIdNumber:
-            formData.instituteIdNumber
-              .trim()
-              .toUpperCase(),
+        instituteIdNumber: formData.instituteIdNumber.trim().toUpperCase(),
 
-          contactNumber:
-            formData.contactNumber.trim(),
+        contactNumber: formData.contactNumber.trim(),
 
-          collegesHandled:
-            formData.collegesHandled,
-        };
+        collegesHandled: formData.collegesHandled,
+      };
 
       setUser({
         ...user,
@@ -532,30 +398,20 @@ export default function MyProfilePage() {
         ...current,
         profilePictureFile: null,
 
-        profilePicturePreview:
-          updatedUser.profilePicture ||
-          current.profilePicturePreview,
+        profilePicturePreview: updatedUser.profilePicture || current.profilePicturePreview,
       }));
 
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
 
-      setSuccessMessage(
-        "Your profile was updated successfully.",
-      );
+      setSuccessMessage("Your profile was updated successfully.");
 
       setIsEditing(false);
     } catch (error) {
-      console.error(
-        "Profile update error:",
-        error,
-      );
+      console.error("Profile update error:", error);
 
-      if (
-        error.status === 401 ||
-        error.status === 403
-      ) {
+      if (error.status === 401 || error.status === 403) {
         clearUser();
 
         navigate("/login", {
@@ -566,9 +422,7 @@ export default function MyProfilePage() {
       }
 
       setErrors({
-        general:
-          error.message ||
-          "Unable to update your profile.",
+        general: error.message || "Unable to update your profile.",
       });
     } finally {
       setIsSaving(false);
@@ -585,11 +439,7 @@ export default function MyProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#262220]">
-      <AppSidebar
-        user={user}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-      />
+      <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 backdrop-blur-xl sm:px-6 lg:px-7">
@@ -597,26 +447,18 @@ export default function MyProfilePage() {
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() =>
-                  setSidebarOpen(true)
-                }
+                onClick={() => setSidebarOpen(true)}
                 className="grid h-9 w-9 place-items-center rounded-lg border border-[#E4DFDC] text-[#655E59] lg:hidden"
                 aria-label="Open navigation"
               >
-                <Icon
-                  name="menu"
-                  className="h-4 w-4"
-                />
+                <Icon name="menu" className="h-4 w-4" />
               </button>
 
               <div>
-                <h1 className="text-[20px] font-semibold">
-                  My Profile
-                </h1>
+                <h1 className="text-[20px] font-semibold">My Profile</h1>
 
                 <p className="hidden text-[14px] text-[#99918C] sm:block">
-                  View and manage your counselor
-                  account information
+                  View and manage your counselor account information
                 </p>
               </div>
             </div>
@@ -630,11 +472,7 @@ export default function MyProfilePage() {
                 }}
                 className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#8C1518] px-4 text-[15px] font-semibold text-white transition hover:bg-[#701013]"
               >
-                <Icon
-                  name="notes"
-                  className="h-3.5 w-3.5"
-                />
-
+                <Icon name="notes" className="h-3.5 w-3.5" />
                 Edit profile
               </button>
             )}
@@ -665,22 +503,12 @@ export default function MyProfilePage() {
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                     <ProfilePictureEditor
                       user={user}
-                      preview={
-                        formData.profilePicturePreview
-                      }
-                      selectedFile={
-                        formData.profilePictureFile
-                      }
+                      preview={formData.profilePicturePreview}
+                      selectedFile={formData.profilePictureFile}
                       isEditing={isEditing}
-                      error={
-                        errors.profilePicture
-                      }
-                      fileInputRef={
-                        fileInputRef
-                      }
-                      onChange={
-                        handleProfilePictureChange
-                      }
+                      error={errors.profilePicture}
+                      fileInputRef={fileInputRef}
+                      onChange={handleProfilePictureChange}
                     />
 
                     <div className="pt-14 sm:pt-16">
@@ -689,19 +517,14 @@ export default function MyProfilePage() {
                       </h2>
 
                       <p className="mt-1 text-[15px] text-[#7E7773]">
-                        {user.designation ||
-                          "Guidance Counselor"}
+                        {user.designation || "Guidance Counselor"}
                       </p>
 
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <AccountBadge>
-                          {user.role}
-                        </AccountBadge>
+                        <AccountBadge>{user.role}</AccountBadge>
 
                         <AccountBadge>
-                          {user.isActive
-                            ? "Active account"
-                            : "Inactive account"}
+                          {user.isActive ? "Active account" : "Inactive account"}
                         </AccountBadge>
                       </div>
                     </div>
@@ -730,10 +553,7 @@ export default function MyProfilePage() {
                           </>
                         ) : (
                           <>
-                            <Icon
-                              name="check"
-                              className="h-3.5 w-3.5"
-                            />
+                            <Icon name="check" className="h-3.5 w-3.5" />
                             Save changes
                           </>
                         )}
@@ -752,10 +572,7 @@ export default function MyProfilePage() {
                 />
 
                 <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                  <ProfileField
-                    label="First name"
-                    error={errors.firstName}
-                  >
+                  <ProfileField label="First name" error={errors.firstName}>
                     <input
                       name="firstName"
                       value={formData.firstName}
@@ -775,10 +592,7 @@ export default function MyProfilePage() {
                     />
                   </ProfileField>
 
-                  <ProfileField
-                    label="Last name"
-                    error={errors.lastName}
-                  >
+                  <ProfileField label="Last name" error={errors.lastName}>
                     <input
                       name="lastName"
                       value={formData.lastName}
@@ -798,36 +612,23 @@ export default function MyProfilePage() {
                     />
 
                     <p className="mt-1.5 text-[13px] text-[#99918D]">
-                      Email changes must be handled
-                      by an administrator in user management.
+                      Email changes must be handled by an administrator in user management.
                     </p>
                   </ProfileField>
 
-                  <ProfileField
-                    label="Institute ID number"
-                    error={
-                      errors.instituteIdNumber
-                    }
-                  >
+                  <ProfileField label="Institute ID number" error={errors.instituteIdNumber}>
                     <input
                       name="instituteIdNumber"
-                      value={
-                        formData.instituteIdNumber
-                      }
-                     disabled
+                      value={formData.instituteIdNumber}
+                      disabled
                       className={`${inputClass} !text-[15px]`}
                     />
                   </ProfileField>
 
-                  <ProfileField
-                    label="Designation"
-                    error={errors.designation}
-                  >
+                  <ProfileField label="Designation" error={errors.designation}>
                     <input
                       name="designation"
-                      value={
-                        formData.designation
-                      }
+                      value={formData.designation}
                       onChange={updateField}
                       disabled={!isEditing}
                       className={`${inputClass} !text-[15px]`}
@@ -837,9 +638,7 @@ export default function MyProfilePage() {
                   <ProfileField label="Contact number">
                     <input
                       name="contactNumber"
-                      value={
-                        formData.contactNumber
-                      }
+                      value={formData.contactNumber}
                       onChange={updateField}
                       disabled={!isEditing}
                       placeholder="09XXXXXXXXX"
@@ -857,18 +656,13 @@ export default function MyProfilePage() {
 
                 <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {COLLEGES.map((college) => {
-                    const selected =
-                      formData.collegesHandled.includes(
-                        college,
-                      );
+                    const selected = formData.collegesHandled.includes(college);
 
                     return (
                       <label
                         key={college}
                         className={`flex min-h-[42px] items-center gap-2 rounded-lg border px-3 text-[15px] font-medium transition ${
-                          isEditing
-                            ? "cursor-pointer"
-                            : "cursor-default"
+                          isEditing ? "cursor-pointer" : "cursor-default"
                         } ${
                           selected
                             ? "border-[#8C1518] bg-[#F8EEEE] text-[#8C1518]"
@@ -879,11 +673,7 @@ export default function MyProfilePage() {
                           type="checkbox"
                           checked={selected}
                           disabled
-                          onChange={() =>
-                            toggleCollege(
-                              college,
-                            )
-                          }
+                          onChange={() => toggleCollege(college)}
                           className="accent-[#8C1518]"
                         />
 
@@ -894,9 +684,7 @@ export default function MyProfilePage() {
                 </div>
 
                 {errors.collegesHandled && (
-                  <p className="mt-2 text-[13px] text-red-600">
-                    {errors.collegesHandled}
-                  </p>
+                  <p className="mt-2 text-[13px] text-red-600">{errors.collegesHandled}</p>
                 )}
               </section>
 
@@ -908,61 +696,38 @@ export default function MyProfilePage() {
                   />
 
                   <div className="mt-5 divide-y divide-[#EEEAE7]">
-                    <InformationRow
-                      label="Role"
-                      value={user.role}
-                    />
+                    <InformationRow label="Role" value={user.role} />
 
                     <InformationRow
                       label="Account status"
-                      value={
-                        user.isActive
-                          ? "Active"
-                          : "Inactive"
-                      }
+                      value={user.isActive ? "Active" : "Inactive"}
                     />
 
                     <InformationRow
                       label="Profile status"
-                      value={
-                        user.profileCompleted
-                          ? "Complete"
-                          : "Incomplete"
-                      }
+                      value={user.profileCompleted ? "Complete" : "Incomplete"}
                     />
                   </div>
                 </section>
 
                 <section className="rounded-2xl border border-[#E4DFDC] bg-white p-5">
                   <div className="grid h-9 w-9 place-items-center rounded-lg bg-[#F4EAEA] text-[#8C1518]">
-                    <Icon
-                      name="lock"
-                      className="h-4 w-4"
-                    />
+                    <Icon name="lock" className="h-4 w-4" />
                   </div>
 
-                  <h3 className="mt-4 text-[17px] font-semibold">
-                    Password and security
-                  </h3>
+                  <h3 className="mt-4 text-[17px] font-semibold">Password and security</h3>
 
                   <p className="mt-2 text-[14px] leading-4 text-[#89827E]">
-                    Change your password using your
-                    current password. This is separate
-                    from the required first-time setup.
+                    Change your password using your current password. This is separate from the
+                    required first-time setup.
                   </p>
 
                   <button
                     type="button"
-                    onClick={() =>
-                      setPasswordModalOpen(true)
-                    }
+                    onClick={() => setPasswordModalOpen(true)}
                     className="mt-4 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-[#DDD7D3] bg-white px-4 text-[15px] font-semibold text-[#514B47] hover:border-[#8C1518] hover:text-[#8C1518]"
                   >
-                    <Icon
-                      name="lock"
-                      className="h-3.5 w-3.5"
-                    />
-
+                    <Icon name="lock" className="h-3.5 w-3.5" />
                     Change password
                   </button>
                 </section>
@@ -975,12 +740,8 @@ export default function MyProfilePage() {
       {passwordModalOpen && (
         <ChangeOwnPasswordPage
           open={passwordModalOpen}
-          onClose={() =>
-            setPasswordModalOpen(false)
-          }
-          onSuccess={(message) =>
-            setSuccessMessage(message)
-          }
+          onClose={() => setPasswordModalOpen(false)}
+          onSuccess={(message) => setSuccessMessage(message)}
         />
       )}
     </div>
@@ -996,38 +757,22 @@ function ProfilePictureEditor({
   fileInputRef,
   onChange,
 }) {
-  const initials = `${
-    user.firstName?.[0] || ""
-  }${
-    user.lastName?.[0] || ""
-  }`.toUpperCase();
+  const initials = `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase();
 
   return (
     <div>
       <div className="relative h-28 w-28 rounded-2xl border-4 border-white bg-[#F1E7E7] shadow-lg sm:h-32 sm:w-32">
         <div className="grid h-full w-full place-items-center overflow-hidden rounded-xl text-xl font-semibold text-[#8C1518]">
           {preview ? (
-            <img
-              src={preview}
-              alt="Profile"
-              className="h-full w-full object-cover"
-            />
+            <img src={preview} alt="Profile" className="h-full w-full object-cover" />
           ) : (
-            initials || (
-              <Icon
-                name="user"
-                className="h-8 w-8"
-              />
-            )
+            initials || <Icon name="user" className="h-8 w-8" />
           )}
         </div>
 
         {isEditing && (
           <label className="absolute -bottom-2 -right-2 grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-[#8C1518] text-white shadow-lg transition hover:bg-[#701013]">
-            <Icon
-              name="user"
-              className="h-4 w-4"
-            />
+            <Icon name="user" className="h-4 w-4" />
 
             <input
               ref={fileInputRef}
@@ -1046,69 +791,39 @@ function ProfilePictureEditor({
         </p>
       )}
 
-      {error && (
-        <p className="mt-2 max-w-32 text-[13px] leading-3 text-red-600">
-          {error}
-        </p>
-      )}
+      {error && <p className="mt-2 max-w-32 text-[13px] leading-3 text-red-600">{error}</p>}
     </div>
   );
 }
 
-function SectionHeader({
-  title,
-  description,
-}) {
+function SectionHeader({ title, description }) {
   return (
     <div>
-      <h3 className="text-[17px] font-semibold text-[#332E2B]">
-        {title}
-      </h3>
+      <h3 className="text-[17px] font-semibold text-[#332E2B]">{title}</h3>
 
-      <p className="mt-1 text-[14px] leading-4 text-[#918A86]">
-        {description}
-      </p>
+      <p className="mt-1 text-[14px] leading-4 text-[#918A86]">{description}</p>
     </div>
   );
 }
 
-function ProfileField({
-  label,
-  error,
-  children,
-}) {
+function ProfileField({ label, error, children }) {
   return (
     <label className="block">
-      <span className="text-[14px] font-semibold text-[#4B4541]">
-        {label}
-      </span>
+      <span className="text-[14px] font-semibold text-[#4B4541]">{label}</span>
 
-      <div className="mt-1.5">
-        {children}
-      </div>
+      <div className="mt-1.5">{children}</div>
 
-      {error && (
-        <p className="mt-1.5 text-[14px] text-red-600">
-          {error}
-        </p>
-      )}
+      {error && <p className="mt-1.5 text-[14px] text-red-600">{error}</p>}
     </label>
   );
 }
 
-function InformationRow({
-  label,
-  value,
-}) {
+function InformationRow({ label, value }) {
   return (
     <div className="flex items-center justify-between py-3">
-      <span className="text-[14px] text-[#89827E]">
-        {label}
-      </span>
+      <span className="text-[14px] text-[#89827E]">{label}</span>
 
-      <span className="text-[14px] font-semibold text-[#3D3835]">
-        {value || "—"}
-      </span>
+      <span className="text-[14px] font-semibold text-[#3D3835]">{value || "—"}</span>
     </div>
   );
 }
@@ -1132,11 +847,7 @@ function UserAvatar({ user }) {
     );
   }
 
-  const initials = `${
-    user.firstName?.[0] || ""
-  }${
-    user.lastName?.[0] || ""
-  }`.toUpperCase();
+  const initials = `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase();
 
   return (
     <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/[0.11] text-[15px] font-semibold text-white ring-1 ring-white/[0.10]">
@@ -1146,13 +857,7 @@ function UserAvatar({ user }) {
 }
 
 function formatUserName(user) {
-  return [
-    user.firstName,
-    user.middleName,
-    user.lastName,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  return [user.firstName, user.middleName, user.lastName].filter(Boolean).join(" ");
 }
 
 const inputClass =

@@ -1,0 +1,29 @@
+{
+  "caseNumber": "",
+  "mentalStatus": "",
+  "currentPresentation": "narrative Description: Academic stress; difficulty managing deadlines; poor study routines; fear of failing subjects",
+  "problemAssessment": "",
+  "caseFormulationFactors": "",
+  "backgroundAndPsychosocialHistory": "",
+  "caseFormulation": "",
+  "referralInformation": "",
+  "recommendationType": "updated",
+  "sourceProgressNoteId": "[REDACTED NOTE ID]",
+  "previousPlanId": "[REDACTED PLAN ID]",
+  "progressContext": {
+    "previousIntervention": {
+      "approvalStatus": "Approved",
+      "goal": "Manage academic stress",
+      "planOfAction": "Academic Stress Check-IN worksheet; stress rating activity; Calm Down Stress Practice"
+    },
+    "latestProgress": {
+      "progressStatus": "Worsened",
+      "progressSummary": "Stress increased from 8/10 to 9/10; relaxation provided temporary relief; deadline difficulties and task postponement persist",
+      "studentResponse": "No Noticeable Change",
+      "goalProgress": "Slight Progress",
+      "recommendedPlanAction": "Revise Intervention Plan",
+      "newPlanOfAction": "Reassess workload; weekly study planner; task prioritization; realistic academic goals; follow up in one week"
+    },
+    "earlierProgress": []
+  }
+}

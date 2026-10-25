@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -12,21 +7,9 @@ import Logo from "../components/Logo";
 import { apiRequest } from "../config/api";
 import { useAuth } from "../context/AuthContext";
 
-const COLLEGES = [
-  "CASS",
-  "CEBA",
-  "CED",
-  "CCS",
-  "COE",
-  "CSM",
-  "CHS",
-];
+const COLLEGES = ["CASS", "CEBA", "CED", "CCS", "COE", "CSM", "CHS"];
 
-const ALLOWED_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-];
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const MAXIMUM_IMAGE_SIZE = 3 * 1024 * 1024;
 
@@ -34,11 +17,7 @@ export default function CompleteProfilePage() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
-  const {
-    user,
-    setUser,
-    clearUser,
-  } = useAuth();
+  const { user, setUser, clearUser } = useAuth();
 
   const initialForm = useMemo(
     () => ({
@@ -46,37 +25,26 @@ export default function CompleteProfilePage() {
       middleName: user?.middleName || "",
       lastName: user?.lastName || "",
 
-      designation:
-        user?.designation ||
-        "Guidance Counselor",
+      designation: user?.designation || "Guidance Counselor",
 
-      instituteIdNumber:
-        user?.instituteIdNumber || "",
+      instituteIdNumber: user?.instituteIdNumber || "",
 
-      contactNumber:
-        user?.contactNumber || "",
+      contactNumber: user?.contactNumber || "",
 
-      collegesHandled: Array.isArray(
-        user?.collegesHandled,
-      )
-        ? user.collegesHandled
-        : [],
+      collegesHandled: Array.isArray(user?.collegesHandled) ? user.collegesHandled : [],
 
       profilePictureFile: null,
 
-      profilePicturePreview:
-        user?.profilePicture || "",
+      profilePicturePreview: user?.profilePicture || "",
     }),
-    [user],
+    [user]
   );
 
-  const [formData, setFormData] =
-    useState(initialForm);
+  const [formData, setFormData] = useState(initialForm);
 
   const [errors, setErrors] = useState({});
 
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setFormData(initialForm);
@@ -108,23 +76,14 @@ export default function CompleteProfilePage() {
 
   useEffect(() => {
     return () => {
-      if (
-        formData.profilePicturePreview?.startsWith(
-          "blob:",
-        )
-      ) {
-        URL.revokeObjectURL(
-          formData.profilePicturePreview,
-        );
+      if (formData.profilePicturePreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(formData.profilePicturePreview);
       }
     };
   }, [formData.profilePicturePreview]);
 
   const updateField = (event) => {
-    const {
-      name,
-      value,
-    } = event.target;
+    const { name, value } = event.target;
 
     setFormData((current) => ({
       ...current,
@@ -140,22 +99,14 @@ export default function CompleteProfilePage() {
 
   const toggleCollege = (college) => {
     setFormData((current) => {
-      const isSelected =
-        current.collegesHandled.includes(
-          college,
-        );
+      const isSelected = current.collegesHandled.includes(college);
 
       return {
         ...current,
 
         collegesHandled: isSelected
-          ? current.collegesHandled.filter(
-              (item) => item !== college,
-            )
-          : [
-              ...current.collegesHandled,
-              college,
-            ],
+          ? current.collegesHandled.filter((item) => item !== college)
+          : [...current.collegesHandled, college],
       };
     });
 
@@ -166,40 +117,29 @@ export default function CompleteProfilePage() {
     }));
   };
 
-  const handleProfilePictureChange = (
-    event,
-  ) => {
-    const file =
-      event.target.files?.[0];
+  const handleProfilePictureChange = (event) => {
+    const file = event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    if (
-      !ALLOWED_IMAGE_TYPES.includes(
-        file.type,
-      )
-    ) {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
       setErrors((current) => ({
         ...current,
 
-        profilePicture:
-          "Select a JPG, PNG, or WEBP image.",
+        profilePicture: "Select a JPG, PNG, or WEBP image.",
       }));
 
       event.target.value = "";
       return;
     }
 
-    if (
-      file.size > MAXIMUM_IMAGE_SIZE
-    ) {
+    if (file.size > MAXIMUM_IMAGE_SIZE) {
       setErrors((current) => ({
         ...current,
 
-        profilePicture:
-          "The profile picture must not exceed 3 MB.",
+        profilePicture: "The profile picture must not exceed 3 MB.",
       }));
 
       event.target.value = "";
@@ -207,21 +147,14 @@ export default function CompleteProfilePage() {
     }
 
     setFormData((current) => {
-      if (
-        current.profilePicturePreview?.startsWith(
-          "blob:",
-        )
-      ) {
-        URL.revokeObjectURL(
-          current.profilePicturePreview,
-        );
+      if (current.profilePicturePreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(current.profilePicturePreview);
       }
 
       return {
         ...current,
         profilePictureFile: file,
-        profilePicturePreview:
-          URL.createObjectURL(file),
+        profilePicturePreview: URL.createObjectURL(file),
       };
     });
 
@@ -234,21 +167,14 @@ export default function CompleteProfilePage() {
 
   const removeSelectedPicture = () => {
     setFormData((current) => {
-      if (
-        current.profilePicturePreview?.startsWith(
-          "blob:",
-        )
-      ) {
-        URL.revokeObjectURL(
-          current.profilePicturePreview,
-        );
+      if (current.profilePicturePreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(current.profilePicturePreview);
       }
 
       return {
         ...current,
         profilePictureFile: null,
-        profilePicturePreview:
-          user?.profilePicture || "",
+        profilePicturePreview: user?.profilePicture || "",
       };
     });
 
@@ -266,35 +192,23 @@ export default function CompleteProfilePage() {
     const validationErrors = {};
 
     if (!formData.firstName.trim()) {
-      validationErrors.firstName =
-        "First name is required.";
+      validationErrors.firstName = "First name is required.";
     }
 
     if (!formData.lastName.trim()) {
-      validationErrors.lastName =
-        "Last name is required.";
+      validationErrors.lastName = "Last name is required.";
     }
 
     if (!formData.designation.trim()) {
-      validationErrors.designation =
-        "Designation is required.";
+      validationErrors.designation = "Designation is required.";
     }
 
-    if (
-      !formData.instituteIdNumber.trim()
-    ) {
-      validationErrors.instituteIdNumber =
-        "Institute ID number is required.";
+    if (!formData.instituteIdNumber.trim()) {
+      validationErrors.instituteIdNumber = "Institute ID number is required.";
     }
 
-    if (
-      !Array.isArray(
-        formData.collegesHandled,
-      ) ||
-      formData.collegesHandled.length === 0
-    ) {
-      validationErrors.collegesHandled =
-        "Select at least one college.";
+    if (!Array.isArray(formData.collegesHandled) || formData.collegesHandled.length === 0) {
+      validationErrors.collegesHandled = "Select at least one college.";
     }
 
     return validationErrors;
@@ -303,13 +217,9 @@ export default function CompleteProfilePage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const validationErrors =
-      validateForm();
+    const validationErrors = validateForm();
 
-    if (
-      Object.keys(validationErrors).length >
-      0
-    ) {
+    if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
@@ -320,92 +230,49 @@ export default function CompleteProfilePage() {
     try {
       const payload = new FormData();
 
-      payload.append(
-        "firstName",
-        formData.firstName.trim(),
-      );
+      payload.append("firstName", formData.firstName.trim());
 
-      payload.append(
-        "middleName",
-        formData.middleName.trim(),
-      );
+      payload.append("middleName", formData.middleName.trim());
 
-      payload.append(
-        "lastName",
-        formData.lastName.trim(),
-      );
+      payload.append("lastName", formData.lastName.trim());
 
-      payload.append(
-        "designation",
-        formData.designation.trim(),
-      );
+      payload.append("designation", formData.designation.trim());
 
-      payload.append(
-        "instituteIdNumber",
-        formData.instituteIdNumber
-          .trim()
-          .toUpperCase(),
-      );
+      payload.append("instituteIdNumber", formData.instituteIdNumber.trim().toUpperCase());
 
-      payload.append(
-        "contactNumber",
-        formData.contactNumber.trim(),
-      );
+      payload.append("contactNumber", formData.contactNumber.trim());
 
-      payload.append(
-        "collegesHandled",
-        JSON.stringify(
-          formData.collegesHandled,
-        ),
-      );
+      payload.append("collegesHandled", JSON.stringify(formData.collegesHandled));
 
-      if (
-        formData.profilePictureFile
-      ) {
-        payload.append(
-          "profilePicture",
-          formData.profilePictureFile,
-        );
+      if (formData.profilePictureFile) {
+        payload.append("profilePicture", formData.profilePictureFile);
       }
 
-      const data = await apiRequest(
-        "/users/me/complete-profile",
-        {
-          method: "PATCH",
-          body: payload,
-        },
-      );
+      const data = await apiRequest("/users/me/complete-profile", {
+        method: "PATCH",
+        body: payload,
+      });
 
-      const updatedUser =
-        data?.user || {
-          ...user,
+      const updatedUser = data?.user || {
+        ...user,
 
-          firstName:
-            formData.firstName.trim(),
+        firstName: formData.firstName.trim(),
 
-          middleName:
-            formData.middleName.trim(),
+        middleName: formData.middleName.trim(),
 
-          lastName:
-            formData.lastName.trim(),
+        lastName: formData.lastName.trim(),
 
-          designation:
-            formData.designation.trim(),
+        designation: formData.designation.trim(),
 
-          instituteIdNumber:
-            formData.instituteIdNumber
-              .trim()
-              .toUpperCase(),
+        instituteIdNumber: formData.instituteIdNumber.trim().toUpperCase(),
 
-          contactNumber:
-            formData.contactNumber.trim(),
+        contactNumber: formData.contactNumber.trim(),
 
-          collegesHandled:
-            formData.collegesHandled,
+        collegesHandled: formData.collegesHandled,
 
-          profileCompleted: true,
-          mustChangePassword: false,
-        };
+        profileCompleted: true,
+        mustChangePassword: false,
+      };
 
       setUser({
         ...updatedUser,
@@ -417,15 +284,9 @@ export default function CompleteProfilePage() {
         replace: true,
       });
     } catch (error) {
-      console.error(
-        "Profile completion error:",
-        error,
-      );
+      console.error("Profile completion error:", error);
 
-      if (
-        error.status === 401 ||
-        error.status === 403
-      ) {
+      if (error.status === 401 || error.status === 403) {
         clearUser();
 
         navigate("/login", {
@@ -436,9 +297,7 @@ export default function CompleteProfilePage() {
       }
 
       setErrors({
-        general:
-          error.message ||
-          "Unable to complete your profile.",
+        general: error.message || "Unable to complete your profile.",
       });
     } finally {
       setIsSubmitting(false);
@@ -470,10 +329,7 @@ export default function CompleteProfilePage() {
         </div>
 
         <header className="relative z-10 px-10 pt-10 xl:px-14 xl:pt-12">
-          <Logo
-            variant="icon"
-            light
-          />
+          <Logo variant="icon" light />
         </header>
 
         <div className="relative z-10 flex flex-1 items-center px-10 py-14 xl:px-14">
@@ -484,17 +340,12 @@ export default function CompleteProfilePage() {
 
             <h1 className="mt-5 text-4xl font-semibold leading-[1.12] tracking-[-0.045em] text-white xl:text-5xl">
               Tell us about
-              <span className="block text-[#E0C268]">
-                your counselor role.
-              </span>
+              <span className="block text-[#E0C268]">your counselor role.</span>
             </h1>
 
             <p className="mt-6 text-[15px] leading-7 text-white/60">
-              Your profile information helps
-              My.GUIDE identify you in case
-              records, organize counselor
-              responsibilities, and support
-              accountable access.
+              Your profile information helps My.GUIDE identify you in case records, organize
+              counselor responsibilities, and support accountable access.
             </p>
 
             <div className="mt-10 space-y-3">
@@ -520,8 +371,7 @@ export default function CompleteProfilePage() {
         </div>
 
         <footer className="relative z-10 px-10 pb-10 text-[15px] text-white/35 xl:px-14">
-          MSU-IIT Office of Guidance and
-          Counseling
+          MSU-IIT Office of Guidance and Counseling
         </footer>
       </section>
 
@@ -539,11 +389,7 @@ export default function CompleteProfilePage() {
             onClick={handleSignOut}
             className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-[13px] font-medium text-[#68625F] transition hover:bg-white hover:text-[#8C1518]"
           >
-            <Icon
-              name="logout"
-              className="h-4 w-4"
-            />
-
+            <Icon name="logout" className="h-4 w-4" />
             Sign out
           </button>
         </header>
@@ -563,19 +409,13 @@ export default function CompleteProfilePage() {
             </h2>
 
             <p className="mt-3 max-w-2xl text-[15px] leading-7 text-[#746E6A]">
-              Complete the required information
-              before accessing the My.GUIDE
-              dashboard.
+              Complete the required information before accessing the My.GUIDE dashboard.
             </p>
           </div>
 
           <ProgressSteps currentStep={2} />
 
-          {errors.general && (
-            <ErrorAlert
-              message={errors.general}
-            />
-          )}
+          {errors.general && <ErrorAlert message={errors.general} />}
 
           <form
             onSubmit={handleSubmit}
@@ -588,22 +428,12 @@ export default function CompleteProfilePage() {
               description="Add an optional photo for your counselor account."
             >
               <ProfilePictureUpload
-                preview={
-                  formData.profilePicturePreview
-                }
-                selectedFile={
-                  formData.profilePictureFile
-                }
-                error={
-                  errors.profilePicture
-                }
+                preview={formData.profilePicturePreview}
+                selectedFile={formData.profilePictureFile}
+                error={errors.profilePicture}
                 fileInputRef={fileInputRef}
-                onChange={
-                  handleProfilePictureChange
-                }
-                onRemove={
-                  removeSelectedPicture
-                }
+                onChange={handleProfilePictureChange}
+                onRemove={removeSelectedPicture}
                 user={user}
               />
             </FormSection>
@@ -616,16 +446,10 @@ export default function CompleteProfilePage() {
               description="Enter your official account information."
             >
               <div className="grid gap-4 sm:grid-cols-3">
-                <FormField
-                  label="First name"
-                  required
-                  error={errors.firstName}
-                >
+                <FormField label="First name" required error={errors.firstName}>
                   <input
                     name="firstName"
-                    value={
-                      formData.firstName
-                    }
+                    value={formData.firstName}
                     onChange={updateField}
                     placeholder="First name"
                     className={inputClass}
@@ -635,25 +459,17 @@ export default function CompleteProfilePage() {
                 <FormField label="Middle name">
                   <input
                     name="middleName"
-                    value={
-                      formData.middleName
-                    }
+                    value={formData.middleName}
                     onChange={updateField}
                     placeholder="Middle name"
                     className={inputClass}
                   />
                 </FormField>
 
-                <FormField
-                  label="Last name"
-                  required
-                  error={errors.lastName}
-                >
+                <FormField label="Last name" required error={errors.lastName}>
                   <input
                     name="lastName"
-                    value={
-                      formData.lastName
-                    }
+                    value={formData.lastName}
                     onChange={updateField}
                     placeholder="Last name"
                     className={inputClass}
@@ -662,18 +478,10 @@ export default function CompleteProfilePage() {
               </div>
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <FormField
-                  label="Institute ID number"
-                  required
-                  error={
-                    errors.instituteIdNumber
-                  }
-                >
+                <FormField label="Institute ID number" required error={errors.instituteIdNumber}>
                   <input
                     name="instituteIdNumber"
-                    value={
-                      formData.instituteIdNumber
-                    }
+                    value={formData.instituteIdNumber}
                     onChange={updateField}
                     placeholder="EMP-2026-001"
                     className={inputClass}
@@ -683,9 +491,7 @@ export default function CompleteProfilePage() {
                 <FormField label="Contact number">
                   <input
                     name="contactNumber"
-                    value={
-                      formData.contactNumber
-                    }
+                    value={formData.contactNumber}
                     onChange={updateField}
                     placeholder="09XXXXXXXXX"
                     className={inputClass}
@@ -701,18 +507,10 @@ export default function CompleteProfilePage() {
               title="Counselor information"
               description="Specify your position and assigned college responsibilities."
             >
-              <FormField
-                label="Designation"
-                required
-                error={
-                  errors.designation
-                }
-              >
+              <FormField label="Designation" required error={errors.designation}>
                 <input
                   name="designation"
-                  value={
-                    formData.designation
-                  }
+                  value={formData.designation}
                   onChange={updateField}
                   placeholder="Guidance Counselor"
                   className={inputClass}
@@ -722,59 +520,42 @@ export default function CompleteProfilePage() {
               <fieldset className="mt-5">
                 <legend className="text-[15px] font-semibold text-[#45403D]">
                   Colleges handled
-
-                  <span className="ml-1 text-red-600">
-                    *
-                  </span>
+                  <span className="ml-1 text-red-600">*</span>
                 </legend>
 
                 <p className="mt-1 text-[15px] text-[#8E8782]">
-                  Select at least one assigned
-                  college.
+                  Select at least one assigned college.
                 </p>
 
                 <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {COLLEGES.map(
-                    (college) => {
-                      const selected =
-                        formData.collegesHandled.includes(
-                          college,
-                        );
+                  {COLLEGES.map((college) => {
+                    const selected = formData.collegesHandled.includes(college);
 
-                      return (
-                        <label
-                          key={college}
-                          className={`flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg border px-3 text-[15px] font-medium transition ${
-                            selected
-                              ? "border-[#8C1518] bg-[#F8EEEE] text-[#8C1518]"
-                              : "border-[#E2DDDA] bg-white text-[#6F6864] hover:border-[#BFAEAA]"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={
-                              selected
-                            }
-                            onChange={() =>
-                              toggleCollege(
-                                college,
-                              )
-                            }
-                            className="accent-[#8C1518]"
-                          />
+                    return (
+                      <label
+                        key={college}
+                        className={`flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg border px-3 text-[15px] font-medium transition ${
+                          selected
+                            ? "border-[#8C1518] bg-[#F8EEEE] text-[#8C1518]"
+                            : "border-[#E2DDDA] bg-white text-[#6F6864] hover:border-[#BFAEAA]"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleCollege(college)}
+                          className="accent-[#8C1518]"
+                        />
 
-                          {college}
-                        </label>
-                      );
-                    },
-                  )}
+                        {college}
+                      </label>
+                    );
+                  })}
                 </div>
 
                 {errors.collegesHandled && (
                   <p className="mt-2 text-[13px] font-medium text-red-600">
-                    {
-                      errors.collegesHandled
-                    }
+                    {errors.collegesHandled}
                   </p>
                 )}
               </fieldset>
@@ -782,8 +563,7 @@ export default function CompleteProfilePage() {
 
             <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[15px] leading-5 text-[#8A837F]">
-                Required fields must be
-                completed before continuing.
+                Required fields must be completed before continuing.
               </p>
 
               <button
@@ -794,13 +574,11 @@ export default function CompleteProfilePage() {
                 {isSubmitting ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-
                     Saving profile
                   </>
                 ) : (
                   <>
                     Complete profile
-
                     <Icon
                       name="arrowRight"
                       className="h-4 w-4 transition group-hover:translate-x-0.5"
@@ -825,59 +603,35 @@ function ProfilePictureUpload({
   onRemove,
   user,
 }) {
-  const initials = `${
-    user?.firstName?.[0] || ""
-  }${
-    user?.lastName?.[0] || ""
-  }`.toUpperCase();
+  const initials = `${user?.firstName?.[0] || ""}${user?.lastName?.[0] || ""}`.toUpperCase();
 
   return (
     <div>
       <div
         className={`flex flex-col gap-5 rounded-xl border bg-[#FAF9F8] p-4 sm:flex-row sm:items-center ${
-          error
-            ? "border-red-300"
-            : "border-[#DDD8D4]"
+          error ? "border-red-300" : "border-[#DDD8D4]"
         }`}
       >
         <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-2xl bg-[#F1E7E7] text-xl font-semibold text-[#8C1518]">
           {preview ? (
-            <img
-              src={preview}
-              alt="Profile preview"
-              className="h-full w-full object-cover"
-            />
+            <img src={preview} alt="Profile preview" className="h-full w-full object-cover" />
           ) : (
-            initials || (
-              <Icon
-                name="user"
-                className="h-8 w-8"
-              />
-            )
+            initials || <Icon name="user" className="h-8 w-8" />
           )}
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[16px] font-semibold text-[#3B3633]">
-            Counselor profile photo
-          </p>
+          <p className="text-[16px] font-semibold text-[#3B3633]">Counselor profile photo</p>
 
           <p className="mt-1 text-[15px] leading-5 text-[#8A837F]">
-            Upload a clear square image. JPG,
-            PNG, and WEBP files are accepted up
-            to 3 MB.
+            Upload a clear square image. JPG, PNG, and WEBP files are accepted up to 3 MB.
           </p>
 
           <div className="mt-3 flex flex-wrap gap-2">
             <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-[#D8D1CD] bg-white px-4 text-[15px] font-semibold text-[#4E4844] transition hover:border-[#8C1518] hover:text-[#8C1518]">
-              <Icon
-                name="user"
-                className="h-3.5 w-3.5"
-              />
+              <Icon name="user" className="h-3.5 w-3.5" />
 
-              {selectedFile
-                ? "Change image"
-                : "Choose image"}
+              {selectedFile ? "Change image" : "Choose image"}
 
               <input
                 ref={fileInputRef}
@@ -894,11 +648,7 @@ function ProfilePictureUpload({
                 onClick={onRemove}
                 className="inline-flex h-9 items-center gap-2 rounded-lg border border-red-200 bg-white px-4 text-[15px] font-semibold text-red-600 transition hover:bg-red-50"
               >
-                <Icon
-                  name="close"
-                  className="h-3.5 w-3.5"
-                />
-
+                <Icon name="close" className="h-3.5 w-3.5" />
                 Remove
               </button>
             )}
@@ -912,100 +662,58 @@ function ProfilePictureUpload({
         </div>
       </div>
 
-      {error && (
-        <p className="mt-2 text-[13px] font-medium text-red-600">
-          {error}
-        </p>
-      )}
+      {error && <p className="mt-2 text-[13px] font-medium text-red-600">{error}</p>}
     </div>
   );
 }
 
-function FormSection({
-  title,
-  description,
-  children,
-}) {
+function FormSection({ title, description, children }) {
   return (
     <section>
       <div>
-        <h3 className="text-[17px] font-semibold text-[#302B28]">
-          {title}
-        </h3>
+        <h3 className="text-[17px] font-semibold text-[#302B28]">{title}</h3>
 
-        <p className="mt-1 text-[15px] leading-5 text-[#8E8782]">
-          {description}
-        </p>
+        <p className="mt-1 text-[15px] leading-5 text-[#8E8782]">{description}</p>
       </div>
 
-      <div className="mt-5">
-        {children}
-      </div>
+      <div className="mt-5">{children}</div>
     </section>
   );
 }
 
-function FormField({
-  label,
-  required,
-  error,
-  children,
-}) {
+function FormField({ label, required, error, children }) {
   return (
     <label className="block">
       <span className="text-[15px] font-semibold text-[#45403D]">
         {label}
 
-        {required && (
-          <span className="ml-1 text-red-600">
-            *
-          </span>
-        )}
+        {required && <span className="ml-1 text-red-600">*</span>}
       </span>
 
-      <div className="mt-2">
-        {children}
-      </div>
+      <div className="mt-2">{children}</div>
 
-      {error && (
-        <p className="mt-2 text-[13px] font-medium text-red-600">
-          {error}
-        </p>
-      )}
+      {error && <p className="mt-2 text-[13px] font-medium text-red-600">{error}</p>}
     </label>
   );
 }
 
-function ProfileReason({
-  icon,
-  title,
-  description,
-}) {
+function ProfileReason({ icon, title, description }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.05] p-4">
       <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/[0.07] text-[#DFC066]">
-        <Icon
-          name={icon}
-          className="h-4 w-4"
-        />
+        <Icon name={icon} className="h-4 w-4" />
       </div>
 
       <div>
-        <p className="text-[13px] font-semibold text-white/90">
-          {title}
-        </p>
+        <p className="text-[13px] font-semibold text-white/90">{title}</p>
 
-        <p className="mt-1 text-[15px] leading-5 text-white/45">
-          {description}
-        </p>
+        <p className="mt-1 text-[15px] leading-5 text-white/45">{description}</p>
       </div>
     </div>
   );
 }
 
-function ProgressSteps({
-  currentStep,
-}) {
+function ProgressSteps({ currentStep }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-[#E5E0DC] bg-white p-4">
       <Step
@@ -1026,46 +734,25 @@ function ProgressSteps({
 
       <div className="h-px flex-1 bg-[#DED9D5]" />
 
-      <Step
-        number="3"
-        label="Dashboard"
-        active={currentStep === 3}
-        complete={false}
-      />
+      <Step number="3" label="Dashboard" active={currentStep === 3} complete={false} />
     </div>
   );
 }
 
-function Step({
-  number,
-  label,
-  active,
-  complete,
-}) {
+function Step({ number, label, active, complete }) {
   return (
     <div className="flex shrink-0 items-center gap-2">
       <span
         className={`grid h-6 w-6 place-items-center rounded-full text-[15px] font-semibold ${
-          active || complete
-            ? "bg-[#8C1518] text-white"
-            : "bg-[#F0EDEB] text-[#99918C]"
+          active || complete ? "bg-[#8C1518] text-white" : "bg-[#F0EDEB] text-[#99918C]"
         }`}
       >
-        {complete ? (
-          <Icon
-            name="check"
-            className="h-3 w-3"
-          />
-        ) : (
-          number
-        )}
+        {complete ? <Icon name="check" className="h-3 w-3" /> : number}
       </span>
 
       <span
         className={`hidden text-[15px] font-medium sm:block ${
-          active
-            ? "text-[#8C1518]"
-            : "text-[#88817D]"
+          active ? "text-[#8C1518]" : "text-[#88817D]"
         }`}
       >
         {label}

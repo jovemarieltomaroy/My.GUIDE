@@ -5,11 +5,7 @@ import Icon from "../components/Icon";
 import { apiRequest } from "../config/api";
 import { useAuth } from "../context/AuthContext";
 
-export default function ChangeOwnPasswordPage({
-  open = true,
-  onClose,
-  onSuccess,
-}) {
+export default function ChangeOwnPasswordPage({ open = true, onClose, onSuccess }) {
   const navigate = useNavigate();
   const { user, clearUser } = useAuth();
 
@@ -100,8 +96,7 @@ export default function ChangeOwnPasswordPage({
     if (!formData.newPassword) {
       validationErrors.newPassword = "New password is required.";
     } else if (formData.newPassword.length < 8) {
-      validationErrors.newPassword =
-        "New password must contain at least 8 characters.";
+      validationErrors.newPassword = "New password must contain at least 8 characters.";
     }
 
     if (
@@ -109,8 +104,7 @@ export default function ChangeOwnPasswordPage({
       formData.newPassword &&
       formData.currentPassword === formData.newPassword
     ) {
-      validationErrors.newPassword =
-        "New password must be different from your current password.";
+      validationErrors.newPassword = "New password must be different from your current password.";
     }
 
     if (!formData.confirmNewPassword) {
@@ -161,8 +155,7 @@ export default function ChangeOwnPasswordPage({
 
       if (error.status === 401) {
         setErrors({
-          currentPassword:
-            error.message || "Your current password is incorrect.",
+          currentPassword: error.message || "Your current password is incorrect.",
         });
         return;
       }
@@ -203,10 +196,7 @@ export default function ChangeOwnPasswordPage({
             </div>
 
             <div>
-              <h2
-                id="change-password-title"
-                className="text-[20px] font-semibold text-[#302B28]"
-              >
+              <h2 id="change-password-title" className="text-[20px] font-semibold text-[#302B28]">
                 Change password
               </h2>
 

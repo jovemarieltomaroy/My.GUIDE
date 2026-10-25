@@ -1,0 +1,67 @@
+.myguide-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: #fff;
+  animation: myguide-splash-exit 300ms cubic-bezier(.22, 1, .36, 1) 3650ms both;
+}
+.myguide-splash-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+  gap: 20px;
+}
+.myguide-splash-name {
+  margin: 0;
+  color: #841117;
+  font-size: clamp(32px, 8vw, 52px);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+  opacity: 0;
+  animation: myguide-splash-reveal 450ms ease-in-out 2180ms forwards;
+}
+.myguide-splash-name span {
+  color: #FFC440;
+}
+.myguide-splash-logo {
+  display: block;
+  width: clamp(160px, 48vw, 300px);
+  max-width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.myguide-splash-ink {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: myguide-splash-draw 1250ms cubic-bezier(.45, 0, .25, 1) 80ms forwards;
+}
+.myguide-splash-complete {
+  opacity: 0;
+  animation: myguide-splash-reveal 100ms ease-out 1230ms forwards;
+}
+.myguide-splash-gold {
+  opacity: 0;
+  animation: myguide-splash-reveal 800ms cubic-bezier(.42, 0, .58, 1) 1330ms forwards;
+}
+@keyframes myguide-splash-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes myguide-splash-reveal {
+  to { opacity: 1; }
+}
+@keyframes myguide-splash-exit {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .myguide-splash { animation: none; }
+  .myguide-splash-ink { animation: none; stroke-dashoffset: 0; }
+  .myguide-splash-complete,
+  .myguide-splash-gold,
+  .myguide-splash-name { animation: none; opacity: 1; }
+}

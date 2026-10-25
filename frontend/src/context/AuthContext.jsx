@@ -1,9 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
 const AuthContext = createContext(null);
 
@@ -11,17 +6,11 @@ const AUTH_USER_KEY = "myguide_authenticated_user";
 
 function getStoredUser() {
   try {
-    const storedUser =
-      sessionStorage.getItem(AUTH_USER_KEY);
+    const storedUser = sessionStorage.getItem(AUTH_USER_KEY);
 
-    return storedUser
-      ? JSON.parse(storedUser)
-      : null;
+    return storedUser ? JSON.parse(storedUser) : null;
   } catch (error) {
-    console.error(
-      "Unable to read stored user:",
-      error,
-    );
+    console.error("Unable to read stored user:", error);
 
     sessionStorage.removeItem(AUTH_USER_KEY);
 
@@ -30,9 +19,7 @@ function getStoredUser() {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUserState] = useState(
-    getStoredUser,
-  );
+  const [user, setUserState] = useState(getStoredUser);
 
   const setUser = (authenticatedUser) => {
     if (!authenticatedUser) {
@@ -43,10 +30,7 @@ export function AuthProvider({ children }) {
 
     setUserState(authenticatedUser);
 
-    sessionStorage.setItem(
-      AUTH_USER_KEY,
-      JSON.stringify(authenticatedUser),
-    );
+    sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(authenticatedUser));
   };
 
   const clearUser = () => {
@@ -61,23 +45,17 @@ export function AuthProvider({ children }) {
       setUser,
       clearUser,
     }),
-    [user],
+    [user]
   );
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error(
-      "useAuth must be used inside AuthProvider.",
-    );
+    throw new Error("useAuth must be used inside AuthProvider.");
   }
 
   return context;
