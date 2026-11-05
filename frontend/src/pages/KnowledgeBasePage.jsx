@@ -1,5 +1,5 @@
 import { clickableRecordProps } from "../utils/clickableRecord";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -289,21 +289,18 @@ export default function KnowledgeBasePage() {
     }
   };
 
-  const replaceResource = (resource) => {
-    setReplacementResource(resource);
-    setForm({
-      title: resource.title,
-      resourceType: resource.resourceType,
-      topic: resource.topic,
-      status: "Active",
-      publicationYear: resource.publicationYear || "",
-      author: resource.author || "",
-      description: resource.description || "",
-      file: null,
-    });
-    setUploadModalOpen(true);
-  };
-  const saveResource = async (values) => {
+  const saveResource = async (values, file) => {
+    if (file) {
+      const body = new FormData();
+      body.append("file", file);
+      for (const field of ["title", "topic", "resourceType", "status", "publicationYear", "author", "description"])
+        body.append(field, values[field] ?? "");
+      const data = await apiRequest(`/knowledge-base/${editingResource._id}/replace`, { method: "POST", body });
+      setEditingResource(null);
+      setSuccessMessage(data.message || "PDF replaced successfully.");
+      await fetchResources();
+      return;
+    }
     const data = await apiRequest(`/knowledge-base/${editingResource._id}`, {
       method: "PATCH",
       body: JSON.stringify(values),
@@ -320,7 +317,7 @@ export default function KnowledgeBasePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#2F2A27]">
+    <div className="authenticated-app min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#2F2A27]">
       <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
@@ -357,7 +354,7 @@ export default function KnowledgeBasePage() {
           </div>
         </header>
 
-        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7 lg:w-[calc(100%-240px)]! lg:px-0!">
           {successMessage && <Alert tone="success" message={successMessage} />}
 
           {pageError && <Alert tone="error" message={pageError} />}
@@ -438,6 +435,7 @@ export default function KnowledgeBasePage() {
                     </option>
                   ))}
                 </select>
+                {isAdmin && (
                 <select
                   aria-label="Resource status"
                   value={statusFilter}
@@ -452,6 +450,7 @@ export default function KnowledgeBasePage() {
                     </option>
                   ))}
                 </select>
+                )}
               </div>
             </div>
 
@@ -461,7 +460,7 @@ export default function KnowledgeBasePage() {
               <EmptyState onUpload={isAdmin ? () => setUploadModalOpen(true) : null} />
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px] border-collapse">
+                <table className="w-full min-w-[1100px] border-collapse">
                   <thead>
                     <tr className="border-b border-[#ECE8E5] bg-[#FCFBFA] text-left">
                       <TableHeader>Resource</TableHeader>
@@ -472,13 +471,11 @@ export default function KnowledgeBasePage() {
 
                       <TableHeader>Pages</TableHeader>
 
-                      <TableHeader>Chunks</TableHeader>
-
                       <TableHeader>Status</TableHeader>
 
                       <TableHeader>Uploaded</TableHeader>
 
-                      <TableHeader>Actions</TableHeader>
+                      {isAdmin && <TableHeader>Actions</TableHeader>}
                     </tr>
                   </thead>
 
@@ -510,20 +507,16 @@ export default function KnowledgeBasePage() {
                           </div>
                         </td>
 
-                        <td className="px-4 py-3 text-[14px] capitalize text-[#625B57]">
+                        <td className="whitespace-nowrap px-4 py-3 text-[14px] capitalize text-[#625B57]">
                           {typeLabel(resource.resourceType)}
                         </td>
 
-                        <td className="px-4 py-3 text-[14px] text-[#625B57]">
+                        <td className="min-w-[300px] px-4 py-3 text-[14px] text-[#625B57] [overflow-wrap:normal]">
                           {resource.topic || "—"}
                         </td>
 
                         <td className="px-4 py-3 text-[14px] text-[#625B57]">
                           {resource.totalPages ?? 0}
-                        </td>
-
-                        <td className="px-4 py-3 text-[14px] text-[#625B57]">
-                          {resource.totalChunks ?? 0}
                         </td>
 
                         <td className="px-4 py-3">
@@ -548,12 +541,13 @@ export default function KnowledgeBasePage() {
                           )}
                         </td>
 
-                        <td className="px-4 py-3 text-[13px] text-[#827A76]">
+                        <td className="whitespace-nowrap px-4 py-3 text-[13px] text-[#827A76]">
                           {formatDate(resource.createdAt)}
                         </td>
 
+                        {isAdmin && (
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                             {isAdmin && (
                               <>
                                 <button
@@ -563,25 +557,16 @@ export default function KnowledgeBasePage() {
                                     Boolean(resource.replacementPending) ||
                                     resource.processingStatus === "Processing"
                                   }
-                                  className="rounded-lg border border-[#DCD6D2] px-2.5 py-1 text-[13px] font-semibold text-[#8C1518] disabled:opacity-50"
+                                  className="inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-[#DCD6D2] bg-white px-3 text-[13px] font-semibold text-[#8C1518] transition-colors hover:border-[#8C1518] hover:bg-[#F4EAEA] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8C1518] disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                  Change
+                                  Edit
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => replaceResource(resource)}
-                                  disabled={
-                                    Boolean(resource.replacementPending || resource.replacedBy) ||
-                                    resource.processingStatus === "Processing"
-                                  }
-                                  className="rounded-lg border border-[#DCD6D2] px-2.5 py-1 text-[13px] font-semibold text-[#8C1518] disabled:opacity-50"
-                                >
-                                  Replace
-                                </button>
+
                               </>
                             )}
                           </div>
                         </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -661,7 +646,7 @@ function UploadModal({ replacement, form, setForm, uploading, onClose, onSubmit 
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <Field label="Resource title" required>
-          <input
+          <AutoText
             required
             value={form.title}
             onChange={(event) =>
@@ -698,7 +683,7 @@ function UploadModal({ replacement, form, setForm, uploading, onClose, onSubmit 
           </Field>
 
           <Field label="Topic" required>
-            <input
+            <AutoText
               required
               value={form.topic}
               onChange={(event) =>
@@ -1086,7 +1071,7 @@ function StatCard({ label, value, description }) {
 
 function TableHeader({ children }) {
   return (
-    <th className="px-4 py-3 text-[13px] font-semibold uppercase tracking-[0.07em] text-[#8E8681]">
+    <th className="whitespace-nowrap px-4 py-3 text-[13px] font-semibold uppercase tracking-[0.07em] text-[#8E8681]">
       {children}
     </th>
   );
@@ -1269,10 +1254,10 @@ function ResourceMetadataFields({ form, setForm, lockStatus = false }) {
         and Obsolete resources remain available for review.
       </p>
       <Field label="Author or organization (optional)">
-        <input name="author" value={form.author} onChange={update} className={inputClass} />
+        <AutoText name="author" value={form.author} onChange={update} className={inputClass} />
       </Field>
       <Field label="Description (optional)">
-        <textarea
+        <AutoText
           name="description"
           value={form.description}
           onChange={update}
@@ -1295,6 +1280,7 @@ function EditResourceModal({ resource, onSave, onClose }) {
     description: resource.description || "",
     reason: "",
   });
+  const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
@@ -1302,7 +1288,7 @@ function EditResourceModal({ resource, onSave, onClose }) {
     setSaving(true);
     setError("");
     try {
-      await onSave(form);
+      await onSave(form, file);
     } catch (failure) {
       setError(failure.message || "Unable to update resource.");
       setConfirming(false);
@@ -1325,7 +1311,8 @@ function EditResourceModal({ resource, onSave, onClose }) {
             : "Reactivate this resource?"
           : "Edit resource"
       }
-      description="Update resource information without reprocessing its PDF."
+      wide
+      description="Edit resource details or optionally replace the current PDF."
       onClose={onClose}
       disableClose={saving}
     >
@@ -1359,7 +1346,7 @@ function EditResourceModal({ resource, onSave, onClose }) {
       ) : (
         <form onSubmit={submit} className="space-y-4">
           <Field label="Resource title" required>
-            <input
+            <AutoText
               required
               value={form.title}
               onChange={(event) =>
@@ -1394,7 +1381,7 @@ function EditResourceModal({ resource, onSave, onClose }) {
             choosing its new type.
           </p>
           <Field label="Topic" required>
-            <input
+            <AutoText
               required
               value={form.topic}
               onChange={(event) =>
@@ -1405,7 +1392,7 @@ function EditResourceModal({ resource, onSave, onClose }) {
           </Field>
           <ResourceMetadataFields form={form} setForm={setForm} />
           <Field label="Review reason (optional)">
-            <textarea
+            <AutoText
               value={form.reason}
               onChange={(event) =>
                 setForm((current) => ({ ...current, reason: event.target.value }))
@@ -1413,7 +1400,11 @@ function EditResourceModal({ resource, onSave, onClose }) {
               className={inputClass}
             />
           </Field>
-          <div className="flex justify-end gap-3">
+          <CurrentResourcePdf resource={resource} file={file} setFile={setFile} disabled={saving} />
+          {file && (form.resourceType !== resource.resourceType || form.status !== "Active") && (
+            <p role="alert" className="text-sm text-red-800">PDF replacements require Active status and the original resource type. Save detail changes separately if needed.</p>
+          )}
+          <div className="sticky bottom-0 flex justify-end gap-3 border-t border-stone-200 bg-white py-4">
             <button
               type="button"
               disabled={saving}
@@ -1424,7 +1415,7 @@ function EditResourceModal({ resource, onSave, onClose }) {
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || Boolean(file && (form.resourceType !== resource.resourceType || form.status !== "Active"))}
               className="rounded-lg bg-[#8C1518] px-4 py-2 text-white disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save changes"}
@@ -1433,5 +1424,62 @@ function EditResourceModal({ resource, onSave, onClose }) {
         </form>
       )}
     </ModalShell>
+  );
+}
+
+function AutoText({ className = inputClass, value, ...props }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const resize = () => {
+      element.style.height = "auto";
+      element.style.height = `${element.scrollHeight + 2}px`;
+    };
+    let previousWidth = element.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (element.clientWidth !== previousWidth) {
+        previousWidth = element.clientWidth;
+        resize();
+      }
+    });
+    observer.observe(element);
+    resize();
+    return () => observer.disconnect();
+  }, [value]);
+  return <textarea {...props} ref={ref} value={value} rows={1} className={`${className} min-h-9 resize-none overflow-hidden py-2 leading-6`} />;
+}
+
+function CurrentResourcePdf({ resource, file, setFile, disabled }) {
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState("");
+  const inputRef = useRef(null);
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl;
+    fetch(`${API_BASE_URL}/knowledge-base/${resource._id}/pdf`, { credentials: "include" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Unable to preview the current PDF.");
+        objectUrl = URL.createObjectURL(await response.blob());
+        if (!cancelled) setUrl(objectUrl);
+        else URL.revokeObjectURL(objectUrl);
+      })
+      .catch((failure) => { if (!cancelled) setError(failure.message); });
+    return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [resource._id]);
+  return (
+    <section className="space-y-3 rounded-xl border border-stone-200 bg-stone-50 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold">Current PDF</h3>
+          <p className="break-words text-sm text-stone-600">{resource.originalFileName}</p>
+        </div>
+        <button type="button" disabled={disabled || Boolean(resource.replacedBy) || resource.isActive === false} onClick={() => inputRef.current.click()} className="shrink-0 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-[#8C1518] disabled:opacity-50">Replace</button>
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(event) => setFile(event.target.files?.[0] || null)} />
+      </div>
+      {error ? <p role="alert" className="text-sm text-red-800">{error}</p> : url ? <iframe title="Current resource PDF" src={url} className="h-[420px] w-full rounded-lg border border-stone-200 bg-white" /> : <p role="status" className="text-sm">Loading current PDF…</p>}
+      {file && <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-3 text-sm"><p className="break-words">Replacement: {file.name}</p><button type="button" disabled={disabled} onClick={() => { setFile(null); inputRef.current.value = ""; }} className="text-[#8C1518] underline">Keep current PDF</button></div>}
+      <p className="text-sm text-stone-600">Replacing the PDF is optional. The previous PDF stays available and becomes obsolete after the replacement is processed successfully.</p>
+    </section>
   );
 }

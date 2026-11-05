@@ -1,7 +1,10 @@
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
+import BookingsPage from "./pages/BookingsPage";
+import SystemAdminPage from "./pages/SystemAdminPage.jsx";
 import ScrollToTop from "./components/ScrollToTop";
 import LandingPage from "./pages/LandingPage";
+import SplashScreen from "./components/SplashScreen";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -32,7 +35,11 @@ import PreCounselingFormPage from "./pages/PreCounselingFormPage";
 function LandingRoute() {
   const navigate = useNavigate();
 
-  return <LandingPage onLogin={() => navigate("/login")} />;
+  return (
+    <SplashScreen>
+      <LandingPage onLogin={() => navigate("/login")} />
+    </SplashScreen>
+  );
 }
 
 function RequiredActionPage({ title, description }) {
@@ -93,11 +100,17 @@ export default function App() {
       {" "}
       <ScrollToTop />
       <Routes>
+        <Route path="/system" element={<ProtectedRoute allowedRoles={["Super-Admin"]}><SystemAdminPage /></ProtectedRoute>} />
+        <Route path="/access-denied" element={<main className="p-10"><h1>Access denied</h1><p>Your role cannot access this page.</p><a href="/login">Return to login</a></main>} />
         <Route path="/" element={<LandingRoute />} />
 
         <Route path="/login" element={<LoginPage />} />
 
-        <Route path="/pre-counseling/:token" element={<PreCounselingFormPage />} />
+        <Route path="/booking" element={<PreCounselingFormPage booking />} />
+        <Route path="/booking/:token" element={<PreCounselingFormPage booking />} />
+        <Route path="/bookings" element={<ProtectedRoute allowedRoles={["Counselor-Admin", "Counselor-User"]}><BookingsPage /></ProtectedRoute>} />
+        <Route path="/counselor-availability" element={<ProtectedRoute allowedRoles={["Counselor-Admin"]}><BookingsPage availabilityOnly /></ProtectedRoute>} />
+        <Route path="/pre-counseling/:token" element={<PreCounselingFormPage booking />} />
 
         <Route
           path="/change-password"
@@ -129,7 +142,7 @@ export default function App() {
         <Route
           path="/users"
           element={
-            <ProtectedRoute allowedRoles={["Counselor-Admin"]}>
+            <ProtectedRoute allowedRoles={["Super-Admin"]}>
               <UserManagementPage />
             </ProtectedRoute>
           }

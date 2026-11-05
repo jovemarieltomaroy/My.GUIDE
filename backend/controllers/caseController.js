@@ -7,6 +7,7 @@ const { validateKnowledgeAttachments } = require("../services/knowledgeAttachmen
 const { resolveInterventionAttachments } = require("../services/interventionAttachments");
 const AsyncHandler = require("express-async-handler");
 const Case = require("../models/case");
+const { nextCaseNumber } = require("../services/caseNumbering");
 const Student = require("../models/student");
 const User = require("../models/user");
 const USER_ROLES = ["Counselor-Admin", "Counselor-User"];
@@ -15,26 +16,12 @@ const {
   generateInterventionRecommendations,
 } = require("../services/rag/interventionRecommendationService");
 
-const hasActiveTemporaryAccess = (caseRecord, userId) => {
-  const now = new Date();
-
-  return (caseRecord.temporaryCounselor || []).some((access) => {
-    const counselorId = access.counselor?._id || access.counselor;
-
-    const accessUntil = new Date(access.accessUntil);
-
-    return (
-      counselorId?.toString() === userId.toString() &&
-      access.isActive === true &&
-      !access.revokedAt &&
-      !Number.isNaN(accessUntil.getTime()) &&
-      accessUntil > now
-    );
-  });
-};
+// Legacy grants are retained as history only; clinical access follows permanent assignment.
+const hasActiveTemporaryAccess = () => false;
 
 const populateTemporaryAccessCase = async (caseId) => {
   return Case.findById(caseId)
+    .populate("actionHistory.fromCounselor actionHistory.toCounselor", "firstName lastName email")
     .populate(
       "student",
       `
@@ -47,6 +34,17 @@ const populateTemporaryAccessCase = async (caseId) => {
                     program
                     yearLevel
                     contactNumber
+                    temporaryAddress
+                    permanentAddress
+                    dateOfBirth
+                    enrollmentStatus
+                    sex
+                    gender
+                    civilStatus
+                    religion
+                    emergencyContactName
+                    emergencyContactNumber
+                    emergencyContactRelationship
                 `
     )
     .populate(
@@ -104,7 +102,7 @@ const populateTemporaryAccessCase = async (caseId) => {
 
 const getAllCases = AsyncHandler(async (req, res) => {
   const { search } = req.query;
-  let query = { isArchived: false };
+  let query = { isArchived: false, assignedCounselor: req.user._id };
 
   if (search) {
     const matchingStudents = await Student.find({
@@ -248,6 +246,10 @@ const getStudentActiveCase = AsyncHandler(async (req, res) => {
 });
 
 const createCase = AsyncHandler(async (req, res) => {
+  if (req.body.counselorNotes !== undefined && (typeof req.body.counselorNotes !== "string" || req.body.counselorNotes.length > 20000)) return res.status(400).json({ message: "Counselor notes must be text of at most 20,000 characters." });
+  if (["Walk-in", "Scheduled"].includes(req.body.clientEntryType)) {
+    return res.status(409).json({ message: "Walk-in and scheduled cases must be created from a reviewed intake in Intakes & Bookings." });
+  }
   const {
     student,
     assignedCounselor,
@@ -364,25 +366,7 @@ const createCase = AsyncHandler(async (req, res) => {
     finalAssignedCounselor = assignedCounselor;
   }
 
-  const currentYear = new Date().getFullYear();
-
-  let newCaseNumber = `CASE-${currentYear}-0001`;
-
-  const latestCase = await Case.findOne({
-    caseNumber: {
-      $regex: `^CASE-${currentYear}-`,
-    },
-  }).sort({
-    createdAt: -1,
-  });
-
-  if (latestCase && latestCase.caseNumber) {
-    const latestNumber = parseInt(latestCase.caseNumber.split("-")[2], 10);
-
-    const nextNumber = latestNumber + 1;
-
-    newCaseNumber = `CASE-${currentYear}-${nextNumber.toString().padStart(4, "0")}`;
-  }
+  const newCaseNumber = await nextCaseNumber();
 
   const normalizedConsent = {
     ...consent,
@@ -406,6 +390,7 @@ const createCase = AsyncHandler(async (req, res) => {
   }
 
   const newCase = await Case.create({
+    counselorNotes: req.body.counselorNotes,
     caseNumber: newCaseNumber,
 
     student,
@@ -494,6 +479,7 @@ const updateCase = AsyncHandler(async (req, res) => {
     });
   }
 
+  if (req.body.counselorNotes !== undefined && (typeof req.body.counselorNotes !== "string" || req.body.counselorNotes.length > 20000)) return res.status(400).json({ message: "Counselor notes must be text of at most 20,000 characters." });
   if (req.body.caseFormulation !== undefined) {
     if (["Closed", "Terminated"].includes(foundCase.caseStatus))
       return res
@@ -511,6 +497,7 @@ const updateCase = AsyncHandler(async (req, res) => {
             "formulationNarrative",
             "counselorAssessment",
             "aiSummary",
+            "counselorNotesSummary",
           ].includes(key) || typeof value !== "string"
       )
     ) {
@@ -592,6 +579,7 @@ const updateCase = AsyncHandler(async (req, res) => {
     "backgroundAndPsychosocialHistory",
     "mentalStatus",
     "caseFormulation",
+    "counselorNotes",
     "interventionPlans",
   ];
 
@@ -599,6 +587,10 @@ const updateCase = AsyncHandler(async (req, res) => {
     if (req.body[field] !== undefined) {
       foundCase[field] = mergeFields(existingCase[field], req.body[field]);
     }
+  }
+
+  if (req.body.counselorNotes !== undefined && req.body.counselorNotes.trim() !== (existingCase.counselorNotes || "").trim()) {
+    foundCase.caseFormulation.counselorNotesSummary = "";
   }
 
   /*
@@ -815,332 +807,40 @@ const updateCaseStatus = AsyncHandler(async (req, res) => {
   });
 });
 const assignCounselor = AsyncHandler(async (req, res) => {
-  const caseId = req.params.id;
-
-  const { assignedCounselor, remarks } = req.body;
-
-  const foundCase = await Case.findById(caseId);
-
-  if (!foundCase) {
-    return res.status(404).json({ message: "Case not found." });
-  }
-  if (foundCase.isArchived) {
-    return res.status(400).json({ message: "Archived cases cannot be reassigned." });
-  }
-
-  const isAdmin = req.user.role === "Counselor-Admin";
-
-  if (!isAdmin) {
-    return res.status(403).json({ message: "Not authorized to this action." });
-  }
-  if (!assignedCounselor) {
-    return res.status(400).json({ message: "Assigned counselor is required." });
-  }
-
-  const newCounselor = await User.findById(assignedCounselor);
-
-  if (!newCounselor) {
-    return res.status(404).json({ message: "New counselor not found." });
-  }
-  if (!USER_ROLES.includes(newCounselor.role)) {
-    return res.status(400).json({ message: "Selected user is not a valid counselor." });
-  }
-  if (!newCounselor.isActive) {
-    return res.status(400).json({ message: "Cases can only be assigned to active accounts." });
-  }
-  const previousCounselor = foundCase.assignedCounselor;
-
-  if (previousCounselor?.toString() === assignedCounselor.toString()) {
-    return res.status(400).json({ message: "Case is already assigned to this counselor." });
-  }
-
-  foundCase.assignedCounselor = assignedCounselor;
-  foundCase.updatedBy = req.user._id;
-
-  foundCase.actionHistory.push({
-    action: "Reassigned",
-    remarks: remarks || "Assigned counselor is updated.",
-    actionBy: req.user._id,
-    actionDate: new Date(),
-    fromCounselor: previousCounselor,
-    toCounselor: assignedCounselor,
-  });
-
-  await foundCase.save();
-
-  const assignNewCounselor = await Case.findById(foundCase._id)
-    .populate(
-      "student",
-      "firstName middleName lastName email studentIdNumber college program yearLevel contactNumber"
-    )
-    .populate("assignedCounselor", "firstName middleName lastName email role")
-    .populate("updatedBy", "firstName middleName lastName email role");
-
-  res.status(200).json({
-    message: "Assigned counselor is updated",
-    case: assignNewCounselor,
-  });
+  const session = await require("mongoose").startSession();
+  let result;
+  try {
+    await session.withTransaction(async () => {
+      const foundCase = await Case.findById(req.params.id).session(session);
+      if (!foundCase) { const error = new Error("Case not found."); error.statusCode = 404; throw error; }
+      const fail = (message, status = 400) => { const error = new Error(message); error.statusCode = status; throw error; };
+      const owner = String(foundCase.assignedCounselor) === String(req.user._id);
+      if (!owner && req.user.role !== "Counselor-Admin") fail("Only the handling counselor or Counselor Admin can transfer this case.", 403);
+      if (foundCase.isArchived) fail("Archived cases cannot be transferred.");
+      const { assignedCounselor, remarks } = req.body;
+      if (!assignedCounselor) fail("Select the receiving counselor.");
+      const counselor = await User.findById(assignedCounselor).session(session);
+      if (!counselor || !USER_ROLES.includes(counselor.role) || !counselor.isActive) fail("Select an active counselor.");
+      if (String(foundCase.assignedCounselor) === String(counselor._id)) fail("This counselor already handles the case.");
+      const previous = foundCase.assignedCounselor;
+      foundCase.assignedCounselor = counselor._id;
+      foundCase.updatedBy = req.user._id;
+      foundCase.actionHistory.push({ action: "Reassigned", remarks: typeof remarks === "string" && remarks.trim() ? `Permanent transfer: ${remarks.trim()}` : "Case permanently transferred.", actionBy: req.user._id, actionDate: new Date(), fromCounselor: previous, toCounselor: counselor._id });
+      (foundCase.temporaryCounselor || []).forEach(access => { access.isActive = false; access.revokedAt = new Date(); access.revokedBy = req.user._id; });
+      await foundCase.save({ session });
+      await require("../models/counselingIntake").updateMany({ linkedCase: foundCase._id }, {
+        $set: { assignedCounselor: counselor._id, reservationActive: false, appointmentStatus: "Needs Rescheduling", slot: null },
+        $push: { history: { action: "Case permanently transferred; intake access transferred", actor: req.user._id, at: new Date() } },
+      }, { session });
+      result = { _id: foundCase._id, assignedCounselor: counselor._id };
+    });
+  } finally { await session.endSession(); }
+  res.json({ message: "Case permanently transferred. The previous counselor no longer has access.", case: result });
 });
-const grantTemporaryAccess = AsyncHandler(async (req, res) => {
-  const caseId = req.params.id;
+// Compatibility handlers: temporary access is permanently retired.
+const grantTemporaryAccess = AsyncHandler(async (req, res) => res.status(410).json({ message: "Temporary access is no longer supported. Transfer the case permanently instead." }));
+const revokeTemporaryAccess = AsyncHandler(async (req, res) => res.status(410).json({ message: "Temporary access is no longer supported." }));
 
-  const { temporaryCounselor, reason, accessUntil } = req.body;
-
-  const foundCase = await Case.findById(caseId);
-
-  if (!foundCase) {
-    return res.status(404).json({
-      message: "Case not found.",
-    });
-  }
-
-  if (foundCase.isArchived) {
-    return res.status(403).json({
-      message: "Archived cases cannot be granted temporary access.",
-    });
-  }
-
-  if (["Closed", "Terminated"].includes(foundCase.caseStatus)) {
-    return res.status(400).json({
-      message: "Closed or terminated cases cannot be granted temporary access.",
-    });
-  }
-
-  const isAdmin = req.user.role === "Counselor-Admin";
-
-  const isAssignedCounselor =
-    foundCase.assignedCounselor &&
-    foundCase.assignedCounselor.toString() === req.user._id.toString();
-
-  if (!isAdmin && !isAssignedCounselor) {
-    return res.status(403).json({
-      message: "Not authorized to grant temporary access.",
-    });
-  }
-
-  if (!temporaryCounselor) {
-    return res.status(400).json({
-      message: "Temporary counselor is required.",
-    });
-  }
-  const counselor = await User.findById(temporaryCounselor);
-
-  if (!counselor) {
-    return res.status(404).json({
-      message: "Counselor not found.",
-    });
-  }
-  if (temporaryCounselor.toString() === req.user._id.toString()) {
-    return res.status(400).json({
-      message: "You cannot grant temporary access to your own account.",
-    });
-  }
-  if (!USER_ROLES.includes(counselor.role)) {
-    return res.status(400).json({
-      message: "Selected user is not a valid counselor.",
-    });
-  }
-
-  if (!counselor.isActive) {
-    return res.status(400).json({
-      message: "Access can only be granted to active accounts.",
-    });
-  }
-
-  if (
-    foundCase.assignedCounselor &&
-    temporaryCounselor.toString() === foundCase.assignedCounselor.toString()
-  ) {
-    return res.status(400).json({
-      message: "Case is already assigned to this counselor.",
-    });
-  }
-
-  const normalizedReason = String(reason || "").trim();
-
-  if (!normalizedReason) {
-    return res.status(400).json({
-      message: "Reason is required to grant temporary access.",
-    });
-  }
-
-  if (!accessUntil) {
-    return res.status(400).json({
-      message: "Access-until date is required.",
-    });
-  }
-
-  const now = new Date();
-
-  const accessUntilDate = new Date(accessUntil);
-
-  if (Number.isNaN(accessUntilDate.getTime()) || accessUntilDate <= now) {
-    return res.status(400).json({
-      message: "Access until must be a valid future date.",
-    });
-  }
-
-  const alreadyHasAccess = (foundCase.temporaryCounselor || []).some((access) => {
-    const counselorId = access.counselor?._id || access.counselor;
-
-    const storedAccessUntil = new Date(access.accessUntil);
-
-    return (
-      counselorId?.toString() === temporaryCounselor.toString() &&
-      access.isActive === true &&
-      !access.revokedAt &&
-      !Number.isNaN(storedAccessUntil.getTime()) &&
-      storedAccessUntil > now
-    );
-  });
-
-  if (alreadyHasAccess) {
-    return res.status(400).json({
-      message: "This counselor already has active temporary access to this case.",
-    });
-  }
-
-  foundCase.temporaryCounselor.push({
-    counselor: temporaryCounselor,
-
-    grantedBy: req.user._id,
-
-    reason: normalizedReason,
-
-    accessUntil: accessUntilDate,
-
-    isActive: true,
-
-    grantedAt: now,
-
-    revokedAt: null,
-
-    revokedBy: null,
-
-    revocationReason: "",
-  });
-
-  foundCase.updatedBy = req.user._id;
-
-  foundCase.actionHistory.push({
-    action: "Temporary Access Granted",
-
-    remarks: `Temporary access granted to ${counselor.email}. Reason: ${normalizedReason}`,
-
-    actionBy: req.user._id,
-
-    actionDate: now,
-
-    fromCounselor: foundCase.assignedCounselor,
-
-    toCounselor: temporaryCounselor,
-  });
-
-  await foundCase.save();
-
-  const updatedCase = await populateTemporaryAccessCase(foundCase._id);
-
-  return res.status(200).json({
-    message: "Temporary access granted successfully.",
-
-    case: updatedCase,
-  });
-});
-const revokeTemporaryAccess = AsyncHandler(async (req, res) => {
-  const { id: caseId, accessId } = req.params;
-
-  const { revocationReason } = req.body;
-
-  const foundCase = await Case.findById(caseId);
-
-  if (!foundCase) {
-    return res.status(404).json({
-      message: "Case not found.",
-    });
-  }
-
-  const isAdmin = req.user.role === "Counselor-Admin";
-
-  const isAssignedCounselor =
-    foundCase.assignedCounselor &&
-    foundCase.assignedCounselor.toString() === req.user._id.toString();
-
-  if (!isAdmin && !isAssignedCounselor) {
-    return res.status(403).json({
-      message: "Not authorized to revoke temporary access.",
-    });
-  }
-
-  const accessRecord = foundCase.temporaryCounselor.id(accessId);
-
-  if (!accessRecord) {
-    return res.status(404).json({
-      message: "Temporary-access record not found.",
-    });
-  }
-
-  if (accessRecord.isActive !== true || accessRecord.revokedAt) {
-    return res.status(400).json({
-      message: "Temporary access is already inactive or revoked.",
-    });
-  }
-
-  const accessUntilDate = new Date(accessRecord.accessUntil);
-
-  const alreadyExpired = !Number.isNaN(accessUntilDate.getTime()) && accessUntilDate <= new Date();
-
-  if (alreadyExpired) {
-    return res.status(400).json({
-      message: "Temporary access has already expired.",
-    });
-  }
-
-  const normalizedReason = String(revocationReason || "").trim();
-
-  if (!normalizedReason) {
-    return res.status(400).json({
-      message: "Revocation reason is required.",
-    });
-  }
-
-  const temporaryCounselorId = accessRecord.counselor?._id || accessRecord.counselor;
-
-  const now = new Date();
-
-  accessRecord.isActive = false;
-
-  accessRecord.revokedAt = now;
-
-  accessRecord.revokedBy = req.user._id;
-
-  accessRecord.revocationReason = normalizedReason;
-
-  foundCase.updatedBy = req.user._id;
-
-  foundCase.actionHistory.push({
-    action: "Temporary Access Revoked",
-
-    remarks: `Temporary access revoked. Reason: ${normalizedReason}`,
-
-    actionBy: req.user._id,
-
-    actionDate: now,
-
-    fromCounselor: temporaryCounselorId,
-
-    toCounselor: foundCase.assignedCounselor,
-  });
-
-  await foundCase.save();
-
-  const updatedCase = await populateTemporaryAccessCase(foundCase._id);
-
-  return res.status(200).json({
-    message: "Temporary access revoked successfully.",
-
-    case: updatedCase,
-  });
-});
 const addProgressNotes = AsyncHandler(async (req, res) => {
   const caseId = req.params.id;
 
@@ -2064,7 +1764,7 @@ const getArchivedCases = AsyncHandler(async (req, res) => {
       message: "Only admins can view archived cases.",
     });
   }
-  const query = { isArchived: true };
+  const query = { isArchived: true, assignedCounselor: req.user._id };
   if (search) {
     const matchingStudents = await Student.find({
       $or: [
@@ -2100,90 +1800,8 @@ const getArchivedCases = AsyncHandler(async (req, res) => {
 
   res.status(200).json(cases);
 });
-const getTemporaryAccessCases = AsyncHandler(async (req, res) => {
-  const now = new Date();
+const getTemporaryAccessCases = AsyncHandler(async (req, res) => res.json([]));
 
-  const cases = await Case.find({
-    isArchived: false,
-
-    caseStatus: {
-      $nin: ["Closed", "Terminated"],
-    },
-
-    temporaryCounselor: {
-      $elemMatch: {
-        counselor: req.user._id,
-
-        isActive: true,
-
-        revokedAt: null,
-
-        accessUntil: {
-          $gt: now,
-        },
-      },
-    },
-  })
-    .populate(
-      "student",
-      `
-                            firstName
-                            middleName
-                            lastName
-                            email
-                            studentIdNumber
-                            college
-                            program
-                            yearLevel
-                            contactNumber
-                        `
-    )
-    .populate(
-      "assignedCounselor",
-      `
-                            firstName
-                            middleName
-                            lastName
-                            email
-                            role
-                        `
-    )
-    .populate(
-      "temporaryCounselor.counselor",
-      `
-                            firstName
-                            middleName
-                            lastName
-                            email
-                            role
-                        `
-    )
-    .populate(
-      "temporaryCounselor.grantedBy",
-      `
-                            firstName
-                            middleName
-                            lastName
-                            email
-                            role
-                        `
-    )
-    .populate(
-      "temporaryCounselor.revokedBy",
-      `
-                            firstName
-                            middleName
-                            lastName
-                            email
-                            role
-                        `
-    )
-    .sort({
-      updatedAt: -1,
-    });
-
-  return res.status(200).json(cases);
-});
 const getCaseTimeline = AsyncHandler(async (req, res) => {
   const caseId = req.params.id;
   const foundCase = await Case.findById(caseId)
@@ -2855,11 +2473,8 @@ const populateRecommendationCase = (caseId) => {
 
 const canManageRecommendations = (foundCase, user) => {
   const userId = String(user._id);
-  const creatorId = foundCase.createdBy?._id || foundCase.createdBy;
   const assignedId = foundCase.assignedCounselor?._id || foundCase.assignedCounselor;
-  return user.role === "Counselor-Admin"
-    ? Boolean(creatorId) && String(creatorId) === userId
-    : Boolean(assignedId) && String(assignedId) === userId;
+  return Boolean(assignedId) && String(assignedId) === userId;
 };
 
 const collectTextValues = (value) => {
@@ -2903,6 +2518,7 @@ const buildRagCaseData = (caseDocument) => {
   return {
     caseNumber: caseObject.caseNumber || "",
 
+    counselorNotes: typeof caseObject.counselorNotes === "string" ? caseObject.counselorNotes.trim() : "",
     mentalStatus: buildCaseText(caseObject.mentalStatus),
 
     currentPresentation: buildCaseText(caseObject.currentPresentation),
@@ -2976,6 +2592,7 @@ const buildRagRetrievalQuery = (caseData) => {
       goalProgress: caseData.progressContext?.latestProgress?.goalProgress,
       remarks: caseData.progressContext?.latestProgress?.remarks,
     }) : "",
+    caseData.counselorNotes,
     caseData.mentalStatus,
     caseData.currentPresentation,
     caseData.problemAssessment,
@@ -2987,7 +2604,7 @@ const buildRagRetrievalQuery = (caseData) => {
 
   // Historical techniques stay in the prompt, not in the search target.
   const focused = caseData.recommendationType === "updated" && sections[0];
-  return (focused ? sections[0] : sections.join(" ")).replace(/\s+/g, " ").trim();
+  return (focused ? [sections[0], caseData.counselorNotes].filter(Boolean).join(" ") : sections.join(" ")).replace(/\s+/g, " ").trim();
 };
 
 const generateLLMRecommendation = AsyncHandler(async (req, res) => {

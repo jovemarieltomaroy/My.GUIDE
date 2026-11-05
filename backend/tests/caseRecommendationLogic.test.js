@@ -10,12 +10,12 @@ const helpers = extract("const canManageRecommendations =", "const generateLLMRe
 function context(extra = {}) {
   return vm.createContext({ ...require("../services/rag/recommendationOutputValidation"), ...extra });
 }
-test("admin recommendations require creator identity; assigned counselor retains access", () => {
+test("recommendations follow assigned ownership for both counselor roles, not creator identity", () => {
   const ctx = context();
   vm.runInContext(helpers + "\nthis.allowed = canManageRecommendations;", ctx);
   const record = { createdBy: "creator", assignedCounselor: "assigned" };
-  assert.equal(ctx.allowed(record, { _id: "creator", role: "Counselor-Admin" }), true);
-  assert.equal(ctx.allowed(record, { _id: "assigned", role: "Counselor-Admin" }), false);
+  assert.equal(ctx.allowed(record, { _id: "creator", role: "Counselor-Admin" }), false);
+  assert.equal(ctx.allowed(record, { _id: "assigned", role: "Counselor-Admin" }), true);
   assert.equal(ctx.allowed(record, { _id: "assigned", role: "Counselor-User" }), true);
   assert.equal(ctx.allowed(record, { _id: "other", role: "Counselor-User" }), false);
 });
@@ -191,7 +191,7 @@ test("PDF preview permits linked counselors and denies unrelated counselors", as
     query.$and[1].$or[0]["llmRecommendations.resources.url"],
     "/api/knowledge-base/resource/pdf"
   );
-  assert.equal(query.$and[0].$or[0].assignedCounselor, "counselor");
+  assert.equal(query.$and[0].assignedCounselor, "counselor");
   linked = false;
   res = response();
   await ctx.preview(

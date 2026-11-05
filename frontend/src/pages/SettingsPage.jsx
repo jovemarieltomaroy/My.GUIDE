@@ -161,7 +161,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#292522]">
+    <div className="authenticated-app min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#292522]">
       <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
@@ -197,7 +197,7 @@ export default function SettingsPage() {
           </div>
         </header>
 
-        <main className="page-content mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7 lg:w-[calc(100%-240px)]! lg:px-0!">
           {successMessage && <Alert tone="success" message={successMessage} />}
 
           <section>
@@ -281,7 +281,6 @@ export default function SettingsPage() {
                 <AccessSection
                   user={user}
                   isAdmin={isAdmin}
-                  onOpenUsers={() => navigate("/users")}
                   onOpenActivity={() => navigate("/activity-logs")}
                 />
               )}
@@ -422,12 +421,11 @@ function SecuritySection({
   );
 }
 
-function AccessSection({ user, isAdmin, onOpenUsers, onOpenActivity }) {
+function AccessSection({ user, isAdmin, onOpenActivity }) {
   const permissions = isAdmin
     ? [
         "Access all counseling cases",
         "Create and assign cases",
-        "Manage counselor accounts",
         "View office-wide analytics and reports",
         "Review case activity logs",
       ]
@@ -473,18 +471,6 @@ function AccessSection({ user, isAdmin, onOpenUsers, onOpenActivity }) {
 
         {isAdmin && (
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={onOpenUsers}
-              className="rounded-xl border border-[#E4DFDC] bg-white p-4 text-left hover:border-[#8C1518]"
-            >
-              <p className="text-[17px] font-semibold">Manage users</p>
-
-              <p className="mt-1 text-[16px] leading-6 text-[#8D8580]">
-                Create, reactivate, deactivate, or update counselor accounts.
-              </p>
-            </button>
-
             <button
               type="button"
               onClick={onOpenActivity}
@@ -662,7 +648,7 @@ function getProfilePictureUrl(profilePicture) {
     return value;
   }
 
-  const apiOrigin = import.meta.env.VITE_API_ORIGIN || "http://localhost:5000";
+  const apiOrigin = import.meta.env.VITE_API_ORIGIN || "/api";
 
   const normalizedPath = value.startsWith("/") ? value : `/${value}`;
 

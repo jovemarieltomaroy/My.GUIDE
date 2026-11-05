@@ -112,9 +112,9 @@ export default function AnalyticsPage() {
             method: "GET",
           }),
 
-          apiRequest("/users?isActive=true", {
+          apiRequest("/users/counselors/active", {
             method: "GET",
-          }),
+          }).then(data => data.counselors),
         ]);
 
         if (!Array.isArray(caseData)) {
@@ -260,7 +260,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#292522]">
+    <div className="authenticated-app min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#292522]">
       <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
@@ -302,7 +302,7 @@ export default function AnalyticsPage() {
           </div>
         </header>
 
-        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7 lg:w-[calc(100%-240px)]! lg:px-0!">
           {pageError && <Alert tone="error" message={pageError} />}
 
           <section className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
@@ -318,7 +318,7 @@ export default function AnalyticsPage() {
               </p>
             </div>
 
-            <p className="text-[13px] text-[#9B938E]">
+            <p className="analytics-updated-at text-[13px] text-[#9B938E]">
               Last refreshed {formatDateTime(new Date())}
             </p>
           </section>
@@ -626,15 +626,15 @@ export default function AnalyticsPage() {
               <Panel
                 title="Counselor workload"
                 subtitle="Active cases and high-priority workload per active counselor"
-                action="Manage users"
-                onAction={() => navigate("/users")}
+                action="View cases"
+                onAction={() => navigate("/cases")}
               >
                 {isLoading ? (
                   <LoadingPanel />
                 ) : (
                   <CounselorWorkloadTable
                     rows={analytics.counselorWorkload}
-                    onOpenUser={() => navigate("/users")}
+                    onOpenCases={() => navigate("/cases")}
                   />
                 )}
               </Panel>
@@ -664,24 +664,6 @@ export default function AnalyticsPage() {
             </Panel>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-[#E6D9B7] bg-[#FCF8EB] px-4 py-3">
-            <div className="flex items-start gap-3">
-              <Icon name="alertTriangle" className="mt-0.5 h-4 w-4 shrink-0 text-[#A77A00]" />
-
-              <div>
-                <p className="text-[14px] font-semibold text-[#705A1B]">
-                  Analytics are decision-support summaries
-                </p>
-
-                <p className="mt-1 text-[13px] leading-4 text-[#806E3A]">
-                  These results describe patterns in recorded counseling cases. They should support
-                  case monitoring, staffing, outreach planning, and program development, but they
-                  should not be used to diagnose students or replace professional counseling
-                  judgment.
-                </p>
-              </div>
-            </div>
-          </div>
         </main>
       </div>
     </div>
@@ -934,7 +916,7 @@ function FollowUpOverview({ data, onOpen }) {
   );
 }
 
-function CounselorWorkloadTable({ rows, onOpenUser }) {
+function CounselorWorkloadTable({ rows, onOpenCases }) {
   if (rows.length === 0) {
     return <EmptyPanel text="No active counselors were returned." />;
   }
@@ -1008,10 +990,10 @@ function CounselorWorkloadTable({ rows, onOpenUser }) {
               <td className={`${tableCellClass} text-right`}>
                 <button
                   type="button"
-                  onClick={onOpenUser}
+                  onClick={onOpenCases}
                   className="!text-[15px] font-semibold text-[#8C1518]"
                 >
-                  Manage
+                  View cases
                 </button>
               </td>
             </tr>

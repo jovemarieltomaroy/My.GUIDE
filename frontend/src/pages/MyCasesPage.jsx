@@ -8,7 +8,6 @@ import { useAuth } from "../context/AuthContext";
 const ADMIN_ROLE = "Counselor-Admin";
 const COUNSELOR_CASES_ENDPOINT = "/cases/my-cases";
 const TEMPORARY_CASES_ENDPOINT = "/cases/temporary-access";
-const ADMIN_CASES_ENDPOINT = "/cases";
 
 const STATUS_OPTIONS = ["Open", "In Progress", "For Follow-up", "Closed", "Terminated"];
 
@@ -96,97 +95,78 @@ export default function MyCasesPage() {
       const queryString = parameters.toString();
       const querySuffix = queryString ? `?${queryString}` : "";
 
-      if (isAdmin) {
-        const data = await apiRequest(`${ADMIN_CASES_ENDPOINT}${querySuffix}`, {
+      const [assignedResult, temporaryResult] = await Promise.allSettled([
+        apiRequest(`${COUNSELOR_CASES_ENDPOINT}${querySuffix}`, {
           method: "GET",
+        }),
+        apiRequest(`${TEMPORARY_CASES_ENDPOINT}${querySuffix}`, {
+          method: "GET",
+        }),
+      ]);
+
+      if (assignedResult.status === "rejected" && assignedResult.reason?.status === 401) {
+        clearUser();
+        navigate("/login", {
+          replace: true,
         });
+        return;
+      }
 
-        if (!Array.isArray(data)) {
-          throw new Error("The backend returned an invalid cases response.");
-        }
+      if (temporaryResult.status === "rejected" && temporaryResult.reason?.status === 401) {
+        clearUser();
+        navigate("/login", {
+          replace: true,
+        });
+        return;
+      }
 
-        setAssignedCases(
-          data.map((caseItem) => ({
+      const assignedData =
+        assignedResult.status === "fulfilled" && Array.isArray(assignedResult.value)
+          ? assignedResult.value
+          : [];
+
+      const temporaryData =
+        temporaryResult.status === "fulfilled" && Array.isArray(temporaryResult.value)
+          ? temporaryResult.value
+          : [];
+
+      if (assignedResult.status === "rejected") {
+        console.error("Unable to retrieve assigned cases:", assignedResult.reason);
+      }
+
+      if (temporaryResult.status === "rejected") {
+        console.error("Unable to retrieve temporary-access cases:", temporaryResult.reason);
+      }
+
+      const assignedIds = new Set(
+        assignedData.map((caseItem) => String(caseItem._id || caseItem.id))
+      );
+
+      const uniqueTemporaryCases = temporaryData.filter(
+        (caseItem) => !assignedIds.has(String(caseItem._id || caseItem.id))
+      );
+
+      setAssignedCases(
+        assignedData.map((caseItem) => ({
+          ...caseItem,
+          accessType: "Assigned",
+        }))
+      );
+
+      setTemporaryCases(
+        uniqueTemporaryCases.map((caseItem) => {
+          const activeAccess = getCurrentUserTemporaryAccess(caseItem, user._id);
+
+          return {
             ...caseItem,
-            accessType: "Admin access",
-          }))
-        );
+            accessType: "Temporary",
+            activeTemporaryAccess: activeAccess || null,
+          };
+        })
+      );
 
-        setTemporaryCases([]);
-      } else {
-        const [assignedResult, temporaryResult] = await Promise.allSettled([
-          apiRequest(`${COUNSELOR_CASES_ENDPOINT}${querySuffix}`, {
-            method: "GET",
-          }),
-          apiRequest(`${TEMPORARY_CASES_ENDPOINT}${querySuffix}`, {
-            method: "GET",
-          }),
-        ]);
-
-        if (assignedResult.status === "rejected" && assignedResult.reason?.status === 401) {
-          clearUser();
-          navigate("/login", {
-            replace: true,
-          });
-          return;
-        }
-
-        if (temporaryResult.status === "rejected" && temporaryResult.reason?.status === 401) {
-          clearUser();
-          navigate("/login", {
-            replace: true,
-          });
-          return;
-        }
-
-        const assignedData =
-          assignedResult.status === "fulfilled" && Array.isArray(assignedResult.value)
-            ? assignedResult.value
-            : [];
-
-        const temporaryData =
-          temporaryResult.status === "fulfilled" && Array.isArray(temporaryResult.value)
-            ? temporaryResult.value
-            : [];
-
-        if (assignedResult.status === "rejected") {
-          console.error("Unable to retrieve assigned cases:", assignedResult.reason);
-        }
-
-        if (temporaryResult.status === "rejected") {
-          console.error("Unable to retrieve temporary-access cases:", temporaryResult.reason);
-        }
-
-        const assignedIds = new Set(
-          assignedData.map((caseItem) => String(caseItem._id || caseItem.id))
-        );
-
-        const uniqueTemporaryCases = temporaryData.filter(
-          (caseItem) => !assignedIds.has(String(caseItem._id || caseItem.id))
-        );
-
-        setAssignedCases(
-          assignedData.map((caseItem) => ({
-            ...caseItem,
-            accessType: "Assigned",
-          }))
-        );
-
-        setTemporaryCases(
-          uniqueTemporaryCases.map((caseItem) => {
-            const activeAccess = getCurrentUserTemporaryAccess(caseItem, user._id);
-
-            return {
-              ...caseItem,
-              accessType: "Temporary",
-              activeTemporaryAccess: activeAccess || null,
-            };
-          })
-        );
-
-        if (assignedResult.status === "rejected" && temporaryResult.status === "rejected") {
-          throw new Error("Unable to retrieve assigned or temporary-access cases.");
-        }
+      if (assignedResult.status === "rejected" && temporaryResult.status === "rejected") {
+        throw new Error("Unable to retrieve assigned or temporary-access cases.");
       }
     } catch (error) {
       console.error("Unable to retrieve cases:", error);
@@ -205,15 +185,11 @@ export default function MyCasesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, isAdmin, searchQuery, clearUser, navigate]);
+  }, [user, searchQuery, clearUser, navigate]);
 
   useEffect(() => {
     fetchCases();
   }, [fetchCases]);
-
-  if (!user) {
-    return null;
-  }
 
   const filteredAssignedCases = useMemo(() => {
     return assignedCases.filter((caseItem) => {
@@ -275,8 +251,10 @@ export default function MyCasesPage() {
     );
   }, [assignedCases, temporaryCases]);
 
+  if (!user) return null;
+
   return (
-    <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#2F2A27]">
+    <div className="authenticated-app min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#2F2A27]">
       <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
@@ -293,12 +271,10 @@ export default function MyCasesPage() {
               </button>
 
               <div>
-                <h1 className="text-[20px] font-semibold">{isAdmin ? "All Cases" : "My Cases"}</h1>
+                <h1 className="text-[20px] font-semibold">My Cases</h1>
 
                 <p className="hidden text-[15px] text-[#99918C] sm:block">
-                  {isAdmin
-                    ? "View active cases across the counseling office"
-                    : "View your assigned cases and cases shared through temporary access"}
+                  View the cases currently assigned to you
                 </p>
               </div>
             </div>
@@ -315,7 +291,7 @@ export default function MyCasesPage() {
           </div>
         </header>
 
-        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7 lg:w-[calc(100%-240px)]! lg:px-0!">
           {successMessage && <Alert type="success" message={successMessage} />}
 
           {pageError && <Alert type="error" message={pageError} />}
@@ -332,7 +308,7 @@ export default function MyCasesPage() {
 
           <div
             className={`mt-5 grid gap-3 sm:grid-cols-2 ${
-              isAdmin ? "xl:grid-cols-4" : "xl:grid-cols-5"
+              isAdmin ? "xl:grid-cols-4" : "xl:grid-cols-4"
             }`}
           >
             <SummaryCard label="Total cases" value={summary.total} icon="folder" tone="maroon" />
@@ -357,15 +333,6 @@ export default function MyCasesPage() {
               icon="alertTriangle"
               tone="red"
             />
-
-            {!isAdmin && (
-              <SummaryCard
-                label="Temporary access"
-                value={summary.temporary}
-                icon="user"
-                tone="blue"
-              />
-            )}
           </div>
 
           <section className="mt-5 space-y-5">
@@ -448,20 +415,6 @@ export default function MyCasesPage() {
                   : "No cases are currently assigned to your account."
               }
             />
-
-            {!isAdmin && (
-              <CaseSection
-                title="Temporary access cases"
-                description="Cases shared with you for a limited period. Access ends automatically on the displayed expiration date or when revoked."
-                cases={filteredTemporaryCases}
-                isLoading={isLoading}
-                onOpen={(caseItem) => navigate(`/cases/${caseItem._id || caseItem.id}`)}
-                onRefresh={fetchCases}
-                emptyTitle="No temporary-access cases"
-                emptyMessage="Cases granted to you temporarily will appear here."
-                temporary
-              />
-            )}
           </section>
         </main>
       </div>

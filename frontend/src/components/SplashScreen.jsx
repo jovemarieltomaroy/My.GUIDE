@@ -14,7 +14,7 @@ export default function SplashScreen({ children }) {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const timer = window.setTimeout(() => setVisible(false), reducedMotion ? 150 : 3950);
+    const timer = window.setTimeout(() => setVisible(false), reducedMotion ? 150 : 3160);
     return () => {
       window.clearTimeout(timer);
       document.body.style.overflow = previousOverflow;

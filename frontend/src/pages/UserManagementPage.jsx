@@ -64,7 +64,7 @@ export default function UserManagementPage() {
   const [adminPassword, setAdminPassword] = useState("");
   const [selectedRole, setSelectedRole] = useState("");
 
-  const isAdmin = currentUser?.role === ADMIN_ROLE;
+  const isAdmin = currentUser?.role === "Super-Admin";
 
   const currentUserId = currentUser?._id || currentUser?.id || null;
 
@@ -120,7 +120,7 @@ export default function UserManagementPage() {
     }
 
     if (!isAdmin) {
-      navigate("/dashboard", { replace: true });
+      navigate("/access-denied", { replace: true });
       return;
     }
 
@@ -518,7 +518,7 @@ export default function UserManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#262220]">
+    <div className="authenticated-app min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#262220]">
       <AppSidebar user={currentUser} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
@@ -553,7 +553,7 @@ export default function UserManagementPage() {
           </div>
         </header>
 
-        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7 lg:w-[calc(100%-240px)]! lg:px-0!">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h2 className="text-lg font-semibold tracking-[-0.03em] sm:text-xl">

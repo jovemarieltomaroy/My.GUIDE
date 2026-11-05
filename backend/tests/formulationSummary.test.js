@@ -19,6 +19,9 @@ function setup(record, fail = false) {
                 presentingProblem: "Academic stress",
                 formulationNarrative: "Recorded observations show attentive engagement.",
                 counselorAssessment: "Academic concerns warrant counselor review.",
+                ...(record.counselorNotes?.trim()
+                  ? { counselorNotesSummary: "Documented counselor note summary." }
+                  : {}),
               });
             },
           },
@@ -109,7 +112,11 @@ test("summary enforces permissions, active case and meaningful inputs before cal
   }
 });
 test("summary returns a clear AI failure without changing a saved narrative", async () => {
-  const record = { ...base, caseFormulation: { formulationNarrative: "Reviewed narrative" } };
+  const record = {
+    ...base,
+    assignedCounselor: "admin",
+    caseFormulation: { formulationNarrative: "Reviewed narrative" },
+  };
   const ctx = setup(record, true);
   const res = response();
   await ctx.generateFormulationSummary(
@@ -134,4 +141,20 @@ test("structured draft rejects malformed model responses", () => {
   const ctx = setup(base);
   assert.throws(() => ctx.parseFormulationDraft("Not JSON"));
   assert.throws(() => ctx.parseFormulationDraft('{"presentingProblem":42}'));
+});
+
+test("summary returns a separate optional notes draft without saving it", async () => {
+  const record = {
+    ...base,
+    counselorNotes: "Counselor observed hesitation and wants individual practice.",
+  };
+  const ctx = setup(record);
+  const res = response();
+  await ctx.generateFormulationSummary(
+    { params: { id: "case" }, user: { _id: "counselor", role: "Counselor-User" } },
+    res
+  );
+  assert.equal(res.body.draft.counselorNotesSummary, "Documented counselor note summary.");
+  assert.match(ctx.prompt, /individual practice/);
+  assert.equal(record.caseFormulation, undefined);
 });

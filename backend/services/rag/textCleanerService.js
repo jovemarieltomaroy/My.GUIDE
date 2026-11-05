@@ -48,6 +48,10 @@ const cleanPdfText = (text) => {
 
   cleanedText = cleanedText.replace(/\r\n?/g, "\n");
 
+  // Worksheet answer rules carry no instructions and should not consume chunk
+  // space or separate the prompts belonging to the same exercise.
+  cleanedText = cleanedText.replace(/_{3,}/g, " ");
+
   /*
    * -------------------------------------------------
    * 2. REMOVE PDF / PUBLISHER NOISE

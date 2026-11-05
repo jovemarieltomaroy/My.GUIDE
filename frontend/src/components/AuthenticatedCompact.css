@@ -1,0 +1,69 @@
+@layer theme, base, components, utilities;
+
+/* Authenticated office layouts only. Larger reference viewports and public
+   pages retain their existing styles. Actual sizing, without zoom/transforms. */
+/* Match the Tailwind utilities layer so scoped important rules can override
+   existing important pixel utilities without affecting public styles. */
+@layer utilities {
+@media screen and (min-width: 1024px) and (max-width: 1440px) {
+  .authenticated-app {
+    --spacing: 0.2rem;
+    --text-xs: 0.6875rem;
+    --text-sm: 0.7rem;
+    --text-base: 0.8rem;
+    --text-lg: 0.9rem;
+    --text-xl: 1rem;
+    --text-2xl: 1.2rem;
+    --text-3xl: 1.5rem;
+    --text-4xl: 1.8rem;
+    font-size: 14px;
+  }
+  .authenticated-app > aside { width: 200px; }
+  .authenticated-app > aside [class~="min-h-[38px]"] { min-height: 30.4px; }
+  .authenticated-app > aside [class~="min-h-[40px]"] { min-height: 32px; }
+  .authenticated-app .analytics-updated-at { white-space: nowrap; flex-shrink: 0; }
+  .authenticated-app > .min-h-screen { padding-left: 200px; }
+  .authenticated-app .page-content.page-content {
+    width: calc(100% - 192px) !important;
+    padding-inline: 0 !important;
+  }
+  .authenticated-app > aside > :first-child {
+    height: 50px;
+    min-height: 50px;
+  }
+  /* Headers with tabs or wrapped actions must reserve their full content height. */
+  .authenticated-app > .min-h-screen > header {
+    height: auto;
+    min-height: 50px;
+  }
+  .authenticated-app > .min-h-screen > header.flex { padding-block: 8px; }
+  .authenticated-app .page-content :is(button, input:not([type="checkbox"]):not([type="radio"]), select) {
+    min-height: 28px;
+  }
+  .authenticated-app :is([class~="text-[10px]"], [class~="!text-[10px]"], [class~="text-[10px]!"]) { font-size: 11px !important; }
+  .authenticated-app :is([class~="text-[11px]"], [class~="!text-[11px]"], [class~="text-[11px]!"]) { font-size: 11px !important; }
+  .authenticated-app :is([class~="text-[12px]"], [class~="!text-[12px]"], [class~="text-[12px]!"]) { font-size: 11px !important; }
+  .authenticated-app :is([class~="text-[13px]"], [class~="!text-[13px]"], [class~="text-[13px]!"]) { font-size: 11px !important; }
+  .authenticated-app :is([class~="text-[14px]"], [class~="!text-[14px]"], [class~="text-[14px]!"]) { font-size: 11.2px !important; }
+  .authenticated-app :is([class~="text-[15px]"], [class~="!text-[15px]"], [class~="text-[15px]!"]) { font-size: 12px !important; }
+  .authenticated-app :is([class~="text-[16px]"], [class~="!text-[16px]"], [class~="text-[16px]!"]) { font-size: 12.8px !important; }
+  .authenticated-app :is([class~="text-[17px]"], [class~="!text-[17px]"], [class~="text-[17px]!"]) { font-size: 13.6px !important; }
+  .authenticated-app :is([class~="text-[18px]"], [class~="!text-[18px]"], [class~="text-[18px]!"]) { font-size: 14.4px !important; }
+  .authenticated-app :is([class~="text-[19px]"], [class~="!text-[19px]"], [class~="text-[19px]!"]) { font-size: 15.2px !important; }
+  .authenticated-app :is([class~="text-[20px]"], [class~="!text-[20px]"], [class~="text-[20px]!"]) { font-size: 16px !important; }
+  .authenticated-app :is([class~="text-[22px]"], [class~="!text-[22px]"], [class~="text-[22px]!"]) { font-size: 17.6px !important; }
+  .authenticated-app :is([class~="text-[24px]"], [class~="!text-[24px]"], [class~="text-[24px]!"]) { font-size: 19.2px !important; }
+  .authenticated-app :is([class~="text-[25px]"], [class~="!text-[25px]"], [class~="text-[25px]!"]) { font-size: 20px !important; }
+  .authenticated-app :is([class~="text-[27px]"], [class~="!text-[27px]"], [class~="text-[27px]!"]) { font-size: 21.6px !important; }
+  .authenticated-app :is([class~="text-[30px]"], [class~="!text-[30px]"], [class~="text-[30px]!"]) { font-size: 24px !important; }
+  .authenticated-app :is([class~="text-[32px]"], [class~="!text-[32px]"], [class~="text-[32px]!"]) { font-size: 25.6px !important; }
+  .authenticated-app [style*="font-size: 15px"] { font-size: 12px !important; }
+  .authenticated-app [class~="h-[62px]"] { height: 50px; }
+  .authenticated-app [class~="min-h-[62px]"] { min-height: 50px; }
+  .authenticated-app [class~="h-[230px]"] { height: 184px; }
+  .authenticated-app [class~="min-w-[620px]"] { min-width: 496px; }
+  .authenticated-app [class~="min-h-[220px]"] { min-height: 176px; }
+  .authenticated-app [class~="xl:grid-cols-4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .authenticated-app [class~="xl:grid-cols-5"] { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+}

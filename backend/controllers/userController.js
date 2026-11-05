@@ -5,7 +5,7 @@ const uploadToCloudinary = require("../utils/uploadToCloudinary");
 
 const getAllUsers = async (req, res) => {
   const { search, role, isActive } = req.query;
-  let query = {};
+  let query = { role: { $in: USER_ROLES } };
 
   if (search) {
     query.$or = [
@@ -40,6 +40,9 @@ const getUserById = async (req, res) => {
 };
 const createUser = async (req, res) => {
   const { email, password } = req.body;
+  if (req.body.role && req.body.role !== "Counselor-User") {
+    return res.status(400).json({ message: "Create a Counselor-User, then use the protected role change action." });
+  }
   if (!email || !password) {
     return res.status(400).json({ message: "Email and password are required." });
   }
@@ -455,7 +458,7 @@ const verifyAdminPassword = async (loggedInAdminId, adminPassword) => {
     throw error;
   }
 
-  if (admin.role !== "Counselor-Admin") {
+  if (admin.role !== "Super-Admin") {
     const error = new Error("Administrator access is required");
 
     error.statusCode = 403;

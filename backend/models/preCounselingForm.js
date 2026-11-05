@@ -207,7 +207,7 @@ const preCounselingFormSchema = new mongoose.Schema(
 
     linkedCase: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Case",
+      ref: "CaseRecord",
       default: null,
     },
 

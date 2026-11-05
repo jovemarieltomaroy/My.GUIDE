@@ -20,11 +20,9 @@ const ALL_TABS = [
 const ADMIN_VISIBLE_TABS = ["overview", "timeline"];
 
 const ADMIN_ROLE = "Counselor-Admin";
-const EMPTY_TEMPORARY_ACCESS_FORM = {
-  temporaryCounselor: "",
+const EMPTY_TRANSFER_FORM = {
+  receivingCounselor: "",
   reason: "",
-  accessUntilDate: "",
-  accessUntilTime: "17:00",
 };
 
 export default function CaseDetailsPage() {
@@ -50,15 +48,10 @@ export default function CaseDetailsPage() {
 
   const [counselors, setCounselors] = useState([]);
   const [isLoadingCounselors, setIsLoadingCounselors] = useState(false);
-  const [grantAccessModalOpen, setGrantAccessModalOpen] = useState(false);
-  const [grantAccessForm, setGrantAccessForm] = useState(EMPTY_TEMPORARY_ACCESS_FORM);
-  const [grantAccessError, setGrantAccessError] = useState("");
-  const [isGrantingAccess, setIsGrantingAccess] = useState(false);
-  const [revokeAccessModalOpen, setRevokeAccessModalOpen] = useState(false);
-  const [selectedAccessRecord, setSelectedAccessRecord] = useState(null);
-  const [revocationReason, setRevocationReason] = useState("");
-  const [revokeAccessError, setRevokeAccessError] = useState("");
-  const [isRevokingAccess, setIsRevokingAccess] = useState(false);
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [transferForm, setTransferForm] = useState(EMPTY_TRANSFER_FORM);
+  const [transferError, setTransferError] = useState("");
+  const [isTransferring, setIsTransferring] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -170,12 +163,8 @@ export default function CaseDetailsPage() {
 
   const isAdmin = user?.role === ADMIN_ROLE;
 
-  const creatorId =
-    caseRecord?.createdBy?._id || caseRecord?.createdBy?.id || caseRecord?.createdBy;
-  const currentUserId = user?._id || user?.id;
-  const isCaseCreator =
-    Boolean(creatorId && currentUserId) && String(creatorId) === String(currentUserId);
-  const isAdminOverviewOnly = isAdmin && !isCaseCreator;
+  const isAdminOverviewOnly =
+    isAdmin && String(assignedCounselorId) !== String(user?._id || user?.id);
 
   const visibleTabs = useMemo(() => {
     if (isAdminOverviewOnly) {
@@ -194,34 +183,15 @@ export default function CaseDetailsPage() {
   const isAssignedCounselor =
     Boolean(caseRecord && user?._id) && assignedCounselorId?.toString() === user._id.toString();
 
-  const canManageTemporaryAccess =
+  const canTransferCase =
     Boolean(caseRecord) &&
     !caseRecord.isArchived &&
     !["Closed", "Terminated"].includes(caseRecord.caseStatus) &&
     (isAdmin || isAssignedCounselor);
 
-  const temporaryAccessRecords = useMemo(
-    () =>
-      [...(caseRecord?.temporaryCounselor || [])].sort(
-        (a, b) => new Date(b.grantedAt || 0) - new Date(a.grantedAt || 0)
-      ),
-    [caseRecord]
-  );
-
-  const currentUserTemporaryAccess = useMemo(() => {
-    if (!user?._id) return null;
-    return temporaryAccessRecords.find((access) => {
-      const counselorId = access.counselor?._id || access.counselor;
-      return (
-        counselorId?.toString() === user._id.toString() &&
-        getTemporaryAccessStatus(access) === "Active"
-      );
-    });
-  }, [temporaryAccessRecords, user]);
-
   const fetchActiveCounselors = async () => {
     setIsLoadingCounselors(true);
-    setGrantAccessError("");
+    setTransferError("");
 
     try {
       const data = await apiRequest("/users/counselors/active", {
@@ -252,7 +222,7 @@ export default function CaseDetailsPage() {
         return;
       }
 
-      setGrantAccessError(error.message || "Unable to retrieve active counselors.");
+      setTransferError(error.message || "Unable to retrieve active counselors.");
 
       setCounselors([]);
     } finally {
@@ -260,54 +230,43 @@ export default function CaseDetailsPage() {
     }
   };
 
-  const openGrantAccessModal = async () => {
-    if (!canManageTemporaryAccess) return;
-    setGrantAccessForm(EMPTY_TEMPORARY_ACCESS_FORM);
-    setGrantAccessError("");
-    setGrantAccessModalOpen(true);
+  const openTransferModal = async () => {
+    if (!canTransferCase) return;
+    setTransferForm(EMPTY_TRANSFER_FORM);
+    setTransferError("");
+    setTransferModalOpen(true);
     await fetchActiveCounselors();
   };
 
-  const closeGrantAccessModal = () => {
-    if (isGrantingAccess) return;
-    setGrantAccessModalOpen(false);
-    setGrantAccessForm(EMPTY_TEMPORARY_ACCESS_FORM);
-    setGrantAccessError("");
+  const closeTransferModal = () => {
+    if (isTransferring) return;
+    setTransferModalOpen(false);
+    setTransferForm(EMPTY_TRANSFER_FORM);
+    setTransferError("");
   };
 
-  const submitGrantTemporaryAccess = async (event) => {
+  const submitTransferCase = async (event) => {
     event.preventDefault();
     if (!caseRecord) return;
 
-    if (!grantAccessForm.temporaryCounselor) {
-      setGrantAccessError("Select a temporary counselor.");
+    if (!transferForm.receivingCounselor) {
+      setTransferError("Select the receiving counselor.");
       return;
     }
-    if (!grantAccessForm.reason.trim()) {
-      setGrantAccessError("Reason for temporary access is required.");
-      return;
-    }
-
-    const accessUntil = combineDateAndTime(
-      grantAccessForm.accessUntilDate,
-      grantAccessForm.accessUntilTime
-    );
-
-    if (!accessUntil || new Date(accessUntil) <= new Date()) {
-      setGrantAccessError("Access expiration must be a valid future date and time.");
+    if (!transferForm.reason.trim()) {
+      setTransferError("Reason for transfer is required.");
       return;
     }
 
-    setIsGrantingAccess(true);
-    setGrantAccessError("");
+    setIsTransferring(true);
+    setTransferError("");
 
     try {
-      const data = await apiRequest(`/cases/${caseRecord._id}/temporary-access`, {
-        method: "POST",
+      const data = await apiRequest(`/cases/${caseRecord._id}/transfer`, {
+        method: "PATCH",
         body: JSON.stringify({
-          temporaryCounselor: grantAccessForm.temporaryCounselor,
-          reason: grantAccessForm.reason.trim(),
-          accessUntil,
+          assignedCounselor: transferForm.receivingCounselor,
+          remarks: transferForm.reason.trim(),
         }),
       });
 
@@ -315,76 +274,19 @@ export default function CaseDetailsPage() {
         throw new Error("The backend did not return the updated case.");
       }
 
-      setCaseRecord(data.case);
-      setGrantAccessModalOpen(false);
-      setGrantAccessForm(EMPTY_TEMPORARY_ACCESS_FORM);
-      setSuccessMessage(data?.message || "Temporary access granted successfully.");
-      if (activeTab === "timeline") await fetchTimeline();
+      setTransferModalOpen(false);
+      navigate("/cases", {
+        replace: true,
+        state: { successMessage: data.message || "Case permanently transferred." },
+      });
     } catch (error) {
       if (error.status === 401) {
         handleUnauthorized();
         return;
       }
-      setGrantAccessError(error.message || "Unable to grant temporary access.");
+      setTransferError(error.message || "Unable to transfer the case.");
     } finally {
-      setIsGrantingAccess(false);
-    }
-  };
-
-  const openRevokeAccessModal = (accessRecord) => {
-    if (!canManageTemporaryAccess) return;
-    setSelectedAccessRecord(accessRecord);
-    setRevocationReason("");
-    setRevokeAccessError("");
-    setRevokeAccessModalOpen(true);
-  };
-
-  const closeRevokeAccessModal = () => {
-    if (isRevokingAccess) return;
-    setRevokeAccessModalOpen(false);
-    setSelectedAccessRecord(null);
-    setRevocationReason("");
-    setRevokeAccessError("");
-  };
-
-  const submitRevokeTemporaryAccess = async (event) => {
-    event.preventDefault();
-    if (!caseRecord || !selectedAccessRecord?._id) return;
-    if (!revocationReason.trim()) {
-      setRevokeAccessError("Revocation reason is required.");
-      return;
-    }
-
-    setIsRevokingAccess(true);
-    setRevokeAccessError("");
-
-    try {
-      const data = await apiRequest(
-        `/cases/${caseRecord._id}/temporary-access/${selectedAccessRecord._id}/revoke`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({ revocationReason: revocationReason.trim() }),
-        }
-      );
-
-      if (!data?.case) {
-        throw new Error("The backend did not return the updated case.");
-      }
-
-      setCaseRecord(data.case);
-      setRevokeAccessModalOpen(false);
-      setSelectedAccessRecord(null);
-      setRevocationReason("");
-      setSuccessMessage(data?.message || "Temporary access revoked successfully.");
-      if (activeTab === "timeline") await fetchTimeline();
-    } catch (error) {
-      if (error.status === 401) {
-        handleUnauthorized();
-        return;
-      }
-      setRevokeAccessError(error.message || "Unable to revoke temporary access.");
-    } finally {
-      setIsRevokingAccess(false);
+      setIsTransferring(false);
     }
   };
 
@@ -468,12 +370,12 @@ export default function CaseDetailsPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#292522]">
+    <div className="authenticated-app min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#292522]">
       <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
-        <header className="sticky top-0 z-30 border-b border-[#E6E1DE] bg-white/95 backdrop-blur-xl">
-          <div className="flex min-h-[62px] items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-7">
+        <header className="sticky top-0 z-30 border-b border-[#E6E1DE] bg-white">
+          <div className="flex min-h-[62px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-7">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
@@ -506,7 +408,7 @@ export default function CaseDetailsPage() {
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex max-w-full flex-wrap items-center gap-2">
               {!isAdminOverviewOnly && (
                 <>
                   <button
@@ -581,7 +483,7 @@ export default function CaseDetailsPage() {
           </nav>
         </header>
 
-        <main className="page-content mx-auto max-w-[1480px] px-4 py-5 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-5 sm:px-6 lg:px-7 lg:w-[calc(100%-240px)]! lg:px-0!">
           {successMessage && <Alert tone="success" message={successMessage} />}
 
           {pageError && <Alert tone="error" message={pageError} />}
@@ -623,17 +525,14 @@ export default function CaseDetailsPage() {
                   (isAdminOverviewOnly ? (
                     <AdminOverviewTab
                       caseRecord={caseRecord}
-                      canManageTemporaryAccess={canManageTemporaryAccess}
-                      onGrantTemporaryAccess={openGrantAccessModal}
-                      onRevokeTemporaryAccess={openRevokeAccessModal}
+                      canTransferCase={canTransferCase}
+                      onTransferCase={openTransferModal}
                     />
                   ) : (
                     <OverviewTab
                       caseRecord={caseRecord}
-                      canManageTemporaryAccess={canManageTemporaryAccess}
-                      currentUserTemporaryAccess={currentUserTemporaryAccess}
-                      onGrantTemporaryAccess={openGrantAccessModal}
-                      onRevokeTemporaryAccess={openRevokeAccessModal}
+                      canTransferCase={canTransferCase}
+                      onTransferCase={openTransferModal}
                     />
                   ))}
 
@@ -652,7 +551,7 @@ export default function CaseDetailsPage() {
                     canEdit={
                       !caseRecord.isArchived &&
                       !["Closed", "Terminated"].includes(caseRecord.caseStatus) &&
-                      (isAdmin ? isCaseCreator : isAssignedCounselor)
+                      isAssignedCounselor
                     }
                     onSaved={(record) => {
                       setCaseRecord(record);
@@ -702,135 +601,65 @@ export default function CaseDetailsPage() {
         />
       )}
 
-      {grantAccessModalOpen && caseRecord && (
-        <GrantTemporaryAccessModal
+      {transferModalOpen && caseRecord && (
+        <TransferCaseModal
           caseRecord={caseRecord}
           counselors={counselors}
           loadingCounselors={isLoadingCounselors}
-          form={grantAccessForm}
-          setForm={setGrantAccessForm}
-          error={grantAccessError}
-          saving={isGrantingAccess}
-          onClose={closeGrantAccessModal}
-          onSubmit={submitGrantTemporaryAccess}
-        />
-      )}
-
-      {revokeAccessModalOpen && caseRecord && selectedAccessRecord && (
-        <RevokeTemporaryAccessModal
-          caseRecord={caseRecord}
-          accessRecord={selectedAccessRecord}
-          reason={revocationReason}
-          setReason={setRevocationReason}
-          error={revokeAccessError}
-          saving={isRevokingAccess}
-          onClose={closeRevokeAccessModal}
-          onSubmit={submitRevokeTemporaryAccess}
+          form={transferForm}
+          setForm={setTransferForm}
+          error={transferError}
+          saving={isTransferring}
+          onClose={closeTransferModal}
+          onSubmit={submitTransferCase}
         />
       )}
     </div>
   );
 }
 
-function TemporaryAccessSection({ caseRecord, canManage, currentUserAccess, onGrant, onRevoke }) {
-  const accessRecords = [...(caseRecord.temporaryCounselor || [])].sort(
-    (a, b) => new Date(b.grantedAt || 0) - new Date(a.grantedAt || 0)
+function CaseTransferSection({ caseRecord, canManage, onGrant }) {
+  const transfers = (caseRecord.actionHistory || []).filter(
+    (action) => action.action === "Reassigned"
   );
-
   return (
     <SectionCard
-      title="Temporary counselor access"
+      title="Case transfer"
       action={
         canManage ? (
           <button
             type="button"
             onClick={onGrant}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#8C1518] px-3 !text-[15px] font-semibold text-white hover:bg-[#701013]"
+            className="rounded-lg bg-[#8C1518] px-4 py-2 text-sm font-semibold text-white"
           >
-            <Icon name="plus" className="h-3 w-3" />
-            Grant access
+            Transfer case
           </button>
         ) : null
       }
     >
-      {currentUserAccess && !canManage && (
-        <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-          <p className="text-[14px] font-semibold text-blue-700">
-            You currently have temporary access
-          </p>
-          <p className="mt-1 text-[14px] leading-4 text-blue-700">
-            Access expires on {formatDateTime(currentUserAccess.accessUntil)}.
-          </p>
+      <p className="text-sm leading-6 text-[#827A76]">
+        Transfer this case permanently to another counselor. The receiving counselor takes ownership
+        and the previous counselor loses access. There is no expiration or automatic return.
+      </p>
+      {transfers.length > 0 && (
+        <div className="mt-4 space-y-3">
+          {transfers.map((transfer, index) => (
+            <div key={transfer._id || index} className="rounded-lg border bg-stone-50 p-4">
+              <p className="text-sm font-semibold">
+                {formatPersonName(transfer.fromCounselor)} →{" "}
+                {formatPersonName(transfer.toCounselor)}
+              </p>
+              <p className="mt-1 text-xs text-stone-500">{formatDateTime(transfer.actionDate)}</p>
+              <p className="mt-2 text-sm">{transfer.remarks}</p>
+            </div>
+          ))}
         </div>
-      )}
-
-      {accessRecords.length ? (
-        <div className="space-y-3">
-          {accessRecords.map((access) => {
-            const status = getTemporaryAccessStatus(access);
-            return (
-              <article
-                key={access._id}
-                className="rounded-xl border border-[#E7E2DF] bg-[#FCFBFA] p-4"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-[15px] font-semibold">
-                        {formatPersonName(access.counselor)}
-                      </p>
-                      <TemporaryAccessBadge status={status} />
-                    </div>
-                    <p className="mt-1 break-all text-[13px] text-[#958D88]">
-                      {access.counselor?.email || "No email"}
-                    </p>
-                  </div>
-                  {canManage && status === "Active" && (
-                    <button
-                      type="button"
-                      onClick={() => onRevoke(access)}
-                      className="h-8 shrink-0 rounded-lg border border-red-200 bg-red-50 px-3 !text-[15px] font-semibold text-red-700 hover:bg-red-100"
-                    >
-                      Revoke access
-                    </button>
-                  )}
-                </div>
-
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <DetailItem label="Granted by" value={formatPersonName(access.grantedBy)} />
-                  <DetailItem label="Granted at" value={formatDateTime(access.grantedAt)} />
-                  <DetailItem label="Access until" value={formatDateTime(access.accessUntil)} />
-                  <DetailItem label="Status" value={status} />
-                </div>
-
-                <LongText label="Reason" value={access.reason} />
-
-                {status === "Revoked" && (
-                  <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-                    <p className="text-[13px] font-semibold text-red-700">
-                      Revoked by {formatPersonName(access.revokedBy)} on{" "}
-                      {formatDateTime(access.revokedAt)}
-                    </p>
-                    <p className="mt-1 text-[14px] leading-4 text-red-700">
-                      {access.revocationReason || "No revocation reason recorded."}
-                    </p>
-                  </div>
-                )}
-              </article>
-            );
-          })}
-        </div>
-      ) : (
-        <EmptyInline
-          title="No temporary access records"
-          message="Grant temporary access when another counselor needs limited access to this case."
-        />
       )}
     </SectionCard>
   );
 }
 
-function GrantTemporaryAccessModal({
+function TransferCaseModal({
   caseRecord,
   counselors,
   loadingCounselors,
@@ -852,7 +681,7 @@ function GrantTemporaryAccessModal({
         onClick={() => {
           if (!saving) onClose();
         }}
-        aria-label="Close grant temporary access modal"
+        aria-label="Close transfer case modal"
       />
       <section
         role="dialog"
@@ -861,7 +690,7 @@ function GrantTemporaryAccessModal({
       >
         <header className="flex items-start justify-between gap-4 border-b border-[#ECE8E5] px-5 py-4">
           <div>
-            <h2 className="text-[20px] font-semibold">Grant temporary access</h2>
+            <h2 className="text-[20px] font-semibold">Transfer case</h2>
             <p className="mt-1 text-[14px] text-[#938B86]">
               {caseRecord.caseNumber} · {formatPersonName(caseRecord.student)}
             </p>
@@ -880,21 +709,21 @@ function GrantTemporaryAccessModal({
         <form onSubmit={onSubmit} className="p-5">
           {error && <Alert tone="error" message={error} />}
           <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-            <p className="text-[14px] font-semibold text-blue-700">Limited case access</p>
+            <p className="text-[14px] font-semibold text-blue-700">Permanent case transfer</p>
             <p className="mt-1 text-[13px] leading-4 text-blue-700">
-              The assigned counselor remains unchanged. Access ends automatically at the selected
-              date and time, or earlier when revoked.
+              The receiving counselor becomes the assigned handler. You will lose access after the
+              transfer. The case will not automatically return to you.
             </p>
           </div>
 
           <label className="mt-4 block">
             <span className="text-[14px] font-semibold text-[#4B4541]">
-              Temporary counselor<span className="ml-1 text-red-600">*</span>
+              Receiving counselor<span className="ml-1 text-red-600">*</span>
             </span>
             <select
               required
-              value={form.temporaryCounselor}
-              onChange={(event) => update("temporaryCounselor", event.target.value)}
+              value={form.receivingCounselor}
+              onChange={(event) => update("receivingCounselor", event.target.value)}
               disabled={loadingCounselors || saving}
               className={modalInputClass}
             >
@@ -909,44 +738,16 @@ function GrantTemporaryAccessModal({
             </select>
           </label>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-[14px] font-semibold text-[#4B4541]">
-                Access until date<span className="ml-1 text-red-600">*</span>
-              </span>
-              <input
-                type="date"
-                required
-                min={getTodayInputValue()}
-                value={form.accessUntilDate}
-                onChange={(event) => update("accessUntilDate", event.target.value)}
-                className={modalInputClass}
-              />
-            </label>
-            <label className="block">
-              <span className="text-[14px] font-semibold text-[#4B4541]">
-                Access until time<span className="ml-1 text-red-600">*</span>
-              </span>
-              <input
-                type="time"
-                required
-                value={form.accessUntilTime}
-                onChange={(event) => update("accessUntilTime", event.target.value)}
-                className={modalInputClass}
-              />
-            </label>
-          </div>
-
           <label className="mt-4 block">
             <span className="text-[14px] font-semibold text-[#4B4541]">
-              Reason for access<span className="ml-1 text-red-600">*</span>
+              Reason for transfer<span className="ml-1 text-red-600">*</span>
             </span>
             <textarea
               required
               value={form.reason}
               onChange={(event) => update("reason", event.target.value)}
               rows={4}
-              placeholder="Example: Assigned counselor is on leave and another counselor must conduct the scheduled follow-up."
+              placeholder="Explain why this case is being permanently transferred."
               className={modalTextareaClass}
             />
           </label>
@@ -963,120 +764,14 @@ function GrantTemporaryAccessModal({
             <button
               type="submit"
               disabled={
-                saving ||
-                loadingCounselors ||
-                !form.temporaryCounselor ||
-                !form.accessUntilDate ||
-                !form.reason.trim()
+                saving || loadingCounselors || !form.receivingCounselor || !form.reason.trim()
               }
               className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#8C1518] px-3 text-[14px] font-semibold text-white hover:bg-[#701013] disabled:opacity-50"
             >
               {saving && (
                 <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
               )}
-              {saving ? "Granting..." : "Grant access"}
-            </button>
-          </div>
-        </form>
-      </section>
-    </div>
-  );
-}
-
-function RevokeTemporaryAccessModal({
-  caseRecord,
-  accessRecord,
-  reason,
-  setReason,
-  error,
-  saving,
-  onClose,
-  onSubmit,
-}) {
-  useModalLock(true, saving, onClose);
-  return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/40 px-4 py-6 backdrop-blur-sm">
-      <button
-        type="button"
-        className="absolute inset-0 cursor-default"
-        onClick={() => {
-          if (!saving) onClose();
-        }}
-        aria-label="Close revoke temporary access modal"
-      />
-      <section
-        role="dialog"
-        aria-modal="true"
-        className="relative z-10 w-full max-w-[560px] overflow-hidden rounded-2xl border border-[#E2DDDA] bg-white shadow-[0_24px_80px_rgba(30,20,18,0.25)]"
-      >
-        <header className="flex items-start justify-between gap-4 border-b border-[#ECE8E5] px-5 py-4">
-          <div>
-            <h2 className="text-[20px] font-semibold">Revoke temporary access</h2>
-            <p className="mt-1 text-[14px] text-[#938B86]">
-              {formatPersonName(accessRecord.counselor)} · {caseRecord.caseNumber}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="grid h-8 w-8 place-items-center rounded-lg text-[#8C847F] hover:bg-[#F4F1EF] disabled:opacity-40"
-            aria-label="Close"
-          >
-            <Icon name="close" className="h-3.5 w-3.5" />
-          </button>
-        </header>
-
-        <form onSubmit={onSubmit} className="p-5">
-          {error && <Alert tone="error" message={error} />}
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-            <p className="text-[14px] font-semibold text-red-700">Access will end immediately</p>
-            <p className="mt-1 text-[13px] leading-4 text-red-700">
-              The counselor will lose temporary case access immediately. The record remains in the
-              case history for auditing.
-            </p>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <DetailItem label="Counselor" value={formatPersonName(accessRecord.counselor)} />
-            <DetailItem
-              label="Original expiration"
-              value={formatDateTime(accessRecord.accessUntil)}
-            />
-          </div>
-
-          <label className="mt-4 block">
-            <span className="text-[14px] font-semibold text-[#4B4541]">
-              Revocation reason<span className="ml-1 text-red-600">*</span>
-            </span>
-            <textarea
-              required
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              rows={4}
-              placeholder="Explain why this temporary access is being removed."
-              className={modalTextareaClass}
-            />
-          </label>
-
-          <div className="mt-5 flex justify-end gap-2 border-t border-[#ECE8E5] pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              className="h-8 rounded-lg border border-[#DDD7D3] bg-white px-3 text-[14px] font-medium text-[#5E5753] disabled:opacity-40"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !reason.trim()}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-red-600 px-3 text-[14px] font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-            >
-              {saving && (
-                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              )}
-              {saving ? "Revoking..." : "Revoke access"}
+              {saving ? "Transferring..." : "Transfer case"}
             </button>
           </div>
         </form>
@@ -1268,12 +963,7 @@ function CaseHero({ caseRecord, studentName, assignedCounselorName }) {
   );
 }
 
-function AdminOverviewTab({
-  caseRecord,
-  canManageTemporaryAccess,
-  onGrantTemporaryAccess,
-  onRevokeTemporaryAccess,
-}) {
+function AdminOverviewTab({ caseRecord, canTransferCase, onTransferCase }) {
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
@@ -1307,31 +997,22 @@ function AdminOverviewTab({
           />
           <DetailItem label="Date opened" value={formatDate(caseRecord.dateOpened)} />
           <DetailItem label="Case status" value={caseRecord.caseStatus} />
-          <DetailItem label="Priority level" value={caseRecord.priorityLevel} />
           <DetailItem label="Main domain" value={caseRecord.problemAssessment?.mainDomain} />
           <DetailItem label="Last updated" value={formatDateTime(caseRecord.updatedAt)} />
           <DetailItem label="Date closed" value={formatDate(caseRecord.dateClosed)} />
         </DetailGrid>
       </SectionCard>
 
-      <TemporaryAccessSection
+      <CaseTransferSection
         caseRecord={caseRecord}
-        canManage={canManageTemporaryAccess}
-        currentUserAccess={null}
-        onGrant={onGrantTemporaryAccess}
-        onRevoke={onRevokeTemporaryAccess}
+        canManage={canTransferCase}
+        onGrant={onTransferCase}
       />
     </div>
   );
 }
 
-function OverviewTab({
-  caseRecord,
-  canManageTemporaryAccess,
-  currentUserTemporaryAccess,
-  onGrantTemporaryAccess,
-  onRevokeTemporaryAccess,
-}) {
+function OverviewTab({ caseRecord, canTransferCase, onTransferCase }) {
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="space-y-5">
@@ -1343,6 +1024,26 @@ function OverviewTab({
             <DetailItem label="College" value={caseRecord.student?.college} />
             <DetailItem label="Program" value={caseRecord.student?.program} />
             <DetailItem label="Year level" value={caseRecord.student?.yearLevel} />
+            <DetailItem label="Enrollment status" value={caseRecord.student?.enrollmentStatus} />
+            <DetailItem label="Date of birth" value={formatDate(caseRecord.student?.dateOfBirth)} />
+            <DetailItem label="Sex" value={caseRecord.student?.sex} />
+            <DetailItem label="Gender" value={caseRecord.student?.gender} />
+            <DetailItem label="Civil status" value={caseRecord.student?.civilStatus} />
+            <DetailItem label="Religion" value={caseRecord.student?.religion} />
+            <DetailItem label="Temporary address" value={caseRecord.student?.temporaryAddress} />
+            <DetailItem label="Permanent address" value={caseRecord.student?.permanentAddress} />
+            <DetailItem
+              label="Emergency contact"
+              value={caseRecord.student?.emergencyContactName}
+            />
+            <DetailItem
+              label="Emergency contact number"
+              value={caseRecord.student?.emergencyContactNumber}
+            />
+            <DetailItem
+              label="Emergency contact relationship"
+              value={caseRecord.student?.emergencyContactRelationship}
+            />
           </DetailGrid>
         </SectionCard>
 
@@ -1384,12 +1085,10 @@ function OverviewTab({
           </DetailGrid>
         </SectionCard>
 
-        <TemporaryAccessSection
+        <CaseTransferSection
           caseRecord={caseRecord}
-          canManage={canManageTemporaryAccess}
-          currentUserAccess={currentUserTemporaryAccess}
-          onGrant={onGrantTemporaryAccess}
-          onRevoke={onRevokeTemporaryAccess}
+          canManage={canTransferCase}
+          onGrant={onTransferCase}
         />
       </div>
 
@@ -1564,6 +1263,9 @@ function FormulationTab({ caseRecord, canEdit, onSaved }) {
     ["presentingProblem", "Problem summary"],
     ["formulationNarrative", "Formulation narrative"],
     ["counselorAssessment", "Counselor assessment"],
+    ...(caseRecord.counselorNotes?.trim() || formulation.counselorNotesSummary
+      ? [["counselorNotesSummary", "Counselor’s notes summary"]]
+      : []),
   ];
   const latestRecommendation = [...(caseRecord.llmRecommendations || [])].sort(
     (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
@@ -1573,6 +1275,7 @@ function FormulationTab({ caseRecord, canEdit, onSaved }) {
       presentingProblem: formulation.presentingProblem || "",
       formulationNarrative: formulation.formulationNarrative || "",
       counselorAssessment: formulation.counselorAssessment || "",
+      counselorNotesSummary: formulation.counselorNotesSummary || "",
     });
     setError("");
     setAiDraft(null);
@@ -1619,6 +1322,13 @@ function FormulationTab({ caseRecord, canEdit, onSaved }) {
   };
   return (
     <div className="space-y-5">
+      {caseRecord.counselorNotes?.trim() && (
+        <SectionCard title="Counselor’s notes">
+          <p className="whitespace-pre-wrap break-words text-sm leading-7 text-[#655E59]">
+            {caseRecord.counselorNotes}
+          </p>
+        </SectionCard>
+      )}
       <SectionCard
         title="Case formulation"
         action={
@@ -1653,7 +1363,8 @@ function FormulationTab({ caseRecord, canEdit, onSaved }) {
                   <p className="mt-1 text-xs leading-5 text-[#827A76]">
                     Problem summary uses Problem Assessment. Formulation narrative summarizes Mental
                     Status. The proposed counselor assessment brings together those sections and
-                    Current Presentation.
+                    Current Presentation. When notes are recorded, a separate counselor’s notes
+                    summary is included.
                   </p>
                 </div>
                 <button
@@ -2269,42 +1980,6 @@ function formatDateTime(value) {
 
 function humanizeKey(value) {
   return value.replace(/([A-Z])/g, " $1").replace(/^./, (character) => character.toUpperCase());
-}
-
-function TemporaryAccessBadge({ status }) {
-  const styles = {
-    Active: "bg-emerald-50 text-emerald-700",
-    Expired: "bg-amber-50 text-amber-700",
-    Revoked: "bg-red-50 text-red-700",
-    Inactive: "bg-slate-100 text-slate-700",
-  };
-  return (
-    <span
-      className={`rounded-full px-2 py-1 text-[13px] font-medium ${styles[status] || styles.Inactive}`}
-    >
-      {status}
-    </span>
-  );
-}
-
-function getTemporaryAccessStatus(access) {
-  if (access.revokedAt) return "Revoked";
-  if (access.isActive !== true) return "Inactive";
-  const accessUntil = new Date(access.accessUntil);
-  if (Number.isNaN(accessUntil.getTime()) || accessUntil <= new Date()) return "Expired";
-  return "Active";
-}
-
-function combineDateAndTime(dateValue, timeValue) {
-  if (!dateValue) return "";
-  const combined = new Date(`${dateValue}T${timeValue || "17:00"}:00`);
-  return Number.isNaN(combined.getTime()) ? "" : combined.toISOString();
-}
-
-function getTodayInputValue() {
-  const today = new Date();
-  const pad = (number) => String(number).padStart(2, "0");
-  return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 }
 
 const modalInputClass =

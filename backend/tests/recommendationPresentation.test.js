@@ -53,7 +53,7 @@ test('runtime preflight checks the configured backend and blocks generation befo
   vm.runInContext(source.slice(source.indexOf('function displayFollowUp(')) + '\nthis.check=assertCurrentRecommendationRuntime;', runtime);
   let generationCalls = 0;
   const staleFetch = async (url, options) => {
-    assert.equal(url, 'http://localhost:5000/');
+    assert.equal(url, 'http://localhost:5000/api/recommendation-runtime');
     assert.equal(options.cache, 'no-store');
     assert.equal(options.method, undefined);
     return { ok: true, json: async () => ({}) };
@@ -66,6 +66,7 @@ test('runtime preflight checks the configured backend and blocks generation befo
   assert.equal(generationCalls, 0);
   await runtime.check(async () => ({ ok: true, json: async () => ({ recommendationOutputVersion: 'goal-followup-v3' }) }), 'http://localhost:5000/api', 'http://localhost:5174/');
   await assert.rejects(runtime.check(async () => { throw new Error('offline'); }, '/api', 'http://localhost:5000/'), /Could not verify/);
+  await assert.rejects(runtime.check(async () => ({ status: 404, json: async () => { throw new SyntaxError('HTML response'); } }), '/api', 'http://localhost:5174/'), /Restart the backend/);
 });
 
 test('runtime preflight preserves relative and proxy API prefixes', async () => {
@@ -73,7 +74,7 @@ test('runtime preflight preserves relative and proxy API prefixes', async () => 
   vm.runInContext(source.slice(source.indexOf('function displayFollowUp(')) + '\nthis.check=assertCurrentRecommendationRuntime;', runtime);
   let address;
   await runtime.check(async (url) => { address = url; return { ok: true, json: async () => ({ recommendationOutputVersion: 'goal-followup-v3' }) }; }, '/myguide/api/', 'http://localhost:5000/llm-recommendations');
-  assert.equal(address, 'http://localhost:5000/myguide/');
+  assert.equal(address, 'http://localhost:5000/myguide/api/recommendation-runtime');
 });
 
 test('existing plans identify a separate pending updated draft without changing history', () => {

@@ -44,7 +44,7 @@ export default function DashboardPage() {
       if (isAdmin) {
         const [caseData, userData] = await Promise.all([
           apiRequest("/cases", { method: "GET" }),
-          apiRequest("/users?isActive=true", { method: "GET" }),
+          apiRequest("/users/counselors/active", { method: "GET" }).then(data => data.counselors),
         ]);
         if (!Array.isArray(caseData)) {
           throw new Error("The backend returned an invalid cases response.");
@@ -128,7 +128,7 @@ export default function DashboardPage() {
     ? [
         { icon: "plus", label: "New case", path: "/cases/new" },
         { icon: "search", label: "Retrieve case", path: "/cases" },
-        { icon: "userPlus", label: "Create user", path: "/users" },
+        { icon: "student", label: "Student records", path: "/students" },
         { icon: "heart", label: "Interventions", path: "/intervention-plans" },
       ]
     : [
@@ -138,7 +138,7 @@ export default function DashboardPage() {
         { icon: "notes", label: "Progress notes", path: "/progress-notes" },
       ];
   return (
-    <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#262220]">
+    <div className="authenticated-app min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#262220]">
       <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       <div className="min-h-screen lg:pl-[250px]">
         <header className="sticky top-0 z-30 flex h-[62px] items-center border-b border-[#E6E1DE] bg-white/95 px-4 backdrop-blur-xl sm:px-6 lg:px-7">
@@ -174,7 +174,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </header>
-        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7 lg:w-[calc(100%-240px)]! lg:px-0!">
           {pageError && (
             <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[15px] text-red-700">
               {pageError}
@@ -325,8 +325,8 @@ export default function DashboardPage() {
             </Panel>
             <Panel
               title={isAdmin ? "Counselor caseload" : "Your cases at a glance"}
-              action={isAdmin ? "Manage users" : null}
-              onAction={isAdmin ? () => navigate("/users") : undefined}
+              action={isAdmin ? "View cases" : null}
+              onAction={isAdmin ? () => navigate("/cases") : undefined}
             >
               {isLoading ? (
                 <LoadingPanel />

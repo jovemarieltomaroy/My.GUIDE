@@ -43,6 +43,50 @@ const VECTOR_INDEX_NAME = process.env.VECTOR_INDEX_NAME || "knowledge_vector_ind
 
 const { PRACTICAL_RESOURCE_TYPES } = require("../resourceEligibility");
 
+const compactAnswerLines = (text) => String(text || "").replace(/_{3,}/g, " ").replace(/\s+/g, " ").trim();
+
+// Blank writing lines can split a one-page exercise into many near-duplicate
+// hits. Combine only approved candidate passages from the same resource/page.
+// The highest scoring hit retains its identity, score, and page attribution.
+const selectRetrievalContext = (candidates, limit) => {
+  const pageGroups = new Map();
+  const pageKey = (chunk) => PRACTICAL_RESOURCE_TYPES.includes(chunk.metadata?.resourceType) &&
+    chunk.metadata?.resourceId && Number.isInteger(chunk.metadata?.pageNumber)
+    ? `${chunk.metadata.resourceId}:${chunk.metadata.pageNumber}` : null;
+  for (const chunk of candidates) {
+    const key = pageKey(chunk);
+    if (key) pageGroups.set(key, [...(pageGroups.get(key) || []), chunk]);
+  }
+  const seenPages = new Set();
+  const resourceCounts = new Map();
+  const selected = [];
+  for (const chunk of candidates) {
+    const key = pageKey(chunk);
+    if (key && seenPages.has(key)) continue;
+    const resourceId = chunk.metadata?.resourceId || String(chunk._id);
+    if ((resourceCounts.get(resourceId) || 0) >= 2) continue;
+    let content = compactAnswerLines(chunk.content);
+    if (key) {
+      const ordered = [...pageGroups.get(key)].sort((a, b) => (a.metadata.chunkIndex || 0) - (b.metadata.chunkIndex || 0));
+      let merged = "";
+      for (const part of ordered) {
+        const text = compactAnswerLines(part.content);
+        if (!text || merged.includes(text)) continue;
+        let overlap = Math.min(merged.length, text.length);
+        while (overlap >= 20 && merged.slice(-overlap) !== text.slice(0, overlap)) overlap--;
+        merged += `${merged ? " " : ""}${text.slice(overlap >= 20 ? overlap : 0)}`;
+      }
+      // Keep context bounded. Large pages retain the actual retrieved passage.
+      if (merged.length <= 4000) content = compactAnswerLines(merged);
+      seenPages.add(key);
+    }
+    selected.push({ ...chunk, content });
+    resourceCounts.set(resourceId, (resourceCounts.get(resourceId) || 0) + 1);
+    if (selected.length === limit) break;
+  }
+  return selected;
+};
+
 /**
  * Validates common retrieval options.
  */
@@ -126,7 +170,7 @@ const runVectorSearch = async ({
     );
   }
 
-  return filteredResults.slice(0, limit);
+  return selectRetrievalContext(filteredResults, limit);
 };
 
 /**
@@ -147,6 +191,7 @@ const retrieveRelevantChunks = async (
     minimumScore,
   });
 
+  if (!(await KnowledgeChunk.exists({}))) return [];
   const queryEmbedding = await generateEmbedding(query.trim());
 
   return runVectorSearch({
@@ -192,6 +237,7 @@ const retrieveInterventionMaterials = async (
   // dilute the adjustment target. Keep original results as additional evidence.
   const targetedResults = typeof targetedQuery === "string" && targetedQuery.trim()
     ? await retrieveRelevantChunks(targetedQuery, { limit: evidenceLimit, numCandidates, minimumScore }) : [];
+  if (!(await KnowledgeChunk.exists({}))) return [];
   const queryEmbedding = await generateEmbedding(query.trim());
 
   const [evidenceResults, practicalResults] = await Promise.all([
@@ -253,4 +299,5 @@ module.exports = {
   retrieveRelevantChunks,
   retrieveInterventionMaterials,
   PRACTICAL_RESOURCE_TYPES,
+  selectRetrievalContext,
 };

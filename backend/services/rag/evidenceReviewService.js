@@ -49,14 +49,47 @@ ${JSON.stringify({ previousActions: previous, documentedOutcome: caseData.progre
   goal: response.goal, followUpPlan: response.followUpPlan, updateAssessment: response.updateAssessment,
   recommendations: response.recommendations.map((item, index) => ({ recommendationIndex: index, intervention: item.intervention, rationale: item.rationale })),
 } : undefined })}`;
-  const raw = await generate(prompt, { json: true, temperature: 0, numPredict: 1400 });
+  // Constrain the review just as strictly as the recommendation itself.
+  const schema = {
+    type: "object", additionalProperties: false, required: ["reviews", ...(requireConsistency ? ["consistency"] : [])],
+    properties: {
+      reviews: { type: "array", minItems: actions.length, maxItems: actions.length, items: {
+        type: "object", additionalProperties: false,
+        required: ["actionIndex", "citations", "changeType", "previousActionQuote"],
+        properties: {
+          actionIndex: { type: "integer", enum: items.map((item) => item.actionIndex) },
+          citations: { type: "array", items: {
+            type: "object", additionalProperties: false, required: ["referenceNumber", "support", "quote"],
+            properties: { referenceNumber: { type: "integer", minimum: 1, maximum: chunks.length },
+              support: { type: "string", enum: ["direct", "background", "insufficient"] }, quote: { type: "string" } },
+          } },
+          changeType: { type: "string", enum: ["new", "adjusted", "continued", "uncertain"] },
+          previousActionQuote: { type: "string" },
+        },
+      } },
+      ...(requireConsistency ? { consistency: {
+        type: "object", additionalProperties: false, required: ["aligned", "problemFields"],
+        properties: { aligned: { type: "boolean" }, problemFields: { type: "array", items: { type: "string" } } },
+      } } : {}),
+    },
+  };
   let result;
-  try { result = JSON.parse(raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "")); }
-  catch { throw new Error("Local evidence review returned invalid JSON. No recommendation was saved."); }
-  if (!Array.isArray(result?.reviews) || result.reviews.length !== actions.length ||
-      new Set(result.reviews.map((item) => item.actionIndex)).size !== actions.length ||
-      result.reviews.some((item) => !Number.isInteger(item.actionIndex) || !items[item.actionIndex]))
-    throw new Error("Local evidence review was incomplete. No recommendation was saved.");
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const raw = await generate(attempt ? prompt.replace("DATA:\n", "The previous review was malformed or incomplete. Return every action index exactly once and include the complete consistency result.\nDATA:\n") : prompt,
+      { json: true, schema, temperature: 0, numPredict: 1400 + actions.length * 400 });
+    try { result = JSON.parse(raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "")); }
+    catch {
+      if (!attempt) continue;
+      throw new Error("Local evidence review returned invalid JSON. No recommendation was saved.");
+    }
+    const complete = Array.isArray(result?.reviews) && result.reviews.length === actions.length &&
+      new Set(result.reviews.map((item) => item?.actionIndex)).size === actions.length &&
+      result.reviews.every((item) => Number.isInteger(item?.actionIndex) && items[item.actionIndex]) &&
+      (!requireConsistency || (typeof result.consistency?.aligned === "boolean" &&
+        Array.isArray(result.consistency.problemFields)));
+    if (complete) break;
+    if (attempt) throw new Error("Local evidence review was incomplete. No recommendation was saved.");
+  }
   const reviewed = new Map(result.reviews.map((item) => [item.actionIndex, item]));
   let index = 0;
   return { ...response,
@@ -70,7 +103,9 @@ ${JSON.stringify({ previousActions: previous, documentedOutcome: caseData.progre
         const support = citation?.support === "direct" && containsQuote(chunks[number - 1]?.content, citation.quote)
           ? "direct" : citation?.support === "background" ? "background" : "insufficient";
         return { referenceNumber: number, support,
-          failureCategory: citation?.support === "direct" && support !== "direct" ? "unmatched_support_quote" : undefined };
+          failureCategory: !citation ? "missing_or_duplicate_citation_review"
+            : !["direct", "background", "insufficient"].includes(citation.support) ? "invalid_citation_review"
+            : citation.support === "direct" && support !== "direct" ? "unmatched_support_quote" : undefined };
 
       });
       let changeType = ["new", "adjusted", "continued"].includes(item.changeType) ? item.changeType : undefined;

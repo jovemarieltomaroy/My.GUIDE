@@ -120,7 +120,7 @@ export default function ChangePasswordPage() {
         return;
       }
 
-      navigate("/dashboard", {
+      navigate(updatedUser.role === "Super-Admin" ? "/system" : "/dashboard", {
         replace: true,
       });
     } catch (error) {

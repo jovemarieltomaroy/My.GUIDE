@@ -33,11 +33,9 @@ const protect = asyncHandler(async (req, res, next) => {
   next();
 });
 
-const adminOnly = (req, res, next) => {
-  if (req.user.role !== "Counselor-Admin") {
-    return res.status(403).json({ message: "Access denied: Admins only" });
-  }
-  next();
-};
-
-module.exports = { validateLoginInput, protect, adminOnly };
+const { roleGuard } = require("./roleGuard");
+const adminOnly = roleGuard(["Counselor-Admin"]);
+const counselorOnly = roleGuard(["Counselor-Admin", "Counselor-User"]);
+const accountAdminOnly = roleGuard(["Super-Admin"]);
+const superAdminOnly = roleGuard(["Super-Admin"]);
+module.exports = { validateLoginInput, protect, adminOnly, counselorOnly, accountAdminOnly, superAdminOnly };

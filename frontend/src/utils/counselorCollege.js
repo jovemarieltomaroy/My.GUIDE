@@ -1,6 +1,7 @@
 const colleges = {
   CCS: "College of Computer Studies",
   COET: "College of Engineering",
+  "COLLEGE OF ENGINEERING AND TECHNOLOGY": "College of Engineering",
   COE: "College of Engineering",
   CSM: "College of Science and Mathematics",
   CED: "College of Education",
@@ -9,6 +10,7 @@ const colleges = {
   CBAA: "College of Economics, Business and Accountancy",
   CHS: "College of Health Sciences",
   CON: "College of Health Sciences",
+  "COLLEGE OF NURSING": "College of Health Sciences",
 };
 export function handledCounselorColleges(user) {
   return [

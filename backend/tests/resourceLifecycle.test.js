@@ -25,7 +25,7 @@ function retrievalContext(getResource) {
     require: (name) => {
       if (name === "../../models/knowledgeResource")
         return { find: () => ({ lean: async () => getResource() }) };
-      if (name === "../../models/knowledgeChunk") return { aggregate: async () => [chunk] };
+      if (name === "../../models/knowledgeChunk") return { exists: async () => true, aggregate: async () => [chunk] };
       if (name === "../resourceEligibility") return require("../services/resourceEligibility");
       if (name === "./embeddingService") return { generateEmbedding: async () => [0, 1] };
       throw new Error(name);
@@ -88,6 +88,37 @@ test("retrieval excludes orphaned and unapproved passages and uses current paren
   const [result] = await filterEligibleChunks([chunk]);
   assert.equal(result.metadata.title, "Updated title");
   assert.equal(result.metadata.resourceType, "handout");
+});
+
+test("worksheet page fragments form one context and leave room for other resources", () => {
+  const { selectRetrievalContext } = retrievalContext(() => [active]);
+  const make = (key, resourceId, page, index, content, type = "worksheet") => ({
+    ...chunk, _id: key, content, metadata: { ...chunk.metadata, resourceId, pageNumber: page, chunkIndex: index, resourceType: type },
+  });
+  const candidates = [
+    make("late", id, 1, 1, "Rate your stress from zero to ten. ___________________ Choose one manageable next step."),
+    make("early", id, 1, 0, "List your school concerns. ___________________ Rate your stress from zero to ten."),
+    make("other", "112345678901234567890123", 1, 0, "Break a large task into small actions.", "handout"),
+    make("other-page", id, 2, 0, "Instructions on a separate page."),
+  ];
+  const results = selectRetrievalContext(candidates, 3);
+  assert.equal(results.length, 3);
+  assert.equal(results[0]._id, "late");
+  assert.equal(results[0].score, chunk.score);
+  assert.equal(results[0].metadata.pageNumber, 1);
+  assert.equal(results[0].content, "List your school concerns. Rate your stress from zero to ten. Choose one manageable next step.");
+  assert.equal(results[1]._id, "other");
+  assert.ok(!results[0].content.includes("separate page"));
+  assert.ok(!candidates[0].content.startsWith("List"), "stored candidate remains unchanged");
+});
+
+test("retrieval prevents reference fragments from monopolizing the context", () => {
+  const { selectRetrievalContext } = retrievalContext(() => [active]);
+  const candidates = Array.from({ length: 5 }, (_, index) => ({ ...chunk, _id: `fragment-${index}` }));
+  candidates.push({ ...chunk, _id: "different", metadata: { ...chunk.metadata, resourceId: "112345678901234567890123" } });
+  const results = selectRetrievalContext(candidates, 3);
+  assert.equal(results.filter((item) => item.metadata.resourceId === id).length, 2);
+  assert.equal(results[2]._id, "different");
 });
 test("metadata validation retains existing types and rejects invalid status, year and blank required fields", () => {
   assert.equal(readMetadata({ status: "Obsolete" }, active).status, "Obsolete");
@@ -354,7 +385,7 @@ test("updated retrieval searches next steps separately and limits repeated chunk
   const make = (key, resourceId) => ({ ...chunk, _id: key, metadata: { ...chunk.metadata, resourceId } });
   const context = { module: { exports: {} }, process, require(name) {
     if (name === "../../models/knowledgeResource") return { find: () => ({ lean: async () => resources }) };
-    if (name === "../../models/knowledgeChunk") return { aggregate: async (pipeline) => pipeline[0].$vectorSearch.queryVector[0] === 1
+    if (name === "../../models/knowledgeChunk") return { exists: async () => true, aggregate: async (pipeline) => pipeline[0].$vectorSearch.queryVector[0] === 1
       ? [make("task", otherId), make("old1", id), make("old2", id), make("old3", id)]
       : [make("old1", id), make("old2", id), make("old3", id)] };
     if (name === "../resourceEligibility") return require("../services/resourceEligibility");

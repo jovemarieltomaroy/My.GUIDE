@@ -189,9 +189,9 @@ export default function ReportsPage() {
             method: "GET",
           }),
 
-          apiRequest("/users?isActive=true", {
+          apiRequest("/users/counselors/active", {
             method: "GET",
-          }),
+          }).then(data => data.counselors),
         ]);
 
         if (!Array.isArray(caseData)) {
@@ -566,7 +566,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="reports-page min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#292522]">
+    <div className="authenticated-app reports-page min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#292522]">
       <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="reports-layout min-h-screen lg:pl-[250px]">
@@ -608,7 +608,7 @@ export default function ReportsPage() {
           </div>
         </header>
 
-        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7 print:max-w-none print:bg-white print:px-0 print:py-0">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7 lg:w-[calc(100%-240px)]! lg:px-0! print:max-w-none print:bg-white print:px-0 print:py-0">
           {pageError && (
             <div className="print:hidden">
               <Alert tone="error" message={pageError} />

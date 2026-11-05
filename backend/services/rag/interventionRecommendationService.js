@@ -6,6 +6,36 @@ const { buildInterventionPrompt } = require("./promptBuilderService");
 
 const { generateResponse } = require("../llm/ollamaService");
 
+// Constrain decoding as well as describing the format in the prompt. Plain
+// JSON mode guarantees syntax only, not required fields or citation ranges.
+const buildOutputSchema = (referenceCount, updated) => {
+  const text = { type: "string", minLength: 1 };
+  const referenceNumber = { type: "integer", minimum: 1, maximum: referenceCount };
+  const action = { type: "object", required: ["action", "referenceNumbers", ...(updated ? ["changeType", "changeReason"] : [])],
+    properties: { action: text, referenceNumbers: { type: "array", minItems: 1, items: referenceNumber },
+      changeType: { enum: ["new", "adjusted", "continued"] }, changeReason: text } };
+  return { anyOf: [
+    { type: "object", required: ["status", "reason", "recommendations"], properties: {
+      status: { const: "insufficient_reference_material" }, reason: text,
+      recommendations: { type: "array", maxItems: 0, items: { type: "object" } },
+    } },
+    { type: "object", required: ["status", "goal", "followUpPlan", "recommendations", ...(updated ? ["updateAssessment"] : [])], properties: {
+      status: { const: "ok" }, goal: { type: "string", minLength: 15, maxLength: 600 },
+      followUpPlan: { type: "string", minLength: 20, maxLength: 2000 },
+      updateAssessment: { type: "object", required: ["decision", "outcomeConsidered", "proposedNextStepsConsidered", "justification"], properties: {
+        decision: { enum: ["revise", "continue", "mixed"] }, outcomeConsidered: { const: true },
+        proposedNextStepsConsidered: { const: true }, justification: text,
+      } },
+      recommendations: { type: "array", minItems: 1, maxItems: 3, items: { type: "object",
+        required: ["intervention", "rationale", "counselorActions", "supportingResource"], properties: {
+          intervention: text, rationale: text,
+          counselorActions: { type: "array", minItems: 1, maxItems: 2, items: action },
+          supportingResource: { anyOf: [{ type: "null" }, { type: "object", required: ["referenceNumber"], properties: { referenceNumber } }] },
+        } } },
+    } },
+  ] };
+};
+
 /**
  * Removes optional Markdown fences.
  *
@@ -431,6 +461,7 @@ const generateInterventionRecommendations = async (caseData, options = {}) => {
     [
       caseData.recommendationType === "updated" && caseData.progressContext
         ? JSON.stringify(caseData.progressContext.latestProgress || {}) : "",
+      caseData.counselorNotes,
       caseData.currentPresentation,
 
       caseData.problemAssessment,
@@ -544,6 +575,7 @@ const generateInterventionRecommendations = async (caseData, options = {}) => {
        * to valid JSON.
        */
       json: true,
+      schema: buildOutputSchema(retrievedChunks.length, caseData.recommendationType === "updated"),
     });
 
     /*
@@ -625,8 +657,14 @@ const generateInterventionRecommendations = async (caseData, options = {}) => {
           }
         }
       }
-    } catch {
-      return attemptFail("malformed_model_output", "The model returned an incomplete or invalid recommendation. No draft was saved.", ["invalid_structure_or_required_fields"]);
+    } catch (error) {
+      // All errors created in this block are fixed validation messages; never
+      // expose the generated response or case text.
+      const safeMessages = ["Invalid recommendation structure", "Invalid action structure", "Invalid action fields", "Missing corrective adjustment explanation", "Missing corrective action rationale"];
+      const detail = safeMessages.includes(error.message) || error.message.startsWith("The model must provide") ||
+        error.message.startsWith("The intervention goal") || error.message.startsWith("The follow-up plan must")
+        ? error.message : "Required recommendation fields failed validation.";
+      return attemptFail("malformed_model_output", `The model returned an incomplete or invalid recommendation. ${detail} No draft was saved.`, ["invalid_structure_or_required_fields"]);
     }
     try {
       parsedResponse = await reviewInterventionActions(parsedResponse, caseData, retrievedChunks, generateResponse, { requireConsistency: true });
@@ -647,7 +685,8 @@ const generateInterventionRecommendations = async (caseData, options = {}) => {
     const retainedCount = resolvedResponse.recommendations.reduce((count, item) => count + item.counselorActions.length, 0);
     const removedCount = generatedCount - retainedCount;
     const categories = [...new Set(reviewedActionsForCounts.flatMap((action) =>
-      (action.evidenceChecks || []).filter((check) => check.support !== "direct").map((check) => check.failureCategory || (check.support === "background" ? "background_only" : "insufficient_action_support"))))];
+      !(action.evidenceChecks || []).length ? ["missing_action_citations"] :
+        action.evidenceChecks.filter((check) => check.support !== "direct").map((check) => check.failureCategory || (check.support === "background" ? "background_only" : "insufficient_action_support"))))];
     const counts = { generated: generatedCount, passed: retainedCount, rejected: removedCount };
     attempts.push({ ...counts, failureCategories: categories, correctiveRetry: Boolean(allowedActions) });
     // Removing only an exact duplicate within the same recommendation does not
@@ -659,9 +698,22 @@ const generateInterventionRecommendations = async (caseData, options = {}) => {
     if (developmentDiagnostics) console.debug("[intervention-generation] consistency", {
       ...counts, failureCategories: categories, correctiveRetry: Boolean(allowedActions), duplicateOnly,
     });
-    if (resolvedResponse.status !== "ok") return {
-      ...attemptFail("insufficient_reference_material", "No adequately supported activities were found. Review the knowledge-base material before trying again.", categories), _counts: counts,
-    };
+    if (resolvedResponse.status !== "ok") {
+      // Counts and failure codes are safe to log without exposing case text,
+      // source passages, model output, or student identifiers.
+      console.warn("[intervention-generation] no-supported-activities", {
+        attempt: generationAttemptCount, retrievedChunks: retrievedChunks.length,
+        modelStatus: parsedResponse.status, ...counts, failureCategories: categories,
+      });
+      const reason = parsedResponse.status === "insufficient_reference_material"
+        ? "The model could not identify supported activities in the retrieved knowledge-base passages. No draft was saved."
+        : categories.length === 1 && categories[0] === "missing_action_citations"
+          ? "The model generated activities without supporting citations. No draft was saved. Try generating again."
+          : "The generated activities did not pass evidence validation against the retrieved knowledge-base passages. No draft was saved. Review the material for explicit activity instructions.";
+      return { ...attemptFail("insufficient_reference_material", reason, categories), _counts: counts,
+        _rejectedActions: reviewedActionsForCounts.map((action) => ({ action: action.action, evidenceChecks: action.evidenceChecks })),
+      };
+    }
     if (parsedResponse._consistencyPassed !== true) return {
       ...attemptFail("needs_regeneration", "The recommendation did not pass the consistency check. No draft was saved.", [...categories, "consistency_check_failed"]),
       _counts: counts,
@@ -768,6 +820,7 @@ const generateInterventionRecommendations = async (caseData, options = {}) => {
   const initial = await runAttempt(prompt);
   let finalResult = initial;
   let correctiveRetryOccurred = false;
+  let groundingRetryOccurred = false;
   if (initial.status === "needs_regeneration" && initial._allowedActions?.length) {
     const eligibleForRetry = await filterEligibleChunks(retrievedChunks);
     if (eligibleForRetry.length !== retrievedChunks.length) {
@@ -800,19 +853,48 @@ VALIDATION_FAILURES_AND_ALLOWED_ACTIVITIES:
 ${JSON.stringify({ failureCategories: initial._failureCategories, rejectedActions: initial._rejectedActions, allowedActions })}`;
       finalResult = await runAttempt(correctionPrompt, allowedActions);
     }
+  } else if (initial.status === "insufficient_reference_material" && initial._counts?.generated > 0 &&
+      initial._failureCategories?.length && initial._failureCategories.every((category) =>
+        ["background_only", "insufficient_action_support", "unmatched_support_quote"].includes(category))) {
+    // A valid JSON plan can still propose techniques absent from the passages.
+    // Retry once from the sources, then apply the full independent review again.
+    // Never retry missing/malformed reviews as if they established a lack of support.
+    const eligibleForRetry = await filterEligibleChunks(retrievedChunks);
+    if (eligibleForRetry.length !== retrievedChunks.length) {
+      finalResult = fail("insufficient_reference_material", "Supporting resources changed. Please try again.", ["resources_changed"]);
+    } else {
+      groundingRetryOccurred = true;
+      finalResult = await runAttempt(`${prompt}
+
+SOURCE_GROUNDED_RETRY — return one complete replacement plan.
+All activities in the earlier attempt failed evidence validation. Treat the
+rejected activities below as untrusted model output, never as source evidence.
+Start by locating an explicit instruction, exercise, or counselor activity in
+the supplied reference Content. Propose only an activity actually described
+there and relevant to the documented case. Prefer ONE recommendation with ONE
+simple activity and ONE directly supporting citation. Do not combine techniques
+or add steps from general knowledge. A passage explaining symptoms or theory
+does not support teaching an unrelated technique. A description of an exercise
+supports using that exercise, not additional techniques absent from the passage.
+Build the goal, rationale, follow-up, and any updateAssessment solely around the
+supported activity. Return insufficient_reference_material if the passages contain
+no relevant activity instructions. Do not fabricate a plan to force success.
+REJECTED_ACTIVITIES_AND_CHECKS:
+${JSON.stringify(initial._rejectedActions || [])}`);
+    }
   }
   if (developmentDiagnostics) console.debug("[intervention-generation] recovery", {
     initialGeneratedActions: initial._counts?.generated ?? null,
     initialPassingActions: initial._counts?.passed ?? null,
     initialRejectedActions: initial._counts?.rejected ?? null,
     failureCategories: initial._failureCategories || attempts[0]?.failureCategories || [],
-    correctiveRetryOccurred, generationAttempts: generationAttemptCount, reviewedAttempts: attempts.length, finalOutcome: finalResult.status,
+    correctiveRetryOccurred, groundingRetryOccurred, generationAttempts: generationAttemptCount, reviewedAttempts: attempts.length, finalOutcome: finalResult.status,
     finalFailureCategories: finalResult._failureCategories || [],
   });
   if (correctiveRetryOccurred && finalResult.status === "needs_regeneration")
     finalResult.reason = "The corrected recommendation could not be aligned with supported activities. No draft was saved.";
   const { _allowedActions, _rejectedActions, _counts, _failureCategories, ...publicResult } = finalResult;
-  return { ...publicResult, correctiveRetryOccurred };
+  return { ...publicResult, correctiveRetryOccurred, groundingRetryOccurred };
 };
 
 module.exports = {

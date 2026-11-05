@@ -463,7 +463,7 @@ export default function StudentRecordsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#2F2A27]">
+    <div className="authenticated-app min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#2F2A27]">
       <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
@@ -499,7 +499,7 @@ export default function StudentRecordsPage() {
           </div>
         </header>
 
-        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7 lg:w-[calc(100%-240px)]! lg:px-0!">
           {successMessage && <Alert tone="success" message={successMessage} />}
 
           {pageError && <Alert tone="error" message={pageError} />}
@@ -576,8 +576,14 @@ export default function StudentRecordsPage() {
                 </p>
               </div>
 
-              <div className="grid w-full gap-2 sm:grid-cols-2 2xl:w-auto 2xl:grid-cols-[minmax(180px,240px)_140px_180px_155px_auto]">
-                <div className="relative sm:col-span-2 2xl:col-span-1">
+              <div
+                className={`grid w-full min-w-0 gap-2 sm:grid-cols-2 2xl:w-auto ${
+                  activeTab === "active"
+                    ? "2xl:grid-cols-[minmax(180px,240px)_140px_180px_155px_max-content]"
+                    : "sm:grid-cols-[minmax(180px,240px)_max-content]"
+                }`}
+              >
+                <div className={`relative min-w-0 ${activeTab === "active" ? "sm:col-span-2 2xl:col-span-1" : ""}`}>
                   <Icon
                     name="search"
                     className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[#AAA29D]"
@@ -648,9 +654,9 @@ export default function StudentRecordsPage() {
                     setRefreshVersion((current) => current + 1);
                   }}
                   title="Clear filters and refresh student records"
-                  className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-[#DDD7D3] bg-white px-3 text-[14px] font-medium text-[#625B57] hover:border-[#8C1518] hover:text-[#8C1518] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-8 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-[#DDD7D3] bg-white px-3 text-[14px] font-medium text-[#625B57] hover:border-[#8C1518] hover:text-[#8C1518] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Icon name="history" className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                  <Icon name="history" className={`h-4 w-4 shrink-0 ${isLoading ? "animate-spin" : ""}`} />
                   Clear Filters
                 </button>
               </div>
@@ -767,10 +773,10 @@ function StudentList({ students, isLoading, activeTab, onOpen, onEnrollment, onR
         <table className="w-full min-w-[1080px] table-fixed border-collapse">
           <colgroup>
             <col className="w-[20%]" />
-            <col className="w-[25%]" />
-            <col className="w-[17%]" />
             <col className="w-[22%]" />
-            <col className="w-[16%]" />
+            <col className="w-[17%]" />
+            <col className="w-[28%]" />
+            <col className="w-[13%]" />
           </colgroup>
           <thead className="bg-[#FAF9F8]">
             <tr className="border-b border-[#ECE8E5]">

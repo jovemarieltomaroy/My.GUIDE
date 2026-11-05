@@ -26,7 +26,7 @@ const generateResponse = async (prompt, options = {}) => {
         model: OLLAMA_MODEL,
         prompt: prompt.trim(),
         stream: false,
-        ...(options.json ? { format: "json" } : {}),
+        ...(options.schema ? { format: options.schema } : options.json ? { format: "json" } : {}),
 
         options: {
           temperature: options.temperature ?? 0.2,

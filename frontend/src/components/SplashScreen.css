@@ -6,7 +6,7 @@
   place-items: center;
   padding: 32px;
   background: #fff;
-  animation: myguide-splash-exit 300ms cubic-bezier(.22, 1, .36, 1) 3650ms both;
+  animation: myguide-splash-exit 240ms cubic-bezier(.22, 1, .36, 1) 2920ms both;
 }
 .myguide-splash-brand {
   display: flex;
@@ -23,7 +23,7 @@
   line-height: 1.2;
   letter-spacing: -0.04em;
   opacity: 0;
-  animation: myguide-splash-reveal 450ms ease-in-out 2180ms forwards;
+  animation: myguide-splash-reveal 360ms ease-in-out 1744ms forwards;
 }
 .myguide-splash-name span {
   color: #FFC440;
@@ -38,15 +38,15 @@
 .myguide-splash-ink {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: myguide-splash-draw 1250ms cubic-bezier(.45, 0, .25, 1) 80ms forwards;
+  animation: myguide-splash-draw 1000ms cubic-bezier(.45, 0, .25, 1) 64ms forwards;
 }
 .myguide-splash-complete {
   opacity: 0;
-  animation: myguide-splash-reveal 100ms ease-out 1230ms forwards;
+  animation: myguide-splash-reveal 80ms ease-out 984ms forwards;
 }
 .myguide-splash-gold {
   opacity: 0;
-  animation: myguide-splash-reveal 800ms cubic-bezier(.42, 0, .58, 1) 1330ms forwards;
+  animation: myguide-splash-reveal 640ms cubic-bezier(.42, 0, .58, 1) 1064ms forwards;
 }
 @keyframes myguide-splash-draw {
   to { stroke-dashoffset: 0; }

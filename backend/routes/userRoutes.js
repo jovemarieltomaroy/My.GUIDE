@@ -1,9 +1,12 @@
 const express = require("express");
 const router = express.Router();
 
-const { protect, adminOnly } = require("../middleware/authValidator");
+const { protect, accountAdminOnly } = require("../middleware/authValidator");
 
 const asyncHandler = require("../middleware/asyncHandler");
+
+router.use(protect);
+router.use(require("../middleware/accountAdministration"));
 
 const uploadProfilePicture = require("../middleware/uploadProfilePicture");
 
@@ -35,21 +38,21 @@ router.patch(
 
 router
   .route("/")
-  .get(protect, adminOnly, asyncHandler(getAllUsers))
-  .post(protect, adminOnly, asyncHandler(createUser));
+  .get(protect, accountAdminOnly, asyncHandler(getAllUsers))
+  .post(protect, accountAdminOnly, asyncHandler(createUser));
 
-router.patch("/:id/role", protect, adminOnly, asyncHandler(updateUserRole));
+router.patch("/:id/role", protect, accountAdminOnly, asyncHandler(updateUserRole));
 
-router.patch("/:id/reactivate", protect, adminOnly, asyncHandler(reactivateUser));
+router.patch("/:id/reactivate", protect, accountAdminOnly, asyncHandler(reactivateUser));
 
-router.patch("/:id/deactivate", protect, adminOnly, asyncHandler(deactivateUser));
+router.patch("/:id/deactivate", protect, accountAdminOnly, asyncHandler(deactivateUser));
 
-router.put("/:id/reset-password", protect, adminOnly, asyncHandler(adminResetUserPassword));
+router.put("/:id/reset-password", protect, accountAdminOnly, asyncHandler(adminResetUserPassword));
 router.get("/counselors/active", protect, asyncHandler(getActiveCounselors));
 
 router
   .route("/:id")
-  .get(protect, adminOnly, asyncHandler(getUserById))
-  .put(protect, adminOnly, asyncHandler(updateUser));
+  .get(protect, accountAdminOnly, asyncHandler(getUserById))
+  .put(protect, accountAdminOnly, asyncHandler(updateUser));
 
 module.exports = router;

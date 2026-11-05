@@ -127,11 +127,6 @@ export default function MyProfilePage() {
           label: "Management",
           items: [
             {
-              name: "User Management",
-              icon: "users",
-              path: "/users",
-            },
-            {
               name: "Student Records",
               icon: "student",
               path: "/students",
@@ -438,7 +433,7 @@ export default function MyProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#262220]">
+    <div className="authenticated-app min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#262220]">
       <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
@@ -479,7 +474,7 @@ export default function MyProfilePage() {
           </div>
         </header>
 
-        <main className="page-content mx-auto max-w-[1200px] px-4 py-6 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7 lg:w-[calc(100%-240px)]! lg:px-0!">
           {successMessage && (
             <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[15px] text-emerald-700">
               {successMessage}

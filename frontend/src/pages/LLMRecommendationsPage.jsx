@@ -463,7 +463,7 @@ export default function LLMRecommendationsPage({ embedded = false, caseId = null
   return (
     <div
       className={
-        embedded ? "text-[#2F2A27]" : "min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#2F2A27]"
+        embedded ? "text-[#2F2A27]" : "authenticated-app min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#2F2A27]"
       }
     >
       {!embedded && (
@@ -525,7 +525,7 @@ export default function LLMRecommendationsPage({ embedded = false, caseId = null
 
         <div
           className={
-            embedded ? "" : "page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7"
+            embedded ? "" : "page-content mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-7 lg:w-[calc(100%-240px)]! lg:px-0!"
           }
         >
           {successMessage && <Alert tone="success" message={successMessage} />}
@@ -1827,7 +1827,7 @@ function getResourceUrl(resourceUrl) {
     return resourceUrl;
   }
 
-  const backendOrigin = import.meta.env.VITE_API_ORIGIN || "http://localhost:5000";
+  const backendOrigin = import.meta.env.VITE_API_ORIGIN || "/api";
 
   return `${backendOrigin}${resourceUrl}`;
 }
@@ -1972,19 +1972,39 @@ function requiredRecommendationVersion() {
   return "goal-followup-v3";
 }
 
+
 async function assertCurrentRecommendationRuntime(fetcher, apiBase, pageURL) {
-  const healthURL = new URL(apiBase, pageURL);
-  healthURL.pathname = healthURL.pathname.replace(/\/api\/?$/, "/");
-  healthURL.search = "";
-  healthURL.hash = "";
+  const healthURL = new URL(
+    `${apiBase.replace(/\/$/, "")}/recommendation-runtime`,
+    pageURL
+  );
+
   let response, metadata;
+
   try {
-    response = await fetcher(healthURL.toString(), { credentials: "include", cache: "no-store", headers: { Accept: "application/json" } });
+    response = await fetcher(healthURL.toString(), {
+      credentials: "include",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
     metadata = await response.json();
   } catch {
-    throw new Error("Could not verify the recommendation backend. Check that the backend is running at the configured API address. Generation has not started.");
+    throw new Error(
+      response?.status === 404
+        ? "The configured backend does not expose the recommendation runtime endpoint (404). Restart the backend to load the current code, then try again. Generation has not started."
+        : "Could not verify the recommendation backend. Check that the backend is running at the configured API address. Generation has not started."
+    );
   }
-  if (!response.ok || metadata?.recommendationOutputVersion !== requiredRecommendationVersion()) {
-    throw new Error("The configured backend is running an older or unrecognized recommendation workflow. Restart that backend before generating. Generation has not started and no draft was saved.");
+
+  if (
+    !response.ok ||
+    metadata?.recommendationOutputVersion !== requiredRecommendationVersion()
+  ) {
+    throw new Error(
+      "The configured backend is running an older or unrecognized recommendation workflow. Restart that backend before generating. Generation has not started and no draft was saved."
+    );
   }
 }

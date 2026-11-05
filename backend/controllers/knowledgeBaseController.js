@@ -6,7 +6,6 @@ const {
   fail,
   mongoose,
 } = require("../services/resourceLifecycle");
-const Case = require("../models/case");
 const fs = require("fs/promises");
 
 const path = require("path");
@@ -300,46 +299,17 @@ const uploadKnowledgeResource = async (req, res) => {
  * ---------------------------------------------
  */
 
-const permittedResourceIds = async (user) => {
-  if (user.role === "Counselor-Admin") return null;
-  if (user.role !== "Counselor-User") return [];
-  const cases = await Case.find({
-    isArchived: false,
-    $or: [
-      { assignedCounselor: user._id },
-      {
-        temporaryCounselor: {
-          $elemMatch: {
-            counselor: user._id,
-            isActive: true,
-            revokedAt: null,
-            accessUntil: { $gt: new Date() },
-          },
-        },
-      },
-    ],
-  })
-    .select(
-      "llmRecommendations.resources.url llmRecommendations.suggestedMaterials.url interventionPlans.resources.url"
-    )
-    .lean();
-  return [
-    ...new Set(
-      cases.flatMap((record) =>
-        [...(record.llmRecommendations || []), ...(record.interventionPlans || [])]
-          .flatMap((item) => [...(item.resources || []), ...(item.suggestedMaterials || [])])
-          .map((item) => item.url?.match(/^\/api\/knowledge-base\/([a-f0-9]{24})\/pdf$/i)?.[1])
-          .filter(Boolean)
-      )
-    ),
-  ];
-};
+const canViewLibrary = (user) =>
+  ["Counselor-Admin", "Counselor-User"].includes(user?.role);
 
 const getKnowledgeResources = async (req, res) => {
   try {
-    const permitted = await permittedResourceIds(req.user);
+    if (!canViewLibrary(req.user))
+      return res.status(403).json({ message: "Not authorized to view the knowledge library." });
     const resources = await KnowledgeResource.find(
-      permitted === null ? {} : { _id: { $in: permitted } }
+      req.user.role === "Counselor-Admin"
+        ? {}
+        : { $or: [{ status: "Active" }, { status: { $exists: false } }], isActive: { $ne: false }, replacedBy: null }
     )
       .populate("uploadedBy", "firstName lastName email")
       .sort({
@@ -374,8 +344,7 @@ const getKnowledgeResources = async (req, res) => {
 
 const getKnowledgeResourceById = async (req, res) => {
   try {
-    const permitted = await permittedResourceIds(req.user);
-    if (permitted !== null && !permitted.includes(req.params.id))
+    if (!canViewLibrary(req.user))
       return res.status(403).json({ message: "Not authorized to view this resource." });
 
     const resource = await KnowledgeResource.findById(req.params.id).populate(
@@ -434,41 +403,8 @@ const viewKnowledgeResourcePdf = async (req, res) => {
       });
     }
 
-    if (req.user.role !== "Counselor-Admin") {
-      const resourceUrl = `/api/knowledge-base/${resource._id}/pdf`;
-      const accessibleCase =
-        req.user.role === "Counselor-User" &&
-        (await Case.exists({
-          isArchived: false,
-          $and: [
-            {
-              $or: [
-                { assignedCounselor: req.user._id },
-                {
-                  temporaryCounselor: {
-                    $elemMatch: {
-                      counselor: req.user._id,
-                      isActive: true,
-                      revokedAt: null,
-                      accessUntil: { $gt: new Date() },
-                    },
-                  },
-                },
-              ],
-            },
-            {
-              $or: [
-                { "llmRecommendations.resources.url": resourceUrl },
-                { "llmRecommendations.suggestedMaterials.url": resourceUrl },
-                { "interventionPlans.resources.url": resourceUrl },
-              ],
-            },
-          ],
-        }));
-      if (!accessibleCase && !(req.user.role === "Counselor-User" && isStudentMaterial(resource))) {
-        return res.status(403).json({ message: "Not authorized to view this resource." });
-      }
-    }
+    if (!canViewLibrary(req.user))
+      return res.status(403).json({ message: "Not authorized to view this resource." });
 
     if (!resource.filePath) {
       return res.status(404).json({
@@ -550,6 +486,10 @@ const deleteKnowledgeResource = async (req, res) => {
      * -----------------------------------------
      */
 
+    // Disable retrieval before multi-store deletion. Keep the record for retry if
+    // either chunk cleanup or file deletion fails; never report false success.
+    resource.isActive = false;
+    await resource.save();
     const chunkResult = await KnowledgeChunk.deleteMany({
       "metadata.resourceId": resource._id.toString(),
     });
@@ -570,7 +510,7 @@ const deleteKnowledgeResource = async (req, res) => {
          */
 
         if (fileError.code !== "ENOENT") {
-          console.warn("Unable to delete knowledge PDF:", fileError.message);
+          throw fileError;
         }
       }
     }

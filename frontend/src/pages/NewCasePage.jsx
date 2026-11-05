@@ -3,8 +3,9 @@ import { importPreCounselingInformation } from "../utils/preCounselingImport";
 import LLMRecommendationsPage from "./LLMRecommendationsPage";
 import { useEffect, useRef, useMemo, useState } from "react";
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
+import PendingCaseBookings from "../components/PendingCaseBookings";
 import AppSidebar from "../components/AppSidebar";
 import ConsentFormModal from "../components/ConsentFormModal";
 import Icon from "../components/Icon";
@@ -20,6 +21,7 @@ const MAIN_DOMAINS = ["Academic-Educational", "Career-Vocational", "Personal-Soc
 const INTENSITY_LEVELS = ["Mild", "Moderate", "Severe"];
 
 const EMPTY_FORM = {
+  counselorNotes: "",
   student: "",
   studentIdNumber: "",
   assignedCounselor: "",
@@ -132,6 +134,12 @@ const EMPTY_FORM = {
 
 export default function NewCasePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const intakeId = searchParams.get("intakeId");
+  const [intakeReady, setIntakeReady] = useState(false);
+  const [intakeError, setIntakeError] = useState("");
+  const [identityMismatch, setIdentityMismatch] = useState(false);
+  const [identityVerified, setIdentityVerified] = useState(false);
   const { user, clearUser } = useAuth();
 
   const studentSelectionVersion = useRef(0);
@@ -237,13 +245,65 @@ export default function NewCasePage() {
 
   useEffect(() => {
     const college = defaultCounselorCollege(user);
-    if (!college || !formData.temporaryStudent.isTemporary) return;
+    if (intakeId || !college || !formData.temporaryStudent.isTemporary) return;
     setFormData((current) =>
       current.temporaryStudent.college === college
         ? current
         : { ...current, temporaryStudent: { ...current.temporaryStudent, college } }
     );
-  }, [user, formData.temporaryStudent.isTemporary, formData.temporaryStudent.college]);
+  }, [user, intakeId, formData.temporaryStudent.isTemporary, formData.temporaryStudent.college]);
+
+  useEffect(() => {
+    if (!intakeId || !user) return;
+    let cancelled = false;
+    setIntakeReady(false);
+    setIntakeError("");
+    (async () => {
+      const intake = await apiRequest(`/bookings/intakes/${intakeId}`);
+      if (cancelled) return;
+      if (intake.linkedCase) {
+        navigate(`/cases/${intake.linkedCase._id || intake.linkedCase}`, { replace: true });
+        return;
+      }
+      if (intake.status !== "Pending Review")
+        throw new Error("This intake is no longer pending review.");
+      let saved = null;
+      try {
+        saved = (
+          await apiRequest(
+            `/students/search/${encodeURIComponent(intake.identity.studentIdNumber)}`
+          )
+        ).student;
+      } catch (error) {
+        if (error.status !== 404) throw error;
+      }
+      if (cancelled) return;
+      const identity = intake.identity;
+      setSelectedStudent(saved);
+      setIdentityMismatch(Boolean(saved && saved.email !== identity.email));
+      setIdentityVerified(false);
+      setFormData(
+        importPreCounselingInformation(
+          {
+            ...EMPTY_FORM,
+            student: saved?._id || "",
+            studentIdNumber: identity.studentIdNumber,
+            assignedCounselor: user._id || user.id,
+            clientEntryType: intake.entryType,
+            temporaryStudent: { ...EMPTY_FORM.temporaryStudent, ...identity, isTemporary: !saved },
+          },
+          intake
+        )
+      );
+      setPreCounselingForm(intake);
+      setIntakeReady(true);
+    })().catch((error) => {
+      if (!cancelled) setIntakeError(error.message);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [intakeId, user, navigate]);
 
   if (!user) {
     return null;
@@ -466,7 +526,8 @@ export default function NewCasePage() {
         setFormData((current) => ({ ...current, student: studentId }));
         setStudentInfoModalOpen(false);
         setActiveSection("student");
-        if (formData.clientEntryType === "Scheduled") await checkPreCounselingForm(studentId);
+        if (!intakeId && formData.clientEntryType === "Scheduled")
+          await checkPreCounselingForm(studentId);
       }
     } catch (error) {
       if (selectionVersion !== studentSelectionVersion.current) return;
@@ -528,6 +589,13 @@ export default function NewCasePage() {
 
   const validateForm = () => {
     const validationErrors = {};
+    if (intakeId && (!intakeReady || intakeError))
+      validationErrors.general = "Wait for the intake to load before creating the case.";
+    if (intakeId && identityMismatch && !identityVerified)
+      validationErrors.general = "Verify the student identity before creating the case.";
+    if (!formData.currentPresentation.narrativeDescription.trim())
+      validationErrors["currentPresentation.narrativeDescription"] =
+        "Enter the presenting concern.";
 
     if (!formData.student && !formData.temporaryStudent.isTemporary) {
       validationErrors.student = "Find an existing student or enter temporary student information.";
@@ -576,6 +644,7 @@ export default function NewCasePage() {
   const buildPayload = (studentId = formData.student) => {
     return {
       student: studentId || undefined,
+      counselorNotes: formData.counselorNotes.trim() || undefined,
 
       clientEntryType: formData.clientEntryType,
 
@@ -654,7 +723,7 @@ export default function NewCasePage() {
     try {
       let studentId = formData.student;
 
-      if (!studentId && formData.temporaryStudent.isTemporary) {
+      if (!intakeId && !studentId && formData.temporaryStudent.isTemporary) {
         const minimumProfileData = await apiRequest("/students/minimum-profile", {
           method: "POST",
           body: JSON.stringify({
@@ -680,14 +749,17 @@ export default function NewCasePage() {
         }
       }
 
-      const data = await apiRequest("/cases", {
+      const data = await apiRequest(intakeId ? `/bookings/intakes/${intakeId}/convert` : "/cases", {
         method: "POST",
-        body: JSON.stringify(buildPayload(studentId)),
+        body: JSON.stringify({
+          ...buildPayload(studentId),
+          ...(intakeId ? { identityVerified } : {}),
+        }),
       });
 
       const createdCase = data?.case;
 
-      const caseId = createdCase?._id || createdCase?.id;
+      const caseId = data?.caseId || createdCase?._id || createdCase?.id;
 
       if (caseId) {
         setCreatedCaseId(caseId);
@@ -728,8 +800,17 @@ export default function NewCasePage() {
     }
   };
 
+  if (!intakeId && ["Walk-in", "Scheduled"].includes(formData.clientEntryType) && !createdCaseId) {
+    return (
+      <PendingCaseBookings
+        user={user}
+        onReferred={() => setFormData((current) => ({ ...current, clientEntryType: "Referred" }))}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#292522]">
+    <div className="authenticated-app min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#292522]">
       <AppSidebar user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="min-h-screen lg:pl-[250px]">
@@ -797,15 +878,46 @@ export default function NewCasePage() {
           </div>
         </header>
 
-        <main className="page-content mx-auto max-w-[1480px] px-4 py-5 sm:px-6 lg:px-7">
+        <main className="page-content mx-auto max-w-[1500px] px-4 py-5 sm:px-6 lg:px-7 lg:w-[calc(100%-240px)]! lg:px-0!">
           {pageError && <Alert tone="error" message={pageError} />}
+          {intakeId && !intakeReady && (
+            <Alert
+              tone={intakeError ? "error" : "success"}
+              message={intakeError || "Loading the selected pre-counseling intake…"}
+            />
+          )}
+          {intakeId && intakeReady && (
+            <Alert
+              tone="success"
+              message="Student information, consent, and psychosocial history were loaded from this intake. Complete the remaining assessment, then select Create case."
+            />
+          )}
+          {intakeId && identityMismatch && (
+            <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm">
+              <p>
+                The intake email differs from this student’s saved email ({selectedStudent?.email}).
+                Verify the student’s identity; the existing student profile will be preserved.
+              </p>
+              <label className="mt-3 flex gap-2">
+                <input
+                  type="checkbox"
+                  checked={identityVerified}
+                  onChange={(event) => setIdentityVerified(event.target.checked)}
+                />
+                I verified that this intake belongs to the student with this official student ID.
+              </label>
+            </div>
+          )}
 
           {errors.general && <Alert tone="error" message={errors.general} />}
 
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
             <div className="min-w-0 space-y-5">
               <form id="new-case-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
-                <fieldset disabled={Boolean(createdCaseId)} className="min-w-0 space-y-4">
+                <fieldset
+                  disabled={Boolean(createdCaseId) || Boolean(intakeId && !intakeReady)}
+                  className="min-w-0 space-y-4"
+                >
                   <FormSection
                     id="student"
                     number="1"
@@ -824,6 +936,7 @@ export default function NewCasePage() {
                         <div className="flex gap-2">
                           <input
                             value={formData.studentIdNumber}
+                            readOnly={Boolean(intakeId)}
                             onChange={(event) => {
                               setSelectedStudent(null);
                               setStudentNotFound(false);
@@ -1837,6 +1950,10 @@ export default function NewCasePage() {
               selectedStudent={selectedStudent}
               user={user}
               completedSections={completedSections}
+              onNotesChange={(value) =>
+                setFormData((current) => ({ ...current, counselorNotes: value }))
+              }
+              notesDisabled={Boolean(createdCaseId)}
             />
           </div>
         </main>
@@ -1917,13 +2034,21 @@ function FormSection({
   );
 }
 
-function CaseSummary({ formData, selectedStudent, user, completedSections }) {
+function CaseSummary({
+  formData,
+  selectedStudent,
+  user,
+  completedSections,
+  onNotesChange,
+  notesDisabled,
+}) {
+  const [notesOpen, setNotesOpen] = useState(false);
   const assignedCounselor = user;
 
   const completedCount = Object.values(completedSections).filter(Boolean).length;
 
   return (
-    <aside className="self-start xl:sticky xl:top-[82px]">
+    <aside className="space-y-4 self-start xl:sticky xl:top-[82px]">
       <section className="overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white">
         <header className="border-b border-[#ECE8E5] px-4 py-3.5">
           <h3 className="text-[17px] font-semibold">Case summary</h3>
@@ -1974,6 +2099,38 @@ function CaseSummary({ formData, selectedStudent, user, completedSections }) {
           </div>
         </div>
       </section>
+      <section className="overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white">
+        <button
+          type="button"
+          aria-expanded={notesOpen}
+          aria-controls="counselor-notes-input"
+          onClick={() => setNotesOpen((open) => !open)}
+          className="flex w-full items-center justify-between gap-3 p-5 text-left text-sm font-semibold text-[#8C1518]"
+        >
+          <span>
+            Counselor’s notes <span className="font-normal text-[#958D88]">(optional)</span>
+          </span>
+          <Icon name={notesOpen ? "chevronUp" : "chevronDown"} className="h-4 w-4 shrink-0" />
+        </button>
+        {notesOpen && (
+          <div id="counselor-notes-input" className="space-y-3 border-t border-[#ECE8E5] p-5">
+            <label className="block text-sm text-[#655E59]" htmlFor="counselor-notes">
+              Additional observations or context
+            </label>
+            <textarea
+              id="counselor-notes"
+              form="new-case-form"
+              rows={7}
+              maxLength={20000}
+              disabled={notesDisabled}
+              value={formData.counselorNotes}
+              onChange={(event) => onNotesChange(event.target.value)}
+              placeholder="Record any additional notes relevant to this case."
+              className="w-full resize-y rounded-lg border border-[#DDD8D4] p-3 text-sm leading-6 outline-none focus:border-[#8C1518] disabled:bg-stone-50"
+            />
+          </div>
+        )}
+      </section>
     </aside>
   );
 }
@@ -2010,7 +2167,7 @@ function StudentInformationModal({
       onMouseDown={onClose}
     >
       <div
-        className="w-full max-w-2xl overflow-hidden rounded-2xl border border-[#E4DFDC] bg-white shadow-2xl"
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto break-words rounded-2xl border border-[#E4DFDC] bg-white shadow-2xl"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header className="flex items-start justify-between gap-4 border-b border-[#ECE8E5] px-5 py-4">

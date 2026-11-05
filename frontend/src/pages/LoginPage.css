@@ -1,6 +1,6 @@
 .login-page {
   display: grid;
-  grid-template-columns: 46% 54%;
+  grid-template-columns: minmax(0, 46fr) minmax(0, 54fr);
   min-height: 100svh;
   color: #080808;
   background: white;
@@ -64,7 +64,7 @@
   flex-direction: column;
   justify-content: center;
   min-width: 0;
-  padding: 140px clamp(40px, 8.8vw, 150px) 150px;
+  padding: clamp(92px, 13svh, 140px) clamp(24px, 6vw, 150px) clamp(64px, 12svh, 150px);
 }
 .login-back {
   position: absolute;
@@ -96,14 +96,14 @@
 .login-subtitle {
   font-size: clamp(18px, 1.4vw, 23px);
   line-height: 1.5;
-  margin: 14px 0 48px;
+  margin: 14px 0 clamp(24px, 5svh, 48px);
 }
 .login-subtitle span,
 .login-signup button {
   color: #910f19;
 }
 .login-field + .login-field {
-  margin-top: 38px;
+  margin-top: clamp(24px, 4svh, 38px);
 }
 .login-field > label {
   display: block;
@@ -358,6 +358,85 @@
   .login-remember,
   .login-forgot {
     font-size: 16px;
+  }
+}
+/* Keep the full sign-in form visible on smaller office laptop viewports.
+   Larger MacBook layouts retain the original rules above. */
+@media (min-width: 801px) and (max-width: 1600px),
+       (min-width: 801px) and (max-height: 760px) {
+  .login-brand {
+    padding: 64px 32px;
+  }
+  .login-brand-icon {
+    width: clamp(150px, min(14vw, 24svh), 240px);
+  }
+  .login-wordmark {
+    font-size: clamp(44px, min(4vw, 8svh), 74px);
+    letter-spacing: -2px;
+  }
+  .login-brand-description {
+    font-size: clamp(14px, min(1.2vw, 2.5svh), 18px);
+  }
+  .login-panel {
+    padding: clamp(64px, 12svh, 114px) clamp(32px, 6vw, 110px)
+      clamp(40px, 8svh, 76px);
+  }
+  .login-back {
+    top: clamp(20px, 4svh, 38px);
+    right: clamp(32px, 6vw, 110px);
+    font-size: clamp(14px, 1.1vw, 17px);
+  }
+  .login-form-content h1 {
+    font-size: clamp(30px, min(2.8vw, 5.5svh), 44px);
+  }
+  .login-subtitle {
+    font-size: clamp(14px, min(1.25vw, 2.6svh), 20px);
+    margin: 10px 0 clamp(20px, 4svh, 36px);
+  }
+  .login-field > label {
+    font-size: clamp(16px, min(1.4vw, 2.8svh), 20px);
+  }
+  .login-field + .login-field {
+    margin-top: clamp(18px, 3.5svh, 30px);
+  }
+  .login-input-wrap {
+    min-height: clamp(44px, 7.5svh, 56px);
+  }
+  .login-input-wrap input {
+    padding: 10px 14px;
+    font-size: 16px;
+  }
+  .login-password-toggle {
+    width: 40px;
+    height: 40px;
+    margin-right: 4px;
+  }
+  .login-options {
+    gap: 12px;
+    margin-top: clamp(16px, 3svh, 22px);
+  }
+  .login-remember,
+  .login-forgot,
+  .login-signup {
+    font-size: clamp(14px, min(1.1vw, 2.5svh), 17px);
+  }
+  .login-remember {
+    gap: 8px;
+  }
+  .login-submit {
+    min-height: clamp(46px, 8svh, 56px);
+    margin-top: clamp(20px, 4svh, 34px);
+    padding: 10px 20px;
+    font-size: clamp(18px, 1.5vw, 21px);
+  }
+  .login-signup {
+    margin-top: clamp(20px, 4svh, 30px);
+  }
+  .login-bottom-lines {
+    bottom: 12px;
+  }
+  .login-bottom-lines i {
+    margin-top: clamp(10px, 2svh, 18px);
   }
 }
 @media (max-width: 800px) {

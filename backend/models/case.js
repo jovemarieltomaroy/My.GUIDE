@@ -587,6 +587,7 @@ const temporaryCounselorAccessSchema = new mongoose.Schema(
 
 const caseRecordSchema = new mongoose.Schema(
   {
+    intake: { type: mongoose.Schema.Types.ObjectId, ref: "CounselingIntake", default: null },
     caseNumber: {
       type: String,
       required: true,
@@ -836,7 +837,9 @@ const caseRecordSchema = new mongoose.Schema(
       },
     },
 
+    counselorNotes: { type: String, trim: true, default: "", maxlength: 20000 },
     caseFormulation: {
+      counselorNotesSummary: { type: String, trim: true, default: "" },
       presentingProblem: {
         type: String,
         trim: true,
@@ -927,4 +930,5 @@ const caseRecordSchema = new mongoose.Schema(
   }
 );
 
+caseRecordSchema.index({ intake: 1 }, { unique: true, partialFilterExpression: { intake: { $type: "objectId" } } });
 module.exports = mongoose.model("CaseRecord", caseRecordSchema);

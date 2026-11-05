@@ -1,10 +1,12 @@
+import StudentIdentityLookup from "../components/StudentIdentityLookup";
 import { useEffect, useState } from "react";
 
 import { useParams } from "react-router-dom";
 
-import myGuideLogo from "../assets/myguide-brand-logo.svg";
+import myGuideIcon from "../assets/myguide-brand-icon.svg";
 import ConsentFormModal from "../components/ConsentFormModal";
 
+import { handledCounselorColleges } from "../utils/counselorCollege";
 import { apiRequest } from "../config/api";
 
 const EMPTY_MEMBER = {
@@ -88,8 +90,24 @@ const PARENT_TYPES = [
   "Not Applicable",
 ];
 
-export default function PreCounselingFormPage() {
+export default function PreCounselingFormPage({ booking = false }) {
   const { token } = useParams();
+  const [identity, setIdentity] = useState({
+    studentIdNumber: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+    college: "",
+    program: "",
+    yearLevel: "1",
+    contactNumber: "",
+  });
+  const [entryType, setEntryType] = useState("Walk-in");
+  const [slots, setSlots] = useState([]);
+  const [slotId, setSlotId] = useState("");
+  const [preferredAt, setPreferredAt] = useState("");
+  const [showAllColleges, setShowAllColleges] = useState(false);
+  const [reference, setReference] = useState("");
   const [consentModalOpen, setConsentModalOpen] = useState(false);
 
   const [student, setStudent] = useState(null);
@@ -116,6 +134,20 @@ export default function PreCounselingFormPage() {
       setLoadError("");
 
       try {
+        if (booking) {
+          const available = await apiRequest("/bookings/public/slots");
+          const invitation = token
+            ? await apiRequest(`/bookings/public/invitations/${token}`)
+            : null;
+          if (cancelled) return;
+          setSlots(available);
+          if (invitation) {
+            setIdentity(invitation.identity);
+            setEntryType(invitation.entryType);
+            setExpiresAt(invitation.expiresAt);
+          }
+          return;
+        }
         const data = await apiRequest(`/pre-counseling/public/${token}`, {
           method: "GET",
         });
@@ -140,7 +172,7 @@ export default function PreCounselingFormPage() {
       }
     };
 
-    if (token) {
+    if (token || booking) {
       loadForm();
     } else {
       setLoadError("The pre-counseling link is invalid.");
@@ -151,7 +183,7 @@ export default function PreCounselingFormPage() {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, booking]);
 
   const updateConsent = (field, value) => {
     setFormData((current) => ({
@@ -292,26 +324,41 @@ export default function PreCounselingFormPage() {
     try {
       const background = formData.backgroundAndPsychosocialHistory;
 
-      await apiRequest(`/pre-counseling/public/${token}/submit`, {
-        method: "POST",
+      const result = await apiRequest(
+        booking ? "/bookings/public/intakes" : `/pre-counseling/public/${token}/submit`,
+        {
+          method: "POST",
 
-        body: JSON.stringify({
-          consent: {
-            ...formData.consent,
-          },
+          body: JSON.stringify({
+            ...(booking
+              ? {
+                  identity,
+                  entryType,
+                  slotId: slotId || undefined,
+                  preferredAt: preferredAt
+                    ? new Date(`${preferredAt}+08:00`).toISOString()
+                    : undefined,
+                  invitationToken: token,
+                }
+              : {}),
+            consent: {
+              ...formData.consent,
+            },
 
-          backgroundAndPsychosocialHistory: {
-            ...background,
+            backgroundAndPsychosocialHistory: {
+              ...background,
 
-            familyConstellation: familyMembers.map((member) => ({
-              ...member,
+              familyConstellation: familyMembers.map((member) => ({
+                ...member,
 
-              age: member.age === "" ? undefined : Number(member.age),
-            })),
-          },
-        }),
-      });
+                age: member.age === "" ? undefined : Number(member.age),
+              })),
+            },
+          }),
+        }
+      );
 
+      setReference(result?.reference || "");
       setSubmitted(true);
 
       window.scrollTo({
@@ -360,10 +407,11 @@ export default function PreCounselingFormPage() {
             </div>
 
             <h1 className="mt-5 text-[24px] font-semibold text-[#302B28]">Form submitted</h1>
+            {reference && <p className="mt-3 text-sm">Intake reference: {reference}</p>}
 
             <p className="mx-auto mt-3 max-w-lg text-[15px] leading-6 text-[#756D69]">
-              Your pre-counseling information has been submitted successfully. Your counselor will
-              review the information before or during your counseling session.
+              Your intake is pending counselor review. Your counselor will review the information
+              before or during your counseling session.
             </p>
 
             <p className="mt-5 text-[14px] text-[#918984]">You may now close this page.</p>
@@ -415,7 +463,131 @@ export default function PreCounselingFormPage() {
           </div>
         )}
 
+        {reference && <p>Intake reference: {reference}</p>}
         <form onSubmit={handleSubmit} className="space-y-5">
+          {booking && (
+            <section className="rounded-2xl border border-[#E5DFDB] bg-white p-6 space-y-4">
+              <h2 className="text-xl font-semibold">Student information and booking</h2>
+              <p className="text-sm text-stone-600">
+                Each submission is a separate intake. A counselor will review it before it becomes a
+                case. Appointment times use Philippine time.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[
+                  ["studentIdNumber", "Student ID number"],
+                  ["firstName", "First name"],
+                  ["lastName", "Last name"],
+                  ["email", "Email"],
+                  ["college", "College code (e.g. CCS)"],
+                  ["program", "Program"],
+                  ["contactNumber", "Contact number"],
+                ].map(([key, label]) => key === "studentIdNumber" ? (
+                  <StudentIdentityLookup key={key} studentId={identity.studentIdNumber}
+                    enabled={!token}
+                    onChange={value => setIdentity(current => ({ ...current, studentIdNumber: value }))}
+                    onUseIdentity={saved => setIdentity(current => ({ ...current, ...saved }))} />
+                ) : (
+                  <label key={key} className="block text-sm">
+                    {label}
+                    <input
+                      required={!["program", "contactNumber"].includes(key)}
+                      type={key === "email" ? "email" : "text"}
+                      maxLength={150}
+                      className="mt-1 w-full rounded-lg border p-3"
+                      value={identity[key] || ""}
+                      onChange={(e) => {
+                        setIdentity({ ...identity, [key]: e.target.value });
+                        if (key === "college") setSlotId("");
+                      }}
+                    />
+                  </label>
+                ))}
+                <label className="text-sm">
+                  Year level
+                  <select
+                    className="mt-1 w-full rounded-lg border p-3"
+                    value={identity.yearLevel}
+                    onChange={(e) => setIdentity({ ...identity, yearLevel: e.target.value })}
+                  >
+                    {["1", "2", "3", "4", "5", "Graduate", "Other"].map((x) => (
+                      <option key={x}>{x}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-sm">
+                  Entry type
+                  <select
+                    className="mt-1 w-full rounded-lg border p-3"
+                    value={entryType}
+                    onChange={(e) => setEntryType(e.target.value)}
+                  >
+                    <option>Walk-in</option>
+                    <option>Scheduled</option>
+                  </select>
+                </label>
+              </div>
+              <label className="flex gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={showAllColleges}
+                  onChange={(e) => {
+                    setShowAllColleges(e.target.checked);
+                    setSlotId("");
+                  }}
+                />
+                Show slots from all colleges
+              </label>
+              <label className="block text-sm">
+                Appointment slot
+                <select
+                  className="mt-1 w-full rounded-lg border p-3"
+                  value={slotId}
+                  onChange={(e) => setSlotId(e.target.value)}
+                >
+                  <option value="">Submit to the shared counselor queue</option>
+                  {slots
+                    .filter(
+                      (s) =>
+                        showAllColleges ||
+                        handledCounselorColleges(s.counselor).some(
+                          (c) =>
+                            c.toLowerCase() ===
+                            (
+                              handledCounselorColleges({
+                                collegesHandled: [identity.college],
+                              })[0] || ""
+                            ).toLowerCase()
+                        )
+                    )
+                    .map((s) => (
+                      <option key={s._id} value={s._id}>
+                        {new Date(s.startsAt).toLocaleString("en-PH", { timeZone: "Asia/Manila" })}{" "}
+                        — {s.counselor.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              {!slotId && (
+                <>
+                  <p className="text-sm text-stone-600">
+                    If your default counselor has no available slots, any available counselor can
+                    accept your request. A preferred time is a request until a counselor accepts it.
+                  </p>
+                  <label className="block text-sm">
+                    Preferred time (Philippine time){entryType === "Scheduled" ? " *" : ""}
+                    <input
+                      required={entryType === "Scheduled"}
+                      type="datetime-local"
+                      className="mt-1 block rounded-lg border p-3"
+                      value={preferredAt}
+                      onChange={(e) => setPreferredAt(e.target.value)}
+                    />
+                  </label>
+                </>
+              )}
+            </section>
+          )}
+
           <FormSection
             number="1"
             title="Consent and privacy"
@@ -614,10 +786,18 @@ function PageShell({ children }) {
     <main className="min-h-screen bg-[#F7F6F4] font-[Poppins] text-[#302B28]">
       <div className="border-b border-[#E6E0DC] bg-white">
         <div className="mx-auto flex min-h-[64px] max-w-5xl items-center px-4 py-3 sm:px-6">
-          <div>
-            <img src={myGuideLogo} alt="My.GUIDE" className="h-14 w-auto object-contain sm:h-16" />
-
-            <p className="text-left text-[11px] leading-4 text-[#918984]">
+          <div className="min-w-0 max-w-full">
+            <div className="flex items-center gap-2" aria-label="My.GUIDE">
+              <img
+                src={myGuideIcon}
+                alt=""
+                className="h-7 w-auto shrink-0 object-contain sm:h-8"
+              />
+              <span className="text-xl font-bold leading-none tracking-tight text-[#841117]">
+                My.<span className="text-[#FFC440]">GUIDE</span>
+              </span>
+            </div>
+            <p className="mt-1.5 whitespace-nowrap text-left text-[clamp(7px,2.1vw,11px)] leading-4 text-[#918984]">
               Guidance, Unified Intervention, Documentation, and Evaluation
             </p>
           </div>

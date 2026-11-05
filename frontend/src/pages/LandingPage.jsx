@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Icon from "../components/Icon";
 import Logo from "../components/Logo";
+import brandIcon from "../assets/myguide-brand-icon.svg";
 import buildingImage from "../assets/ogc-building.jpg";
 import "./LandingPage.css";
 
@@ -212,6 +213,7 @@ export default function LandingPage({ onLogin }) {
                   >
                     About the System
                   </button>
+                  <a className="landing-button" href="/booking">Book counseling</a>
                   <button type="button" className="landing-button" onClick={onLogin}>
                     Open My.GUIDE <span aria-hidden="true">→</span>
                   </button>
@@ -314,7 +316,15 @@ export default function LandingPage({ onLogin }) {
         </section>
       </main>
       <footer className="landing-footer">
-        <Logo onClick={() => scrollToSection("home")} />
+        <button
+          type="button"
+          className="landing-footer-brand"
+          onClick={() => scrollToSection("home")}
+          aria-label="Go to My.GUIDE home"
+        >
+          <img src={brandIcon} alt="" />
+          <span>My.<span className="landing-footer-brand-accent">GUIDE</span></span>
+        </button>
         <p>Guidance, Unified Intervention, Documentation, Evaluation System</p>
         <p>© 2026 My.GUIDE. For authorized institutional use.</p>
       </footer>

@@ -21,8 +21,9 @@ const resolveInterventionAttachments = async (resources, { user, allowedUploadUr
         if (!filename.toLowerCase().endsWith(".pdf")) filename += ".pdf";
       }
     } else if (url.startsWith("/uploads/")) {
-      const root = path.resolve("uploads/intervention-resources");
-      const resolved = path.resolve(process.cwd(), url.slice(1));
+      const uploadRoot = path.resolve(process.env.UPLOAD_ROOT || "uploads");
+      const root = path.join(uploadRoot, "intervention-resources");
+      const resolved = path.resolve(uploadRoot, url.slice("/uploads/".length));
       if (allowedUploadUrls.includes(url) && resolved.startsWith(root + path.sep)) {
         filePath = resolved;
         const extension = path.extname(resolved);

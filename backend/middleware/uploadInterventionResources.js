@@ -2,7 +2,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-const uploadDirectory = path.join(process.cwd(), "uploads", "intervention-resources");
+const uploadDirectory = path.join(process.env.UPLOAD_ROOT || path.join(process.cwd(), "uploads"), "intervention-resources");
 
 if (!fs.existsSync(uploadDirectory)) {
   fs.mkdirSync(uploadDirectory, {

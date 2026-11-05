@@ -1,9 +1,9 @@
+require("dotenv").config();
 const { RECOMMENDATION_OUTPUT_VERSION } = require("./services/rag/recommendationOutputValidation");
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const path = require("path");
-require("dotenv").config();
 
 const connectDB = require("./config/db.js");
 
@@ -45,6 +45,13 @@ app.get("/", (req, res) => {
     timestamp: new Date(),
   });
 });
+app.get("/api/recommendation-runtime", (req, res) => {
+  res.json({
+    status: "Server is running smoothly",
+    recommendationOutputVersion: RECOMMENDATION_OUTPUT_VERSION,
+    timestamp: new Date(),
+  });
+});
 
 /*
  * ---------------------------------------------
@@ -56,18 +63,24 @@ app.use("/api/auth", authRoutes);
 
 app.use("/api/users", userRoutes);
 
-app.use("/api/cases", caseRoutes);
+const { protect, counselorOnly } = require("./middleware/authValidator");
+app.use("/api/system", require("./routes/systemRoutes"));
+app.use("/api/cases", protect, counselorOnly, caseRoutes);
 
-app.use("/api/students", studentRoutes);
+app.use("/api/students", protect, counselorOnly, studentRoutes);
 
 app.use("/api/pre-counseling", preCounselingRoutes);
+app.use("/api/bookings", require("./routes/bookingRoutes"));
 
-app.use("/api/knowledge-base", knowledgeBaseRoutes);
+app.use("/api/knowledge-base", protect, counselorOnly, knowledgeBaseRoutes);
 
 app.use(
   "/uploads",
 
-  express.static(path.join(process.cwd(), "uploads"))
+  protect,
+  counselorOnly,
+  require("./middleware/clinicalUploadAccess"),
+  express.static(process.env.UPLOAD_ROOT || path.join(process.cwd(), "uploads"))
 );
 
 app.use(errorHandler);

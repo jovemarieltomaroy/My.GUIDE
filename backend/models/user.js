@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["Counselor-Admin", "Counselor-User"],
+      enum: ["Super-Admin", "Counselor-Admin", "Counselor-User"],
       default: "Counselor-User",
     },
     isActive: {
@@ -56,6 +56,13 @@ const userSchema = new mongoose.Schema(
       sparse: true,
       trim: true,
     },
+    availability: {
+      status: { type: String, enum: ["Available", "On Leave", "Absent", "Unavailable"], default: "Available" },
+      from: Date,
+      until: Date,
+      reason: { type: String, default: "" },
+    },
+    schedulingRevision: { type: Number, default: 0 },
     collegesHandled: {
       type: [String],
       default: [],
@@ -71,5 +78,7 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+userSchema.index({ role: 1 }, { unique: true, partialFilterExpression: { role: "Super-Admin" }, name: "one_super_admin" });
 
 module.exports = mongoose.model("User", userSchema);

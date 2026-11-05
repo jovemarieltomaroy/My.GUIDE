@@ -72,14 +72,14 @@ const sendLoginResponse = (user, res) => {
   });
 };
 
-const refreshToken = (req, res) => {
+const refreshToken = async (req, res) => {
   const token = req.cookies.token;
   if (!token) {
     return res.status(401).json({ message: "No token provided" });
   }
-  const decoded = jwt.verify(token, process.env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const user = await User.findById(decoded.id);
+  if (!user || !user.isActive) return res.status(401).json({ message: "Session is no longer authorized." });
   const newToken = generateToken(decoded.id);
 
   res.cookie("token", newToken, {

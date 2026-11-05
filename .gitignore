@@ -16,3 +16,6 @@ backend/uploads/
 
 logs/
 *.log
+# Local database backups and isolated clean-install uploads
+backups/
+backend/uploads-clean/

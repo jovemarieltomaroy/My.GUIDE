@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { protect, adminOnly } = require("../middleware/authValidator");
+const { protect, adminOnly, counselorOnly } = require("../middleware/authValidator");
 
 const uploadInterventionResources = require("../middleware/uploadInterventionResources");
 
@@ -14,10 +14,6 @@ const {
   updateCase,
   updateCaseStatus,
   assignCounselor,
-
-  grantTemporaryAccess,
-  revokeTemporaryAccess,
-  getTemporaryAccessCases,
 
   addProgressNotes,
   archiveCase,
@@ -45,19 +41,22 @@ const {
   uploadLLMRecommendationResources,
 } = require("../controllers/caseController");
 
+router.use(protect, require("../middleware/caseOwnership"));
+
 router.get("/student/:studentId/active", protect, getStudentActiveCase);
 
 router.route("/").get(protect, adminOnly, getAllCases).post(protect, createCase);
 
 router.get("/my-cases", protect, getMyCases);
 
-router.get("/temporary-access", protect, getTemporaryAccessCases);
+router.get("/temporary-access", protect, (req, res) => res.json([]));
 
 router.get("/archived", protect, adminOnly, getArchivedCases);
 
 router.patch("/:id/status", protect, updateCaseStatus);
 
-router.patch("/:id/assign-counselor", protect, adminOnly, assignCounselor);
+router.patch("/:id/assign-counselor", protect, counselorOnly, assignCounselor);
+router.patch("/:id/transfer", protect, counselorOnly, assignCounselor);
 
 router.post(
   "/:id/formulation/summary",
@@ -65,9 +64,18 @@ router.post(
   require("../controllers/formulationController").generateFormulationSummary
 );
 
-router.post("/:id/temporary-access", protect, grantTemporaryAccess);
+router.post("/:id/temporary-access", protect, (req, res) =>
+  res
+    .status(410)
+    .json({
+      message:
+        "Temporary case access is no longer supported. Transfer the case permanently instead.",
+    })
+);
 
-router.patch("/:id/temporary-access/:accessId/revoke", protect, revokeTemporaryAccess);
+router.patch("/:id/temporary-access/:accessId/revoke", protect, (req, res) =>
+  res.status(410).json({ message: "Temporary case access is no longer supported." })
+);
 
 router.post("/:id/progress-notes", protect, addProgressNotes);
 

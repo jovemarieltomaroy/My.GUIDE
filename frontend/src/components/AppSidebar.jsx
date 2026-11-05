@@ -1,3 +1,4 @@
+import "./AuthenticatedCompact.css";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import Icon from "./Icon";
@@ -14,8 +15,9 @@ const ADMIN_MENU = [
   {
     label: "Case Management",
     items: [
-      { name: "All Cases", icon: "folder", path: "/cases" },
+      { name: "My Cases", icon: "folder", path: "/cases" },
       { name: "New Case", icon: "plus", path: "/cases/new" },
+      { name: "Intakes & Bookings", icon: "calendar", path: "/bookings" },
       { name: "Student Records", icon: "student", path: "/students" },
       { name: "Intervention Plans", icon: "heart", path: "/intervention-plans" },
       { name: "Progress Notes", icon: "notes", path: "/progress-notes" },
@@ -34,7 +36,7 @@ const ADMIN_MENU = [
   {
     label: "Administration",
     items: [
-      { name: "User Management", icon: "users", path: "/users" },
+      { name: "Counselor Availability", icon: "users", path: "/counselor-availability" },
       { name: "Activity Logs", icon: "history", path: "/activity-logs" },
       { name: "Settings", icon: "settings", path: "/settings" },
     ],
@@ -55,6 +57,7 @@ const COUNSELOR_MENU = [
     items: [
       { name: "My Cases", icon: "folder", path: "/cases" },
       { name: "New Case", icon: "plus", path: "/cases/new" },
+      { name: "Intakes & Bookings", icon: "calendar", path: "/bookings" },
       { name: "Student Records", icon: "student", path: "/students" },
       { name: "Intervention Plans", icon: "heart", path: "/intervention-plans" },
       { name: "Progress Notes", icon: "notes", path: "/progress-notes" },
@@ -84,7 +87,9 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
   const { clearUser } = useAuth();
 
   const isAdmin = user?.role === ADMIN_ROLE;
-  const menuGroups = isAdmin ? ADMIN_MENU : COUNSELOR_MENU;
+  const menuGroups = user?.role === "Super-Admin"
+    ? [{ label: "Administration", items: [{ name: "System administration", icon: "settings", path: "/system" }, { name: "Counselor accounts", icon: "users", path: "/users" }] }]
+    : isAdmin ? ADMIN_MENU : COUNSELOR_MENU;
 
   const goTo = (path) => {
     setSidebarOpen(false);
@@ -137,7 +142,7 @@ export default function AppSidebar({ user, sidebarOpen, setSidebarOpen }) {
 
         <button
           type="button"
-          onClick={() => goTo("/me")}
+          onClick={() => goTo(user?.role === "Super-Admin" ? "/system" : "/me")}
           className="w-full shrink-0 border-b border-white/[0.08] px-3.5 py-2.5 text-left transition hover:bg-white/[0.05]"
         >
           <div className="flex items-center gap-2.5">

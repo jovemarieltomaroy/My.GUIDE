@@ -58,7 +58,14 @@ test('selected saved progress reaches the actual Ollama request with grounded ci
   const { url, body } = flow.request();
   assert.equal(url, 'http://localhost:11434/api/generate');
   assert.equal(body.model, 'gemma3:4b');
-  assert.equal(body.format, 'json');
+  const successSchema = body.format.anyOf.find((branch) => branch.properties.status.const === 'ok');
+  assert.ok(successSchema.required.includes('goal'));
+  assert.ok(successSchema.required.includes('followUpPlan'));
+  assert.ok(successSchema.required.includes('updateAssessment'));
+  const actionSchema = successSchema.properties.recommendations.items.properties.counselorActions.items;
+  assert.ok(actionSchema.required.includes('changeReason'));
+  assert.equal(actionSchema.properties.referenceNumbers.minItems, 1);
+  assert.equal(actionSchema.properties.referenceNumbers.items.maximum, 1);
   assert.deepEqual(flow.calls(), { generationCalls: 1, evidenceCalls: 1 });
   assert.match(body.prompt, /BOTH top-level "goal" and "followUpPlan" are REQUIRED/);
   assert.equal(result.goal, modelResult.goal);
@@ -125,6 +132,18 @@ test('malformed model output and empty actions are errors, never original-plan f
   assert.equal((await pipeline('development', invalid).generate(data)).status, 'malformed_model_output');
 });
 
+test('initial generation constrains output fields and reports a specific invalid follow-up requirement', async () => {
+  const flow = pipeline('test');
+  await flow.generate(helpers.original(record));
+  const schema = flow.request().body.format.anyOf.find((branch) => branch.properties.status.const === 'ok');
+  assert.ok(!schema.required.includes('updateAssessment'));
+  assert.ok(!schema.properties.recommendations.items.properties.counselorActions.items.required.includes('changeReason'));
+  const rejected = await pipeline('test', { ...modelResult, followUpPlan: 'Review progress next week.' }).generate(helpers.original(record));
+  assert.equal(rejected.status, 'malformed_model_output');
+  assert.match(rejected.reason, /without dates or timelines/);
+  assert.equal(rejected.recommendations.length, 0);
+});
+
 
 test('multiple cited student resources survive while reference evidence and uncited resources are excluded', async () => {
   const data = { ...helpers.original(record), ...helpers.progress(record) };
@@ -170,7 +189,20 @@ test('topical anxiety information cannot support cognitive restructuring without
   const result = await pipeline('test', response, [background], review).generate(data);
   assert.equal(result.status, 'insufficient_reference_material');
   assert.equal(result.recommendations.length, 0);
-  assert.match(result.reason, /No adequately supported activities/);
+  assert.match(result.reason, /did not pass evidence validation/);
+});
+
+test('missing author citations are distinguished from citations rejected by review', async () => {
+  const response = JSON.parse(JSON.stringify(modelResult));
+  response.recommendations[0].counselorActions[0].referenceNumbers = [];
+  const missing = await pipeline('test', response).generate(helpers.original(record));
+  assert.equal(missing.status, 'insufficient_reference_material');
+  assert.match(missing.reason, /without supporting citations/);
+  const review = { consistency: { aligned: false, problemFields: [] }, reviews: [{ actionIndex: 0, citations: [] }] };
+  const rejected = await pipeline('test', modelResult, [chunk], review).generate(helpers.original(record));
+  assert.equal(rejected.status, 'insufficient_reference_material');
+  assert.match(rejected.reason, /did not pass evidence validation/);
+  assert.equal(rejected.recommendations.length, 0);
 });
 
 test('only directly supported citations and their eligible PDFs survive; invented quotes fail deterministically', async () => {
@@ -354,15 +386,34 @@ test('unsupported duplicate entries reconcile deterministically without another 
   assert.deepEqual(flow.calls(), { generationCalls: 1, evidenceCalls: 1 });
 });
 
-test('no supported actions stops without corrective generation', async () => {
+test('no supported actions gets one source-grounded retry and still stops when evidence fails', async () => {
   const data = { ...helpers.original(record), ...helpers.progress(record) };
   const review = { consistency: { aligned: true, problemFields: [] }, reviews: [{ actionIndex: 0, changeType: 'new', citations: [{ referenceNumber: 1, support: 'insufficient', quote: '' }] }] };
   const flow = pipeline('development', modelResult, [chunk], review);
   const result = await flow.generate(data);
   assert.equal(result.status, 'insufficient_reference_material');
   assert.equal(result.correctiveRetryOccurred, false);
+  assert.equal(result.groundingRetryOccurred, true);
   assert.equal(result.recommendations.length, 0);
-  assert.deepEqual(flow.calls(), { generationCalls: 1, evidenceCalls: 1 });
+  assert.deepEqual(flow.calls(), { generationCalls: 2, evidenceCalls: 2 });
+});
+
+test('source-grounded retry recovers only after replacement actions pass a fresh evidence review', async () => {
+  const rejected = JSON.parse(JSON.stringify(modelResult));
+  rejected.recommendations[0].counselorActions[0].action = 'Challenge unhelpful thoughts.';
+  const flow = pipeline('development', [rejected, modelResult], [chunk], (call, data) => ({
+    consistency: { aligned: true, problemFields: [] },
+    reviews: data.actions.map((action) => ({ actionIndex: action.actionIndex, changeType: 'new',
+      citations: action.citations.map((citation) => ({ referenceNumber: citation.referenceNumber,
+        support: call === 1 ? 'background' : 'direct', quote: call === 1 ? '' : citation.passage })) })),
+  }));
+  const result = await flow.generate(helpers.original(record));
+  assert.equal(result.status, 'ok');
+  assert.equal(result.groundingRetryOccurred, true);
+  assert.deepEqual(flow.calls(), { generationCalls: 2, evidenceCalls: 2 });
+  assert.equal(result.recommendations[0].counselorActions[0].action, 'Plan tasks.');
+  assert.match(flow.request().body.prompt, /SOURCE_GROUNDED_RETRY/);
+  assert.ok(!('_rejectedActions' in result));
 });
 
 test('corrective retry cannot resurrect rejected activities, duplicate actions, or invent citations', async () => {
@@ -387,7 +438,7 @@ test('corrected summary consistency and citations are reviewed again without a t
   for (const mode of ['inconsistent', 'unsupported', 'unverified-consistency']) {
     const review = (call, input) => {
       const result = recoveryReview(call, input);
-      if (call === 2) {
+      if (call >= 2) {
         if (mode === 'inconsistent') result.consistency = { aligned: false, problemFields: ['followUpPlan', 'intervention'] };
         if (mode === 'unsupported') result.reviews[0].citations[0].quote = 'Invented supporting quote, absent from passage.';
         if (mode === 'unverified-consistency') delete result.consistency;
@@ -398,7 +449,7 @@ test('corrected summary consistency and citations are reviewed again without a t
     const result = await flow.generate(data);
     assert.notEqual(result.status, 'ok');
     assert.equal(result.recommendations.length, 0);
-    assert.deepEqual(flow.calls(), { generationCalls: 2, evidenceCalls: 2 });
+    assert.deepEqual(flow.calls(), { generationCalls: 2, evidenceCalls: mode === 'unverified-consistency' ? 3 : 2 });
   }
 });
 
@@ -438,4 +489,18 @@ test('supported citations with an inconsistent summary get one complete correcti
   assert.equal(metadata.initialPassingActions, 1);
   assert.equal(metadata.initialRejectedActions, 0);
   assert.ok(metadata.failureCategories.includes('consistency_check_failed'));
+});
+
+
+test('malformed evidence review gets one constrained retry before a draft can pass', async () => {
+  const data = { ...helpers.original(record), ...helpers.progress(record) };
+  const flow = pipeline('test', modelResult, [chunk], (call, input) => call === 1
+    ? { reviews: [] }
+    : { consistency: { aligned: true, problemFields: [] }, reviews: input.actions.map((action) => ({
+      actionIndex: action.actionIndex, changeType: 'new', previousActionQuote: '',
+      citations: action.citations.map((citation) => ({ referenceNumber: citation.referenceNumber,
+        support: 'direct', quote: citation.passage })),
+    })) });
+  assert.equal((await flow.generate(data)).status, 'ok');
+  assert.deepEqual(flow.calls(), { generationCalls: 1, evidenceCalls: 2 });
 });

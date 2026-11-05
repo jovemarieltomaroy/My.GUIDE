@@ -8,7 +8,7 @@ import "./LoginPage.css";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest } from "../config/api";
 
-const VALID_ROLES = ["Counselor-Admin", "Counselor-User"];
+const VALID_ROLES = ["Super-Admin", "Counselor-Admin", "Counselor-User"];
 
 function extractUserFromResponse(data) {
   if (!data || typeof data !== "object") {
@@ -37,6 +37,10 @@ function extractUserFromResponse(data) {
 function getRequiredRoute(user) {
   if (user?.mustChangePassword === true) {
     return "/change-password";
+  }
+
+  if (user?.role === "Super-Admin") {
+    return "/system";
   }
 
   if (user?.profileCompleted === false) {
@@ -137,6 +141,11 @@ export default function LoginPage() {
       navigate("/change-password", {
         replace: true,
       });
+      return;
+    }
+
+    if (authenticatedUser.role === "Super-Admin") {
+      navigate("/system", { replace: true });
       return;
     }
 
